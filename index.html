@@ -8,7 +8,7 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
   <style>
     :root {
-      --primary: #1e293b;
+      --primary: #0f172a;
       --accent: #4f46e5;
       --accent-hover: #4338ca;
       --bg: #f8fafc;
@@ -37,7 +37,7 @@
     }
 
     .container {
-      max-width: 900px;
+      max-width: 940px;
       margin: 0 auto;
     }
 
@@ -69,7 +69,7 @@
 
     .desc {
       color: var(--text-muted);
-      max-width: 600px;
+      max-width: 650px;
       margin: 0 auto;
       font-size: 0.95rem;
       word-break: keep-all;
@@ -129,7 +129,7 @@
     }
 
     .btn-icon {
-      padding: 8px 12px;
+      padding: 8px 14px;
       border: 1px solid var(--border);
       background: white;
       border-radius: 8px;
@@ -191,49 +191,118 @@
       display: block;
     }
 
-    /* Mood Filter Bar */
-    .mood-container {
+    /* Style Template Carousel & Palette Controller */
+    .curation-panel {
+      background: #ffffff;
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 18px 20px;
+      margin-bottom: 20px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+    }
+
+    .curation-section-title {
+      font-size: 0.88rem;
+      font-weight: 700;
+      color: var(--text-muted);
+      margin-bottom: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .template-selector {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+      gap: 10px;
+      margin-bottom: 16px;
+    }
+
+    .template-card {
+      border: 1.5px solid var(--border);
+      border-radius: 10px;
+      padding: 12px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      background: #f8fafc;
+      text-align: left;
+    }
+
+    .template-card:hover {
+      border-color: #a5b4fc;
+      transform: translateY(-2px);
+    }
+
+    .template-card.active {
+      border-color: var(--accent);
+      background: #eef2ff;
+      box-shadow: 0 2px 6px rgba(79, 70, 229, 0.15);
+    }
+
+    .template-card-title {
+      font-size: 0.92rem;
+      font-weight: 700;
+      color: var(--text-main);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      margin-bottom: 4px;
+    }
+
+    .template-card-desc {
+      font-size: 0.78rem;
+      color: var(--text-muted);
+      line-height: 1.35;
+    }
+
+    .color-rule-bar {
       display: flex;
       align-items: center;
       justify-content: space-between;
       flex-wrap: wrap;
       gap: 12px;
-      margin-bottom: 16px;
-      background: #ffffff;
-      padding: 12px 18px;
-      border-radius: 12px;
-      border: 1px solid var(--border);
+      padding-top: 12px;
+      border-top: 1px solid #f1f5f9;
     }
 
-    .mood-chips {
+    .color-chips {
       display: flex;
       gap: 8px;
       flex-wrap: wrap;
     }
 
-    .mood-chip {
-      padding: 6px 14px;
+    .color-chip {
+      padding: 6px 12px;
       border-radius: 20px;
       border: 1px solid var(--border);
       background: #f8fafc;
-      font-size: 0.85rem;
+      font-size: 0.82rem;
       font-weight: 600;
       cursor: pointer;
       display: inline-flex;
       align-items: center;
-      gap: 4px;
+      gap: 6px;
       transition: all 0.2s;
     }
 
-    .mood-chip.active {
-      background: #4f46e5;
+    .color-chip.active {
+      background: #1e293b;
       color: #ffffff;
-      border-color: #4f46e5;
+      border-color: #1e293b;
+    }
+
+    .color-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      display: inline-block;
+      border: 1px solid rgba(0,0,0,0.15);
     }
 
     .outfit-action-btns {
       display: flex;
       gap: 8px;
+      margin-left: auto;
     }
 
     /* Outfit Recommendation Card */
@@ -257,7 +326,7 @@
 
     .outfit-title {
       font-size: 1.25rem;
-      font-weight: 700;
+      font-weight: 800;
       color: var(--primary);
       display: flex;
       align-items: center;
@@ -268,6 +337,19 @@
       font-size: 0.9rem;
       color: var(--text-muted);
       margin-top: 4px;
+    }
+
+    .color-match-notice {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 0.8rem;
+      font-weight: 700;
+      color: #4338ca;
+      background: #eef2ff;
+      padding: 4px 10px;
+      border-radius: 6px;
+      margin-top: 8px;
     }
 
     .badge {
@@ -317,14 +399,14 @@
 
     .item-img-placeholder {
       width: 100%;
-      height: 100px;
+      height: 110px;
       border-radius: 8px;
       display: flex;
       align-items: center;
       justify-content: center;
       background: #f1f5f9;
       color: #94a3b8;
-      font-size: 1.8rem;
+      font-size: 2rem;
       margin-bottom: 10px;
     }
 
@@ -347,6 +429,13 @@
       margin-bottom: 4px;
     }
 
+    .item-tag-row {
+      display: flex;
+      gap: 4px;
+      flex-wrap: wrap;
+      margin-bottom: 6px;
+    }
+
     .item-season-badge {
       font-size: 0.7rem;
       padding: 2px 6px;
@@ -355,13 +444,17 @@
       color: #475569;
     }
 
-    .item-mood-badge {
+    .item-color-badge {
       font-size: 0.7rem;
       padding: 2px 6px;
       border-radius: 4px;
-      background: #fdf2f8;
-      color: #db2777;
-      margin-left: 4px;
+      background: #f1f5f9;
+      color: #1e293b;
+      font-weight: 600;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      border: 1px solid #cbd5e1;
     }
 
     .item-source {
@@ -608,10 +701,10 @@
     <!-- 서비스 소개 헤더 -->
     <header>
       <div class="logo"><i class="fa-solid fa-shirt"></i> OOOOTD</div>
-      <div class="subtitle">내 옷장 기반 날씨 맞춤 코디 & 쇼핑 추천</div>
+      <div class="subtitle">스타일 템플릿 & 컬러 팔레트 기반 맞춤 코디</div>
       <p class="desc">
-        오늘 날씨와 원하는 무드(캐주얼, 미니멀, 스트릿, 포멀)에 맞춰 내 옷으로 최적의 룩을 자동 조합합니다.
-        마음에 드는 조합을 셔플하거나 OOTD 카드로 바로 저장해보세요!
+        단순 날씨 매칭을 넘어 <strong>시티보이, 프렌치 미니멀, 올드머니, 고프코어, 아메카지</strong> 등 
+        원하는 감성의 템플릿과 톤온톤/대비 색상 조화 알고리즘으로 특별한 코디를 제안합니다.
       </p>
     </header>
 
@@ -656,28 +749,49 @@
 
     <!-- 1. 오늘의 코디 추천 탭 -->
     <div id="recommendTab" class="tab-pane active">
-      <!-- 스타일 무드 필터 & 액션 버튼 바 -->
-      <div class="mood-container">
-        <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
-          <span style="font-size: 0.88rem; font-weight: 700; color: var(--text-main);">
-            <i class="fa-solid fa-palette" style="color: var(--accent);"></i> 스타일 무드:
-          </span>
-          <div class="mood-chips">
-            <button class="mood-chip active" onclick="selectMood('all', this)">전체 무드</button>
-            <button class="mood-chip" onclick="selectMood('casual', this)">캐주얼</button>
-            <button class="mood-chip" onclick="selectMood('minimal', this)">미니멀/깔끔</button>
-            <button class="mood-chip" onclick="selectMood('street', this)">스트릿</button>
-            <button class="mood-chip" onclick="selectMood('formal', this)">포멀/출근룩</button>
-          </div>
+      
+      <!-- 스타일 템플릿 & 컬러 팔레트 큐레이션 패널 -->
+      <div class="curation-panel">
+        <div class="curation-section-title">
+          <span><i class="fa-solid fa-compass" style="color: var(--accent);"></i> 스타일 템플릿 선택</span>
+          <span style="font-size: 0.78rem; font-weight: 500;">취향에 맞는 감성을 선택해보세요</span>
+        </div>
+        
+        <!-- 템플릿 선택 버튼들 -->
+        <div class="template-selector" id="template-selector-container">
+          <!-- 동적 렌더링 -->
         </div>
 
-        <div class="outfit-action-btns">
-          <button class="btn-icon" onclick="shuffleRecommendation()" title="내 옷장에서 다른 조합 셔플">
-            <i class="fa-solid fa-shuffle" style="color: var(--accent);"></i> 다른 조합 보기
-          </button>
-          <button class="btn-icon" onclick="downloadOotdCard()" title="OOTD 카드 이미지로 저장">
-            <i class="fa-solid fa-camera"></i> OOTD 카드 저장
-          </button>
+        <!-- 컬러 하모니 룰 선택 바 -->
+        <div class="color-rule-bar">
+          <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+            <span style="font-size: 0.85rem; font-weight: 700; color: var(--text-main);">
+              <i class="fa-solid fa-swatchbook" style="color: #6366f1;"></i> 색상 조합 규칙:
+            </span>
+            <div class="color-chips">
+              <button class="color-chip active" onclick="selectColorRule('all', this)">
+                자유 조화
+              </button>
+              <button class="color-chip" onclick="selectColorRule('monochrome', this)">
+                <span class="color-dot" style="background: #0f172a;"></span> 톤온톤/모노크롬
+              </button>
+              <button class="color-chip" onclick="selectColorRule('earthy', this)">
+                <span class="color-dot" style="background: #92400e;"></span> 어스톤/뉴트럴
+              </button>
+              <button class="color-chip" onclick="selectColorRule('point', this)">
+                <span class="color-dot" style="background: #2563eb;"></span> 원포인트 대비
+              </button>
+            </div>
+          </div>
+
+          <div class="outfit-action-btns">
+            <button class="btn-icon" onclick="shuffleRecommendation()" title="해당 템플릿 안에서 다른 옷 매칭">
+              <i class="fa-solid fa-shuffle" style="color: var(--accent);"></i> 다른 조합 셔플
+            </button>
+            <button class="btn-icon" onclick="downloadOotdCard()" title="OOTD 카드 이미지로 저장">
+              <i class="fa-solid fa-camera"></i> OOTD 카드 저장
+            </button>
+          </div>
         </div>
       </div>
 
@@ -686,9 +800,12 @@
         <div class="outfit-header">
           <div>
             <div id="recommend-title" class="outfit-title">
-              <i class="fa-solid fa-sparkles" style="color: #6366f1;"></i> 오늘의 추천 룩
+              <i class="fa-solid fa-sparkles" style="color: #6366f1;"></i> 추천 코디 분석 중
             </div>
-            <div id="recommend-desc" class="outfit-reason">기온과 옷장 상태를 분석하여 코디를 조합 중입니다.</div>
+            <div id="recommend-desc" class="outfit-reason">기온과 옷장 상태를 분석 중입니다.</div>
+            <div id="color-match-notice" class="color-match-notice" style="display: none;">
+              <i class="fa-solid fa-circle-check"></i> <span id="color-match-text">색조합 최적화 적용됨</span>
+            </div>
           </div>
           <span class="badge" id="recommend-tier-badge">기온 맞춤형</span>
         </div>
@@ -715,7 +832,7 @@
 
     <!-- 2. 내 옷장 관리 탭 -->
     <div id="closetTab" class="tab-pane">
-      <!-- 옷 등록 폼 (사진 업로드 포함) -->
+      <!-- 옷 등록 폼 (사진 & 색상 & 스타일 무드 포함) -->
       <div class="closet-form-container">
         <h3 style="font-size: 1.1rem; font-weight: 700; margin-bottom: 14px;">
           <i class="fa-solid fa-plus-circle" style="color: var(--accent);"></i> 새 옷 등록하기
@@ -733,7 +850,7 @@
             </div>
             <div class="form-group">
               <label for="cloth-name">옷 이름 / 특징</label>
-              <input type="text" id="cloth-name" placeholder="예: 오버핏 울 코트, 화이트 셔츠" required>
+              <input type="text" id="cloth-name" placeholder="예: 오버핏 울 코트, 중청 와이드 데님" required>
             </div>
             <div class="form-group">
               <label for="cloth-season">적합 기온/계절</label>
@@ -746,16 +863,31 @@
               </select>
             </div>
             <div class="form-group">
-              <label for="cloth-mood">스타일 무드</label>
-              <select id="cloth-mood" required>
-                <option value="casual" selected>캐주얼</option>
-                <option value="minimal">미니멀/깔끔</option>
-                <option value="street">스트릿</option>
-                <option value="formal">포멀/출근룩</option>
+              <label for="cloth-color">주요 색상 계열</label>
+              <select id="cloth-color" required>
+                <option value="black" selected>블랙 (Black)</option>
+                <option value="white">화이트/아이보리</option>
+                <option value="grey">그레이 (Grey)</option>
+                <option value="navy">네이비 (Navy)</option>
+                <option value="beige">베이지/브라운</option>
+                <option value="khaki">카키/올리브</option>
+                <option value="blue">블루/데님</option>
+                <option value="point">포인트 컬러 (레드/그린/옐로우 등)</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="cloth-style">스타일 분류</label>
+              <select id="cloth-style" required>
+                <option value="casual" selected>캐주얼/데일리</option>
+                <option value="cityboy">시티보이/오버핏</option>
+                <option value="minimal">프렌치 미니멀/깔끔</option>
+                <option value="oldmoney">올드머니/클래식</option>
+                <option value="gorpcore">고프코어/아웃도어</option>
+                <option value="street">스트릿/아메카지</option>
               </select>
             </div>
             <div class="form-group" style="grid-column: 1 / -1;">
-              <label for="cloth-image">옷 사진 (선택 사항)</label>
+              <label for="cloth-image">옷 사진 첨부 (선택 사항)</label>
               <input type="file" id="cloth-image" accept="image/*" onchange="previewUploadImage(this)">
               <div id="image-preview-box" style="display: none; margin-top: 8px;">
                 <img id="image-preview" src="" alt="미리보기" style="width: 80px; height: 80px; object-fit: cover; border-radius: 8px; border: 1px solid var(--border);">
@@ -773,7 +905,7 @@
         <div class="closet-header">
           <h3 style="font-size: 1.1rem; font-weight: 700;">내 보유 옷 목록</h3>
           <button class="btn-icon" onclick="resetDefaultCloset()" style="font-size: 0.8rem;">
-            <i class="fa-solid fa-arrows-rotate"></i> 기본 옷장 샘플로 리셋
+            <i class="fa-solid fa-arrows-rotate"></i> 스타일별 풍성한 샘플 옷장으로 리셋
           </button>
         </div>
 
@@ -792,7 +924,7 @@
               <th style="width: 60px;">사진</th>
               <th>카테고리</th>
               <th>옷 이름</th>
-              <th>적합 시즌 / 무드</th>
+              <th>색상 / 스타일 / 시즌</th>
               <th style="width: 70px; text-align: center;">관리</th>
             </tr>
           </thead>
@@ -810,25 +942,109 @@
 
   <script>
     /* ==========================================================
-       1. 기본 데이터 & 로컬 스토리지 (옷장 관리)
+       1. 스타일 템플릿 & 풍부한 옷장 기본 데이터
        ========================================================== */
+    const STYLE_TEMPLATES = [
+      {
+        id: 'cityboy',
+        name: '시티보이 룩',
+        icon: 'fa-person-walking',
+        desc: '여유로운 오버실루엣과 캐주얼 셔츠/스니커즈의 편안하고 세련된 무드',
+        preferredColors: ['navy', 'white', 'beige', 'grey', 'blue'],
+        compatibleStyles: ['cityboy', 'casual', 'street']
+      },
+      {
+        id: 'minimal',
+        name: '프렌치 미니멀',
+        icon: 'fa-wand-magic',
+        desc: '군더더기 없는 모노톤 절제미와 정제된 테일러드 핏의 감성',
+        preferredColors: ['black', 'white', 'grey'],
+        compatibleStyles: ['minimal', 'casual']
+      },
+      {
+        id: 'oldmoney',
+        name: '올드머니 클래식',
+        icon: 'fa-crown',
+        desc: '캐시미어, 울, 고급스러운 베이지/네이비 톤온톤의 우아한 분위기',
+        preferredColors: ['beige', 'navy', 'white', 'grey'],
+        compatibleStyles: ['oldmoney', 'minimal']
+      },
+      {
+        id: 'gorpcore',
+        name: '고프코어 아웃도어',
+        icon: 'fa-mountain',
+        desc: '방풍 쉘, 카고 팬츠, 트레일 러닝화가 어우러진 기능성 테크웨어 룩',
+        preferredColors: ['khaki', 'black', 'grey', 'point'],
+        compatibleStyles: ['gorpcore', 'street', 'casual']
+      },
+      {
+        id: 'casual_daily',
+        name: '내추럴 데일리',
+        icon: 'fa-mug-saucer',
+        desc: '누구나 호불호 없이 어울리는 편안하고 깔끔한 정석 데일리 매칭',
+        preferredColors: ['blue', 'white', 'navy', 'grey'],
+        compatibleStyles: ['casual', 'cityboy', 'minimal']
+      }
+    ];
+
+    const COLOR_HEX = {
+      black: '#111827',
+      white: '#f8fafc',
+      grey: '#64748b',
+      navy: '#1e3a8a',
+      beige: '#d97706',
+      khaki: '#3f6212',
+      blue: '#2563eb',
+      point: '#dc2626'
+    };
+
+    const COLOR_LABELS = {
+      black: '블랙',
+      white: '화이트',
+      grey: '그레이',
+      navy: '네이비',
+      beige: '베이지/브라운',
+      khaki: '카키',
+      blue: '블루/데님',
+      point: '포인트컬러'
+    };
+
     const DEFAULT_CLOTHES = [
-      { id: 1, category: 'outer', name: '롱 패딩 점퍼', season: 'winter', mood: 'casual', image: '' },
-      { id: 2, category: 'outer', name: '오버핏 네이비 울 코트', season: 'chilly', mood: 'minimal', image: '' },
-      { id: 3, category: 'outer', name: '클래식 테일러드 자켓', season: 'mild', mood: 'formal', image: '' },
-      { id: 4, category: 'outer', name: '라이트 윈드브레이커 (바람막이)', season: 'warm', mood: 'street', image: '' },
-      { id: 5, category: 'top', name: '터틀넥 캐시미어 니트', season: 'chilly', mood: 'minimal', image: '' },
-      { id: 6, category: 'top', name: '베이직 화이트 코튼 셔츠', season: 'mild', mood: 'formal', image: '' },
-      { id: 7, category: 'top', name: '오버사이즈 그래픽 스웨트셔츠', season: 'mild', mood: 'street', image: '' },
-      { id: 8, category: 'top', name: '릴렉스 반팔 티셔츠', season: 'warm', mood: 'casual', image: '' },
-      { id: 9, category: 'bottom', name: '기모 슬랙스', season: 'chilly', mood: 'formal', image: '' },
-      { id: 10, category: 'bottom', name: '스트레이트 핏 중청 데님', season: 'mild', mood: 'casual', image: '' },
-      { id: 11, category: 'bottom', name: '와이드 카고 치노팬츠', season: 'mild', mood: 'street', image: '' },
-      { id: 12, category: 'bottom', name: '린넨 밴딩 하프 팬츠', season: 'hot', mood: 'casual', image: '' },
-      { id: 13, category: 'shoes', name: '첼시 가죽 부츠', season: 'chilly', mood: 'minimal', image: '' },
-      { id: 14, category: 'shoes', name: '화이트 레더 스니커즈', season: 'mild', mood: 'casual', image: '' },
-      { id: 15, category: 'shoes', name: '볼드 청키 더비슈즈', season: 'mild', mood: 'formal', image: '' },
-      { id: 16, category: 'shoes', name: '클래식 러닝화', season: 'warm', mood: 'street', image: '' }
+      // Outer
+      { id: 1, category: 'outer', name: '헤비 오버사이즈 롱 패딩', season: 'winter', color: 'black', style: 'cityboy', image: '' },
+      { id: 2, category: 'outer', name: '캐시미어 블렌드 싱글 울 코트', season: 'chilly', color: 'black', style: 'minimal', image: '' },
+      { id: 3, category: 'outer', name: '카멜 브라운 핸드메이드 로브 코트', season: 'chilly', color: 'beige', style: 'oldmoney', image: '' },
+      { id: 4, category: 'outer', name: '테크니컬 방수 쉘 윈드브레이커', season: 'mild', color: 'khaki', style: 'gorpcore', image: '' },
+      { id: 5, category: 'outer', name: '클래식 테일러드 네이비 블레이저', season: 'mild', color: 'navy', style: 'oldmoney', image: '' },
+      { id: 6, category: 'outer', name: '오버핏 옥스포드 워크자켓', season: 'mild', color: 'beige', style: 'cityboy', image: '' },
+      { id: 7, category: 'outer', name: '라이트 코튼 셔츠 자켓', season: 'warm', color: 'navy', style: 'casual', image: '' },
+
+      // Top
+      { id: 8, category: 'top', name: '헤비 울 터틀넥 니트', season: 'winter', color: 'white', style: 'oldmoney', image: '' },
+      { id: 9, category: 'top', name: '모헤어 오버핏 케이블 니트', season: 'chilly', color: 'grey', style: 'cityboy', image: '' },
+      { id: 10, category: 'top', name: '프리미엄 파인 울 크루넥 니트', season: 'chilly', color: 'navy', style: 'minimal', image: '' },
+      { id: 11, category: 'top', name: '오버사이즈 옥스포드 스트라이프 셔츠', season: 'mild', color: 'blue', style: 'cityboy', image: '' },
+      { id: 12, category: 'top', name: '베이직 포플린 화이트 셔츠', season: 'mild', color: 'white', style: 'minimal', image: '' },
+      { id: 13, category: 'top', name: '헤비웨이트 빈티지 스웨트셔츠', season: 'mild', color: 'grey', style: 'casual', image: '' },
+      { id: 14, category: 'top', name: '쿨맥스 기능성 긴팔 롱슬리브', season: 'warm', color: 'black', style: 'gorpcore', image: '' },
+      { id: 15, category: 'top', name: '수피마 코튼 릴렉스 반팔 티셔츠', season: 'hot', color: 'white', style: 'casual', image: '' },
+
+      // Bottom
+      { id: 16, category: 'bottom', name: '와이드 울 기모 슬랙스', season: 'winter', color: 'grey', style: 'minimal', image: '' },
+      { id: 17, category: 'bottom', name: '원턱 테이퍼드 치노팬츠', season: 'chilly', color: 'beige', style: 'oldmoney', image: '' },
+      { id: 18, category: 'bottom', name: '딥 인디고 와이드 셀비지 데님', season: 'mild', color: 'blue', style: 'cityboy', image: '' },
+      { id: 19, category: 'bottom', name: '스트레이트 세미와이드 블랙진', season: 'mild', color: 'black', style: 'minimal', image: '' },
+      { id: 20, category: 'bottom', name: '나일론 유틸리티 와이드 카고팬츠', season: 'mild', color: 'khaki', style: 'gorpcore', image: '' },
+      { id: 21, category: 'bottom', name: '크림 아이보리 와이드 팬츠', season: 'warm', color: 'white', style: 'oldmoney', image: '' },
+      { id: 22, category: 'bottom', name: '이지 린넨 밴딩 하프 쇼츠', season: 'hot', color: 'black', style: 'casual', image: '' },
+
+      // Shoes
+      { id: 23, category: 'shoes', name: '클래식 첼시 가죽 부츠', season: 'chilly', color: 'black', style: 'minimal', image: '' },
+      { id: 24, category: 'shoes', name: '프리미엄 스웨이드 로퍼', season: 'chilly', color: 'beige', style: 'oldmoney', image: '' },
+      { id: 25, category: 'shoes', name: '빈티지 레트로 러닝화 (레더)', season: 'mild', color: 'grey', style: 'cityboy', image: '' },
+      { id: 26, category: 'shoes', name: '어반 고어텍스 트레일 하이킹화', season: 'mild', color: 'black', style: 'gorpcore', image: '' },
+      { id: 27, category: 'shoes', name: '화이트 미니멀 레더 스니커즈', season: 'warm', color: 'white', style: 'casual', image: '' },
+      { id: 28, category: 'shoes', name: '투스트랩 가죽 슬라이드 샌들', season: 'hot', color: 'black', style: 'minimal', image: '' }
     ];
 
     const SEASON_LABELS = {
@@ -837,13 +1053,6 @@
       mild: '봄/가을 (12°C~19°C)',
       warm: '초여름/선선 (20°C~25°C)',
       hot: '한여름 (26°C 이상)'
-    };
-
-    const MOOD_LABELS = {
-      casual: '캐주얼',
-      minimal: '미니멀',
-      street: '스트릿',
-      formal: '포멀'
     };
 
     const CATEGORY_NAMES = {
@@ -874,11 +1083,12 @@
     let currentWeather = { temp: 15, code: 0, isDay: 1 };
     let closetItems = [];
     let currentFilter = 'all';
-    let currentMood = 'all';
+    let currentTemplate = 'cityboy';
+    let currentColorRule = 'all';
     let uploadedImageBase64 = '';
 
     function initCloset() {
-      const stored = localStorage.getItem('ooootd_closet');
+      const stored = localStorage.getItem('ooootd_closet_v2');
       if (stored) {
         try {
           closetItems = JSON.parse(stored);
@@ -889,125 +1099,254 @@
         closetItems = [...DEFAULT_CLOTHES];
         saveCloset();
       }
+      renderTemplateCards();
       updateClosetUI();
     }
 
     function saveCloset() {
-      localStorage.setItem('ooootd_closet', JSON.stringify(closetItems));
+      localStorage.setItem('ooootd_closet_v2', JSON.stringify(closetItems));
       updateClosetUI();
       generateRecommendation();
     }
 
     function resetDefaultCloset() {
-      if (confirm('옷장을 기본 추천 샘플 목록으로 초기화하시겠습니까?')) {
+      if (confirm('스타일 템플릿과 색상 정보가 풍부한 기본 옷장 샘플(28개 아이템)로 리셋하시겠습니까?')) {
         closetItems = [...DEFAULT_CLOTHES];
         saveCloset();
       }
     }
 
-    function previewUploadImage(input) {
-      const previewBox = document.getElementById('image-preview-box');
-      const previewImg = document.getElementById('image-preview');
+    /* ==========================================================
+       2. 스타일 템플릿 & 컬러 팔레트 선택 UI
+       ========================================================== */
+    function renderTemplateCards() {
+      const container = document.getElementById('template-selector-container');
+      container.innerHTML = '';
 
-      if (input.files && input.files[0]) {
-        const reader = new FileReader();
-        reader.onload = function(e) {
-          uploadedImageBase64 = e.target.result;
-          previewImg.src = uploadedImageBase64;
-          previewBox.style.display = 'block';
-        };
-        reader.readAsDataURL(input.files[0]);
-      } else {
-        uploadedImageBase64 = '';
-        previewBox.style.display = 'none';
-      }
-    }
-
-    function handleAddCloth(e) {
-      e.preventDefault();
-      const cat = document.getElementById('cloth-category').value;
-      const name = document.getElementById('cloth-name').value.trim();
-      const season = document.getElementById('cloth-season').value;
-      const mood = document.getElementById('cloth-mood').value;
-
-      if (!name) return;
-
-      const newItem = {
-        id: Date.now(),
-        category: cat,
-        name: name,
-        season: season,
-        mood: mood,
-        image: uploadedImageBase64 || ''
-      };
-
-      closetItems.unshift(newItem);
-      saveCloset();
-
-      // Reset Form
-      document.getElementById('cloth-name').value = '';
-      document.getElementById('cloth-image').value = '';
-      document.getElementById('image-preview-box').style.display = 'none';
-      uploadedImageBase64 = '';
-      alert(`[${name}] 아이템이 옷장에 등록되었습니다!`);
-    }
-
-    function deleteCloth(id) {
-      closetItems = closetItems.filter(item => item.id !== id);
-      saveCloset();
-    }
-
-    function filterCloset(category, chipEl) {
-      currentFilter = category;
-      document.querySelectorAll('.filter-chip').forEach(c => c.classList.remove('active'));
-      if (chipEl) chipEl.classList.add('active');
-      renderClosetTable();
-    }
-
-    function updateClosetUI() {
-      document.getElementById('closet-count').textContent = closetItems.length;
-      renderClosetTable();
-    }
-
-    function renderClosetTable() {
-      const tbody = document.getElementById('closet-table-body');
-      tbody.innerHTML = '';
-
-      const filtered = currentFilter === 'all' 
-        ? closetItems 
-        : closetItems.filter(item => item.category === currentFilter);
-
-      if (filtered.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="5" style="text-align: center; color: var(--text-muted); padding: 24px;">등록된 옷이 없습니다. 새 옷을 추가해 보세요!</td></tr>`;
-        return;
-      }
-
-      filtered.forEach(item => {
-        const tr = document.createElement('tr');
-        const thumbHtml = item.image 
-          ? `<img src="${item.image}" class="table-thumb" alt="옷 사진">` 
-          : `<div class="table-thumb" style="display:flex;align-items:center;justify-content:center;color:#94a3b8;"><i class="fa-solid ${CATEGORY_ICONS[item.category] || 'fa-shirt'}"></i></div>`;
-
-        tr.innerHTML = `
-          <td>${thumbHtml}</td>
-          <td><strong>${CATEGORY_NAMES[item.category] || item.category}</strong></td>
-          <td>${escapeHtml(item.name)}</td>
-          <td>
-            <span class="item-season-badge">${SEASON_LABELS[item.season]?.split(' ')[0] || item.season}</span>
-            <span class="item-mood-badge">${MOOD_LABELS[item.mood] || item.mood || '캐주얼'}</span>
-          </td>
-          <td style="text-align: center;">
-            <button class="btn-danger" onclick="deleteCloth(${item.id})" title="삭제">
-              <i class="fa-solid fa-trash-can"></i>
-            </button>
-          </td>
+      STYLE_TEMPLATES.forEach(tpl => {
+        const card = document.createElement('div');
+        card.className = `template-card ${tpl.id === currentTemplate ? 'active' : ''}`;
+        card.onclick = () => selectTemplate(tpl.id);
+        card.innerHTML = `
+          <div class="template-card-title">
+            <i class="fa-solid ${tpl.icon}" style="color: var(--accent);"></i> ${tpl.name}
+          </div>
+          <div class="template-card-desc">${tpl.desc}</div>
         `;
-        tbody.appendChild(tr);
+        container.appendChild(card);
       });
     }
 
+    function selectTemplate(tplId) {
+      currentTemplate = tplId;
+      renderTemplateCards();
+      generateRecommendation();
+    }
+
+    function selectColorRule(rule, chipEl) {
+      currentColorRule = rule;
+      document.querySelectorAll('.color-chip').forEach(c => c.classList.remove('active'));
+      if (chipEl) chipEl.classList.add('active');
+      generateRecommendation();
+    }
+
+    function shuffleRecommendation() {
+      generateRecommendation(true);
+    }
+
     /* ==========================================================
-       2. 실제 날씨 API 연동 (Open-Meteo)
+       3. 색조합 및 스타일 템플릿 추천 알고리즘
+       ========================================================== */
+    function getTemperatureSeason(temp) {
+      if (temp <= 4) return 'winter';
+      if (temp <= 11) return 'chilly';
+      if (temp <= 19) return 'mild';
+      if (temp <= 25) return 'warm';
+      return 'hot';
+    }
+
+    // 색상 조화도 점수 계산기
+    function evaluateColorHarmony(items, rule) {
+      const colors = items.filter(Boolean).map(it => it.color || 'black');
+      if (colors.length === 0) return 0;
+
+      if (rule === 'monochrome') {
+        // 모노크롬 (블랙/화이트/그레이 또는 동일 색상 위주)
+        const monoColors = ['black', 'white', 'grey'];
+        const isMono = colors.every(c => monoColors.includes(c));
+        return isMono ? 50 : 0;
+      } else if (rule === 'earthy') {
+        // 어스톤 (베이지, 카키, 화이트, 네이비)
+        const earthColors = ['beige', 'khaki', 'white', 'navy'];
+        const matchCount = colors.filter(c => earthColors.includes(c)).length;
+        return matchCount * 15;
+      } else if (rule === 'point') {
+        // 원포인트 (기본 뉴트럴 톤 3개 + 포인트/블루 1개)
+        const hasPoint = colors.includes('point') || colors.includes('blue');
+        return hasPoint ? 40 : 10;
+      }
+      return 20; // 자유 조화
+    }
+
+    function generateRecommendation(isShuffle = false) {
+      const temp = currentWeather.temp;
+      const targetSeason = getTemperatureSeason(temp);
+      const activeTemplate = STYLE_TEMPLATES.find(t => t.id === currentTemplate) || STYLE_TEMPLATES[0];
+
+      const titleEl = document.getElementById('recommend-title');
+      const descEl = document.getElementById('recommend-desc');
+      const badgeEl = document.getElementById('recommend-tier-badge');
+      const colorNotice = document.getElementById('color-match-notice');
+      const colorMatchText = document.getElementById('color-match-text');
+      const container = document.getElementById('outfit-items-container');
+
+      // 제목 및 템플릿 설명 세팅
+      titleEl.innerHTML = `<i class="fa-solid ${activeTemplate.icon}" style="color: #6366f1;"></i> [${activeTemplate.name}] ${getSeasonTitle(targetSeason)}`;
+      descEl.textContent = `현재 기온 ${temp}°C에 맞춘 ${activeTemplate.desc}`;
+      badgeEl.textContent = `기온: ${temp}°C (${SEASON_LABELS[targetSeason]?.split(' ')[0]})`;
+
+      const categories = ['outer', 'top', 'bottom', 'shoes'];
+      container.innerHTML = '';
+
+      // 추천 아이템 선별:
+      // 1순위: 기온 일치 + 템플릿 스타일 일치 + 선호 색상 일치
+      // 2순위: 기온 일치 + 템플릿 스타일 일치
+      // 3순위: 기온 일치 + 카테고리 일치
+      // 4순위: 카테고리 일치
+      const chosenItems = [];
+
+      categories.forEach(cat => {
+        let pool = closetItems.filter(item => item.category === cat);
+
+        // 후보군 점수 매기기
+        let scored = pool.map(item => {
+          let score = 0;
+          if (item.season === targetSeason) score += 40;
+          if (activeTemplate.compatibleStyles.includes(item.style)) score += 30;
+          if (activeTemplate.preferredColors.includes(item.color)) score += 20;
+          
+          // 색상 룰 가산점
+          if (currentColorRule === 'monochrome' && ['black', 'white', 'grey'].includes(item.color)) score += 25;
+          if (currentColorRule === 'earthy' && ['beige', 'khaki', 'white'].includes(item.color)) score += 25;
+          if (currentColorRule === 'point' && ['point', 'blue'].includes(item.color)) score += 20;
+
+          // 셔플 시 약간의 랜덤성 부여
+          if (isShuffle) {
+            score += Math.random() * 25;
+          }
+
+          return { item, score };
+        });
+
+        scored.sort((a, b) => b.score - a.score);
+
+        const chosen = scored.length > 0 ? scored[0].item : null;
+        chosenItems.push(chosen);
+
+        const card = document.createElement('div');
+        card.className = 'item-card';
+
+        if (chosen) {
+          const imgPreviewHtml = chosen.image 
+            ? `<img src="${chosen.image}" class="item-img-preview" alt="${chosen.name}">` 
+            : `<div class="item-img-placeholder"><i class="fa-solid ${CATEGORY_ICONS[chosen.category] || 'fa-shirt'}"></i></div>`;
+
+          const dotColor = COLOR_HEX[chosen.color] || '#333';
+
+          card.innerHTML = `
+            ${imgPreviewHtml}
+            <div class="item-category">
+              <span>${CATEGORY_NAMES[cat]}</span>
+              <span class="item-season-badge">${SEASON_LABELS[chosen.season]?.split(' ')[0] || chosen.season}</span>
+            </div>
+            <div class="item-name">${escapeHtml(chosen.name)}</div>
+            <div class="item-tag-row">
+              <span class="item-color-badge">
+                <span class="color-dot" style="background: ${dotColor};"></span> ${COLOR_LABELS[chosen.color] || chosen.color}
+              </span>
+              <span class="item-season-badge" style="background: #fdf2f8; color: #db2777;">
+                ${chosen.style || '데일리'}
+              </span>
+            </div>
+            <div class="item-source"><i class="fa-solid fa-circle-check"></i> 내 옷장 매칭</div>
+          `;
+        } else {
+          card.innerHTML = `
+            <div class="item-img-placeholder"><i class="fa-solid fa-circle-question"></i></div>
+            <div class="item-category">${CATEGORY_NAMES[cat]}</div>
+            <div class="item-name" style="color: #94a3b8;">등록된 옷 없음</div>
+            <div class="item-empty-notice">+ 옷장 탭에서 옷을 등록해보세요</div>
+          `;
+        }
+        container.appendChild(card);
+      });
+
+      // 컬러 매칭 안내 배지 표시
+      const ruleLabels = {
+        all: '자연스러운 톤 매칭',
+        monochrome: '세련된 모노크롬 / 톤온톤 매칭',
+        earthy: '내추럴 어스톤(베이지/카키) 하모니',
+        point: '감각적인 원포인트 컬러 대비'
+      };
+      colorNotice.style.display = 'inline-flex';
+      colorMatchText.textContent = `${activeTemplate.name} × ${ruleLabels[currentColorRule] || '색상 조화'} 적용됨`;
+
+      updateShoppingAddon(activeTemplate, targetSeason, temp);
+    }
+
+    function getSeasonTitle(season) {
+      const map = {
+        winter: '헤비 윈터 방한 코디',
+        chilly: '레이어드 어텀/윈터 룩',
+        mild: '간절기 시그니처 룩',
+        warm: '라이트 스프링/얼리썸머 룩',
+        hot: '쿨 썸머 브리즈 룩'
+      };
+      return map[season] || '데일리 추천 룩';
+    }
+
+    function updateShoppingAddon(template, season, temp) {
+      const addonTitle = document.getElementById('addon-title-text');
+      const addonDesc = document.getElementById('addon-desc-text');
+      const addonLink = document.getElementById('addon-link');
+
+      const templateAddons = {
+        cityboy: {
+          title: '오버사이즈 스트라이프 볼캡 & 와이드 토트백',
+          desc: `시티보이 룩의 완성도를 극대화해 줄 깊은 깊이감의 코튼 볼캡이나 내추럴 캔버스백을 더해보세요!`,
+          keyword: '시티보이 볼캡'
+        },
+        minimal: {
+          title: '미니멀 스퀘어 레더 숄더백 or 실버 뱅글',
+          desc: `절제된 미니멀 룩에 은은한 포인트를 주는 가죽 벨트나 얇은 실버 주얼리를 매치해보세요.`,
+          keyword: '미니멀 레더 백'
+        },
+        oldmoney: {
+          title: '캐시미어 100% 숄 머플러 & 클래식 스위스 워치',
+          desc: `우아한 올드머니 무드를 풍성하게 채워줄 뉴트럴 베이지 톤의 캐시미어 머플러를 추천합니다.`,
+          keyword: '캐시미어 머플러'
+        },
+        gorpcore: {
+          title: '아웃도어 유틸리티 사코슈 백 or 트레일 캡',
+          desc: `기능성과 스트릿 감성을 동시에 잡는 나일론 미니 사코슈백으로 고프코어 무드를 연출해보세요.`,
+          keyword: '고프코어 사코슈'
+        },
+        casual_daily: {
+          title: '빈티지 감성 비니 or 은은한 실버 체인',
+          desc: `기본 데일리 룩에 센스를 한 스푼 얹어줄 숏비니나 메탈 프레임 안경을 추천합니다.`,
+          keyword: '숏비니'
+        }
+      };
+
+      const addon = templateAddons[template.id] || templateAddons['casual_daily'];
+      addonTitle.textContent = addon.title;
+      addonDesc.textContent = addon.desc;
+      addonLink.href = `https://www.musinsa.com/search/musinsa/goods?q=${encodeURIComponent(addon.keyword)}`;
+      addonLink.innerHTML = `<span>'${addon.keyword}' 아이템 보러가기</span> <i class="fa-solid fa-arrow-up-right-from-square"></i>`;
+    }
+
+    /* ==========================================================
+       4. 날씨 API & 유틸리티
        ========================================================== */
     async function fetchLiveWeather() {
       const city = CITY_COORDS[currentCity] || CITY_COORDS['Seoul'];
@@ -1079,161 +1418,116 @@
     }
 
     /* ==========================================================
-       3. 무드 선택 및 셔플 알고리즘
+       5. 옷장 관리 (등록, 삭제, 사진 업로드)
        ========================================================== */
-    function selectMood(mood, chipEl) {
-      currentMood = mood;
-      document.querySelectorAll('.mood-chip').forEach(c => c.classList.remove('active'));
+    function previewUploadImage(input) {
+      const previewBox = document.getElementById('image-preview-box');
+      const previewImg = document.getElementById('image-preview');
+
+      if (input.files && input.files[0]) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+          uploadedImageBase64 = e.target.result;
+          previewImg.src = uploadedImageBase64;
+          previewBox.style.display = 'block';
+        };
+        reader.readAsDataURL(input.files[0]);
+      } else {
+        uploadedImageBase64 = '';
+        previewBox.style.display = 'none';
+      }
+    }
+
+    function handleAddCloth(e) {
+      e.preventDefault();
+      const cat = document.getElementById('cloth-category').value;
+      const name = document.getElementById('cloth-name').value.trim();
+      const season = document.getElementById('cloth-season').value;
+      const color = document.getElementById('cloth-color').value;
+      const style = document.getElementById('cloth-style').value;
+
+      if (!name) return;
+
+      const newItem = {
+        id: Date.now(),
+        category: cat,
+        name: name,
+        season: season,
+        color: color,
+        style: style,
+        image: uploadedImageBase64 || ''
+      };
+
+      closetItems.unshift(newItem);
+      saveCloset();
+
+      // Reset
+      document.getElementById('cloth-name').value = '';
+      document.getElementById('cloth-image').value = '';
+      document.getElementById('image-preview-box').style.display = 'none';
+      uploadedImageBase64 = '';
+      alert(`[${name}] 아이템이 옷장에 등록되었습니다!`);
+    }
+
+    function deleteCloth(id) {
+      closetItems = closetItems.filter(item => item.id !== id);
+      saveCloset();
+    }
+
+    function filterCloset(category, chipEl) {
+      currentFilter = category;
+      document.querySelectorAll('.filter-chip').forEach(c => c.classList.remove('active'));
       if (chipEl) chipEl.classList.add('active');
-      generateRecommendation();
+      renderClosetTable();
     }
 
-    function shuffleRecommendation() {
-      generateRecommendation(true);
+    function updateClosetUI() {
+      document.getElementById('closet-count').textContent = closetItems.length;
+      renderClosetTable();
     }
 
-    function getTemperatureSeason(temp) {
-      if (temp <= 4) return 'winter';
-      if (temp <= 11) return 'chilly';
-      if (temp <= 19) return 'mild';
-      if (temp <= 25) return 'warm';
-      return 'hot';
-    }
+    function renderClosetTable() {
+      const tbody = document.getElementById('closet-table-body');
+      tbody.innerHTML = '';
 
-    function generateRecommendation(isShuffle = false) {
-      const temp = currentWeather.temp;
-      const targetSeason = getTemperatureSeason(temp);
+      const filtered = currentFilter === 'all' 
+        ? closetItems 
+        : closetItems.filter(item => item.category === currentFilter);
 
-      const titleEl = document.getElementById('recommend-title');
-      const descEl = document.getElementById('recommend-desc');
-      const badgeEl = document.getElementById('recommend-tier-badge');
-      const container = document.getElementById('outfit-items-container');
+      if (filtered.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="5" style="text-align: center; color: var(--text-muted); padding: 24px;">등록된 옷이 없습니다. 새 옷을 추가해 보세요!</td></tr>`;
+        return;
+      }
 
-      // 시즌 & 무드별 타이틀 생성
-      const moodText = currentMood === 'all' ? '' : `[${MOOD_LABELS[currentMood]}] `;
-      const metaMap = {
-        winter: { title: `${moodText}따뜻한 방한 윈터 룩`, badge: '❄️ 한파 대비', desc: `현재 기온 ${temp}°C, 매서운 추위를 막아주는 든든한 보온 코디` },
-        chilly: { title: `${moodText}클래식 어텀 & 윈터 룩`, badge: '🍂 쌀쌀한 날씨', desc: `현재 기온 ${temp}°C, 코트와 포근한 니트의 분위기 있는 조합` },
-        mild: { title: `${moodText}모던 데일리 룩`, badge: '🌿 선선하고 쾌적', desc: `현재 기온 ${temp}°C, 자켓과 셔츠로 연출하는 멋스러운 코디` },
-        warm: { title: `${moodText}산뜻한 시티 캐주얼 룩`, badge: '☀️ 산뜻한 날씨', desc: `현재 기온 ${temp}°C, 가볍고 편안한 활동성 중심의 조합` },
-        hot: { title: `${moodText}시원한 썸머 쿨 룩`, badge: '🔥 무더위 대비', desc: `현재 기온 ${temp}°C, 통기성이 뛰어난 쾌적한 여름 스타일링` }
-      };
+      filtered.forEach(item => {
+        const tr = document.createElement('tr');
+        const thumbHtml = item.image 
+          ? `<img src="${item.image}" class="table-thumb" alt="옷 사진">` 
+          : `<div class="table-thumb" style="display:flex;align-items:center;justify-content:center;color:#94a3b8;"><i class="fa-solid ${CATEGORY_ICONS[item.category] || 'fa-shirt'}"></i></div>`;
 
-      const meta = metaMap[targetSeason];
-      titleEl.innerHTML = `<i class="fa-solid fa-wand-magic-sparkles" style="color: #6366f1;"></i> ${meta.title}`;
-      descEl.textContent = meta.desc;
-      badgeEl.textContent = meta.badge;
+        const dotColor = COLOR_HEX[item.color] || '#333';
 
-      // 4개 카테고리 매칭 (outer, top, bottom, shoes)
-      const categories = ['outer', 'top', 'bottom', 'shoes'];
-      container.innerHTML = '';
-
-      categories.forEach(cat => {
-        // 1. 해당 기온 시즌 + 무드 필터 일치 우선 검색
-        let matches = closetItems.filter(item => {
-          const matchCat = item.category === cat;
-          const matchSeason = item.season === targetSeason;
-          const matchMood = currentMood === 'all' || item.mood === currentMood;
-          return matchCat && matchSeason && matchMood;
-        });
-
-        // 2. 무드 일치 안 되면 기온 일치만 검색
-        if (matches.length === 0) {
-          matches = closetItems.filter(item => item.category === cat && item.season === targetSeason);
-        }
-
-        // 3. 기온도 없으면 카테고리 전체에서 검색 (폴백)
-        if (matches.length === 0) {
-          matches = closetItems.filter(item => item.category === cat);
-        }
-
-        let chosen = null;
-        if (matches.length > 0) {
-          if (isShuffle) {
-            // 랜덤 선택
-            chosen = matches[Math.floor(Math.random() * matches.length)];
-          } else {
-            chosen = matches[0];
-          }
-        }
-
-        const card = document.createElement('div');
-        card.className = 'item-card';
-
-        if (chosen) {
-          const imgPreviewHtml = chosen.image 
-            ? `<img src="${chosen.image}" class="item-img-preview" alt="${chosen.name}">` 
-            : `<div class="item-img-placeholder"><i class="fa-solid ${CATEGORY_ICONS[chosen.category] || 'fa-shirt'}"></i></div>`;
-
-          card.innerHTML = `
-            ${imgPreviewHtml}
-            <div class="item-category">
-              <span>${CATEGORY_NAMES[cat]}</span>
-              <div>
-                <span class="item-season-badge">${SEASON_LABELS[chosen.season]?.split(' ')[0] || chosen.season}</span>
-                <span class="item-mood-badge">${MOOD_LABELS[chosen.mood] || chosen.mood || '캐주얼'}</span>
-              </div>
+        tr.innerHTML = `
+          <td>${thumbHtml}</td>
+          <td><strong>${CATEGORY_NAMES[item.category] || item.category}</strong></td>
+          <td>${escapeHtml(item.name)}</td>
+          <td>
+            <div style="display: flex; gap: 4px; flex-wrap: wrap;">
+              <span class="item-color-badge"><span class="color-dot" style="background: ${dotColor};"></span> ${COLOR_LABELS[item.color] || item.color}</span>
+              <span class="item-season-badge">${item.style || '데일리'}</span>
+              <span class="item-season-badge" style="background: #e2e8f0;">${SEASON_LABELS[item.season]?.split(' ')[0] || item.season}</span>
             </div>
-            <div class="item-name">${escapeHtml(chosen.name)}</div>
-            <div class="item-source"><i class="fa-solid fa-circle-check"></i> 내 옷장 보유</div>
-          `;
-        } else {
-          card.innerHTML = `
-            <div class="item-img-placeholder"><i class="fa-solid fa-circle-question"></i></div>
-            <div class="item-category">${CATEGORY_NAMES[cat]}</div>
-            <div class="item-name" style="color: #94a3b8;">등록된 옷 없음</div>
-            <div class="item-empty-notice">+ 옷장 탭에서 옷을 등록해보세요</div>
-          `;
-        }
-        container.appendChild(card);
+          </td>
+          <td style="text-align: center;">
+            <button class="btn-danger" onclick="deleteCloth(${item.id})" title="삭제">
+              <i class="fa-solid fa-trash-can"></i>
+            </button>
+          </td>
+        `;
+        tbody.appendChild(tr);
       });
-
-      updateShoppingAddon(targetSeason, temp);
     }
 
-    function updateShoppingAddon(season, temp) {
-      const addonTitle = document.getElementById('addon-title-text');
-      const addonDesc = document.getElementById('addon-desc-text');
-      const addonLink = document.getElementById('addon-link');
-
-      const addonPresets = {
-        winter: {
-          title: '극세사 기모 발열 히트텍 & 캐시미어 머플러',
-          desc: `현재 기온 ${temp}°C에는 목과 체온을 감싸주는 캐시미어 머플러를 둘러주면 보온성과 스타일을 둘 다 잡을 수 있어요!`,
-          searchKeyword: '캐시미어 머플러'
-        },
-        chilly: {
-          title: '부드러운 울 머플러 & 클래식 가죽 장갑',
-          desc: `찬 바람이 부는 날씨에 오트밀/베이지 계열의 소프트 머플러로 포인트를 주면 코디가 훨씬 포근해 보입니다.`,
-          searchKeyword: '울 머플러'
-        },
-        mild: {
-          title: '미니멀 실버 체인 목걸이 or 레더 벨트',
-          desc: `자켓 안 셔츠 라인을 돋보이게 해 줄 미니멀한 액세서리나 클래식 벨트로 완성도를 더해보세요!`,
-          searchKeyword: '미니멀 가죽 벨트'
-        },
-        warm: {
-          title: 'UV 차단 코튼 캡 모자 or 캔버스 토트백',
-          desc: `햇살이 비치는 날, 가벼운 코디에 힙한 컬러의 볼캡이나 감성 있는 에코백을 믹스매치해보세요.`,
-          searchKeyword: '볼캡 모자'
-        },
-        hot: {
-          title: '편안한 슬라이드 샌들 & 틴트 선글라스',
-          desc: `무더운 여름 룩에 청량감을 더해줄 편안한 버클 슬라이드 샌들이나 선글라스를 강력 추천합니다.`,
-          searchKeyword: '피셔맨 샌들'
-        }
-      };
-
-      const preset = addonPresets[season] || addonPresets['mild'];
-      addonTitle.textContent = preset.title;
-      addonDesc.textContent = preset.desc;
-      addonLink.href = `https://www.musinsa.com/search/musinsa/goods?q=${encodeURIComponent(preset.searchKeyword)}`;
-      addonLink.innerHTML = `<span>'${preset.searchKeyword}' 아이템 보러가기</span> <i class="fa-solid fa-arrow-up-right-from-square"></i>`;
-    }
-
-    /* ==========================================================
-       4. OOTD 카드 이미지 다운로드 기능 (html2canvas)
-       ========================================================== */
     function downloadOotdCard() {
       const card = document.getElementById('capture-outfit-card');
       const btn = event.currentTarget;
@@ -1246,7 +1540,7 @@
         useCORS: true
       }).then(canvas => {
         const link = document.createElement('a');
-        link.download = `OOOOTD-Today-${new Date().toISOString().slice(0,10)}.png`;
+        link.download = `OOOOTD-${currentTemplate}-${new Date().toISOString().slice(0,10)}.png`;
         link.href = canvas.toDataURL('image/png');
         link.click();
         btn.innerHTML = originalText;
@@ -1257,9 +1551,6 @@
       });
     }
 
-    /* ==========================================================
-       5. 탭 전환 & 유틸리티
-       ========================================================== */
     function switchTab(tabId, btn) {
       document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
       document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
@@ -1279,7 +1570,6 @@
       return String(text).replace(/[&<>"']/g, m => map[m]);
     }
 
-    // 앱 시작 시 실행
     window.addEventListener('DOMContentLoaded', () => {
       initCloset();
       fetchLiveWeather();
