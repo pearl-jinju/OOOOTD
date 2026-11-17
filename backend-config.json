@@ -1,0 +1,8 @@
+{
+  "projectId": "late-king-76702472",
+  "productionBranchId": "br-gentle-bonus-az55lu4h",
+  "developmentBranchId": "br-super-poetry-azte1oac",
+  "region": "aws-ap-southeast-1",
+  "functionSlug": "api",
+  "bucket": "closet-images"
+}

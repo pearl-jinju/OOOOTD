@@ -1,0 +1,18 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import vm from 'node:vm';
+import {readFile} from 'node:fs/promises';
+test('purchase totals exclude owned clothes and report unknown prices; URLs are merchant-only',async()=>{
+ const html=await readFile('index.html','utf8'),nodes=new Map();
+ const elem=()=>({style:{},classList:{add(){},remove(){}},appendChild(){},removeAttribute(){}});
+ const document={getElementById(id){if(!nodes.has(id))nodes.set(id,elem());return nodes.get(id)},querySelectorAll(){return []},querySelector(){return null},createElement:elem};
+ const ctx=vm.createContext({console,document,window:{addEventListener(){}}});
+ vm.runInContext(html.match(/<script>([\s\S]*?)<\/script>/)[1],ctx);
+ vm.runInContext("renderPurchaseSummary([{isOwned:true,price:999999},{isOwned:false,price:89000},{isOwned:false,price:59000},{isOwned:false}], 'cached')",ctx);
+ assert(nodes.get('purchase-total').textContent.includes('148,000'));
+ assert(nodes.get('purchase-total').textContent.includes('1개 제외'));
+ vm.runInContext("renderPurchaseSummary([{isOwned:true,price:999999}], 'owned')",ctx);
+ assert.equal(nodes.get('purchase-summary').hidden,true);
+ assert.equal(vm.runInContext("purchaseMarkup({price:1000,sourceUrl:'javascript:alert(1)'})",ctx).includes('href='),false);
+ assert.equal(vm.runInContext("purchaseMarkup({price:1000,sourceUrl:'https://www.musinsa.com/products/12345'})",ctx).includes('구매사이트 열기'),true);
+});

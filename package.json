@@ -1,0 +1,23 @@
+{
+  "name": "ooootd",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "test": "node --test tests/*.test.mjs"
+  },
+  "dependencies": {
+    "@aws-sdk/client-s3": "latest",
+    "@aws-sdk/s3-request-presigner": "latest",
+    "@neon/auth": "latest",
+    "@neon/functions": "latest",
+    "jose": "^6.1.0",
+    "pg": "^8.16.3"
+  },
+  "devDependencies": {
+    "@neon/config": "latest",
+    "esbuild": "latest",
+    "playwright-core": "^1.65.1"
+  }
+}
