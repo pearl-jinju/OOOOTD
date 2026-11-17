@@ -20,7 +20,9 @@ test('new users have no sample clothing and recommendations use only owned items
  for(const temp of [0,8,17,24,30])for(const occ of OCCASIONS){
   currentWeather.temp=temp;currentOccasion=occ.id;recalculateRankedCombos();
   for(const combo of rankedCombos)for(const item of combo.items){
-   if(!item.isOwned||!own.some(o=>o.id===item.id))throw Error('unowned item');
+   const available=own.filter(o=>o.category===item.category&&isOccasionAppropriate(o));
+   if(available.length&&(!item.isOwned||!own.some(o=>o.id===item.id)))throw Error('owned category replaced');
+   if(!available.length&&recommendationMode!=='mixed')throw Error('missing automatic supplement');
    if(occ.id==='work'&&!isOccasionAppropriate(item))throw Error('formal violation');
   }
  }
@@ -46,6 +48,26 @@ test('formal rules reject hoodies, sweatshirts and sportswear including similar 
  if(rankedCombos.length!==1)throw Error('hoodie entered formal');
  if(buildSimilarVariants(rankedCombos[0]).length)throw Error('similar formal included hoodie');
  closetItems=closetItems.filter(i=>i.id!==2);recalculateRankedCombos();
- if(rankedCombos.length)throw Error('casual fallback');
+ if(recommendationMode!=='mixed')throw Error('formal shortage did not supplement');
+ if(rankedCombos.some(combo=>combo.items.some(item=>!isOccasionAppropriate(item))))throw Error('casual fallback');
+ `,c);
+});
+
+test('automatic supplement fills only missing parts and restores owned mode when complete',()=>{
+ const c=context();
+ vm.runInContext(`
+ currentOccasion='daily';
+ const fixture=['outer','top','bottom','shoes'].map((category,i)=>({id:100+i,category,name:'fixture',gender:'men',color:'black',season:'mild',occasion:'daily',price:10000,sourceUrl:'https://www.musinsa.com/products/'+(100+i)}));
+ CATALOG_ITEMS=fixture;
+ closetItems=fixture.slice(0,3).map((item,i)=>({...item,id:i+1,isOwned:true,sourceCatalogId:item.id}));
+ selectRecommendationMode('owned');
+ if(recommendationMode!=='mixed'||!rankedCombos.length)throw Error('no fallback');
+ if(rankedCombos[0].items.filter(item=>item.isOwned).length!==3)throw Error('owned parts not preserved');
+ if(rankedCombos[0].items[3].isOwned)throw Error('missing shoes not supplemented');
+ closetItems.push({...fixture[3],id:4,isOwned:true,sourceCatalogId:fixture[3].id});
+ recalculateRankedCombos();
+ if(recommendationMode!=='owned'||rankedCombos[0].items.some(item=>!item.isOwned))throw Error('owned mode not restored');
+ selectRecommendationMode('catalog');
+ if(recommendationMode!=='catalog')throw Error('explicit catalog mode overwritten');
  `,c);
 });

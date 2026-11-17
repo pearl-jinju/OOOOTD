@@ -1080,6 +1080,7 @@
     let currentFilter = 'all';
     let currentCatalogFilter = 'all';
     let recommendationMode = 'owned';
+    let requestedRecommendationMode = 'owned';
     let priceRequestId = 0;
     let currentGender = 'men'; // 기본값 남성
     let currentOccasion = 'daily';
@@ -1327,7 +1328,8 @@
       });
     }
     function selectRecommendationMode(mode) {
-      recommendationMode = ['catalog','mixed'].includes(mode) ? mode : 'owned';
+      requestedRecommendationMode = ['catalog','mixed'].includes(mode) ? mode : 'owned';
+      recommendationMode = requestedRecommendationMode;
       document.getElementById('recommendation-mode-note').textContent = recommendationMode === 'owned' ? '내가 가진 옷만 사용합니다.' : recommendationMode === 'mixed' ? '내 옷을 우선 사용하고 부족한 부위만 추천의상으로 채웁니다.' : '내가 보유하지 않은 추천의상으로 만든 코디입니다.';
       recalculateRankedCombos();
     }
@@ -1342,6 +1344,21 @@
     }
 
     function recalculateRankedCombos() {
+      recommendationMode = requestedRecommendationMode;
+      const needsSupplement = recommendationMode === 'owned' &&
+        ['outer','top','bottom','shoes'].some(category => !closetItems.some(item =>
+          item.category === category && item.gender === currentGender && isOccasionAppropriate(item)));
+      if (needsSupplement) recommendationMode = 'mixed';
+      document.getElementById('recommendation-mode-note').textContent = needsSupplement
+        ? '내 옷만으로 완성할 수 없어 내 옷 + 부족한 옷 추천으로 자동 전환했어요.'
+        : recommendationMode === 'owned' ? '내가 가진 옷만 사용합니다.'
+        : recommendationMode === 'mixed' ? '내 옷을 우선 사용하고 부족한 부위만 추천의상으로 채웁니다.'
+        : '내가 보유하지 않은 추천의상으로 만든 코디입니다.';
+      ['owned','mixed','catalog'].forEach(mode => {
+        const button = document.getElementById('mode-' + mode);
+        button.setAttribute?.('aria-pressed', String(mode === recommendationMode));
+        button.style.background = mode === recommendationMode ? '#eef2ff' : '';
+      });
       resetSimilarCombos();
       const temp = currentWeather.temp;
       const targetSeason = getTemperatureSeason(temp);
