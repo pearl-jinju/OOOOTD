@@ -1,0 +1,1045 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>OOOOTD - 날씨 & 옷장 기반 코디 추천</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    :root {
+      --primary: #1e293b;
+      --accent: #4f46e5;
+      --accent-hover: #4338ca;
+      --bg: #f8fafc;
+      --card-bg: #ffffff;
+      --text-main: #0f172a;
+      --text-muted: #64748b;
+      --border: #e2e8f0;
+      --tag-bg: #eef2ff;
+      --tag-text: #4338ca;
+      --danger: #ef4444;
+      --success: #10b981;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Pretendard", "Helvetica Neue", Arial, sans-serif;
+    }
+
+    body {
+      background-color: var(--bg);
+      color: var(--text-main);
+      line-height: 1.6;
+      padding: 24px 16px;
+    }
+
+    .container {
+      max-width: 900px;
+      margin: 0 auto;
+    }
+
+    /* Header */
+    header {
+      text-align: center;
+      margin-bottom: 24px;
+      padding: 32px 20px;
+      background: linear-gradient(135deg, #e0e7ff 0%, #f1f5f9 50%, #fdf4ff 100%);
+      border-radius: 20px;
+      border: 1px solid #cbd5e1;
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.03);
+    }
+
+    .logo {
+      font-size: 2.4rem;
+      font-weight: 800;
+      color: #312e81;
+      letter-spacing: -0.5px;
+      margin-bottom: 6px;
+    }
+
+    .subtitle {
+      font-size: 1.05rem;
+      color: #4338ca;
+      font-weight: 600;
+      margin-bottom: 10px;
+    }
+
+    .desc {
+      color: var(--text-muted);
+      max-width: 600px;
+      margin: 0 auto;
+      font-size: 0.95rem;
+      word-break: keep-all;
+    }
+
+    /* Weather Bar */
+    .weather-bar {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      background-color: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 16px 20px;
+      margin-bottom: 24px;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.02);
+    }
+
+    .weather-info {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .weather-icon-large {
+      font-size: 2.2rem;
+      line-height: 1;
+    }
+
+    .weather-temp {
+      font-size: 1.4rem;
+      font-weight: 800;
+      color: var(--text-main);
+    }
+
+    .weather-details {
+      font-size: 0.88rem;
+      color: var(--text-muted);
+    }
+
+    .weather-actions {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .city-select {
+      padding: 8px 12px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      font-size: 0.9rem;
+      background: #ffffff;
+      outline: none;
+      cursor: pointer;
+    }
+
+    .btn-icon {
+      padding: 8px 12px;
+      border: 1px solid var(--border);
+      background: white;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 0.88rem;
+      color: var(--text-main);
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.2s;
+    }
+
+    .btn-icon:hover {
+      background: #f1f5f9;
+    }
+
+    /* Nav Tabs */
+    .tabs {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 20px;
+      border-bottom: 2px solid var(--border);
+      padding-bottom: 4px;
+    }
+
+    .tab-btn {
+      background: none;
+      border: none;
+      padding: 10px 18px;
+      font-size: 1rem;
+      font-weight: 700;
+      color: var(--text-muted);
+      cursor: pointer;
+      position: relative;
+      transition: color 0.2s;
+    }
+
+    .tab-btn.active {
+      color: var(--accent);
+    }
+
+    .tab-btn.active::after {
+      content: '';
+      position: absolute;
+      bottom: -6px;
+      left: 0;
+      width: 100%;
+      height: 3px;
+      background-color: var(--accent);
+      border-radius: 3px 3px 0 0;
+    }
+
+    /* Tab Content */
+    .tab-pane {
+      display: none;
+    }
+
+    .tab-pane.active {
+      display: block;
+    }
+
+    /* Outfit Recommendation Card */
+    .outfit-card {
+      background-color: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 24px;
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.04);
+      margin-bottom: 24px;
+    }
+
+    .outfit-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 16px;
+      margin-bottom: 20px;
+    }
+
+    .outfit-title {
+      font-size: 1.25rem;
+      font-weight: 700;
+      color: var(--primary);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .outfit-reason {
+      font-size: 0.9rem;
+      color: var(--text-muted);
+      margin-top: 4px;
+    }
+
+    .badge {
+      display: inline-block;
+      font-size: 0.75rem;
+      font-weight: 700;
+      padding: 4px 10px;
+      border-radius: 9999px;
+      background: var(--tag-bg);
+      color: var(--tag-text);
+      white-space: nowrap;
+    }
+
+    /* Items Grid */
+    .items-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+
+    .item-card {
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 16px;
+      background-color: #fafbfc;
+      position: relative;
+      transition: transform 0.15s, box-shadow 0.15s;
+    }
+
+    .item-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 8px rgba(0,0,0,0.05);
+    }
+
+    .item-category {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .item-name {
+      font-size: 1rem;
+      font-weight: 700;
+      color: var(--text-main);
+      margin-bottom: 6px;
+    }
+
+    .item-season-badge {
+      font-size: 0.7rem;
+      padding: 2px 6px;
+      border-radius: 4px;
+      background: #e2e8f0;
+      color: #475569;
+    }
+
+    .item-source {
+      font-size: 0.8rem;
+      color: var(--success);
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .item-empty-notice {
+      color: #94a3b8;
+      font-size: 0.85rem;
+      font-style: italic;
+    }
+
+    /* Addon Box */
+    .addon-box {
+      background: linear-gradient(135deg, #fdf4ff 0%, #fae8ff 100%);
+      border: 1px dashed #d946ef;
+      border-radius: 12px;
+      padding: 18px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .addon-title {
+      font-size: 1rem;
+      font-weight: 700;
+      color: #a21caf;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .addon-desc {
+      font-size: 0.92rem;
+      color: #374151;
+    }
+
+    .addon-link {
+      align-self: flex-start;
+      margin-top: 4px;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background-color: #a21caf;
+      color: #ffffff;
+      text-decoration: none;
+      padding: 9px 16px;
+      border-radius: 8px;
+      font-size: 0.88rem;
+      font-weight: 600;
+      transition: background-color 0.2s;
+    }
+
+    .addon-link:hover {
+      background-color: #86198f;
+    }
+
+    /* Closet Management */
+    .closet-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 16px;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+
+    .closet-form-container {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 20px;
+      margin-bottom: 24px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+    }
+
+    .form-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+      gap: 12px;
+      margin-bottom: 14px;
+    }
+
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .form-group label {
+      font-size: 0.85rem;
+      font-weight: 700;
+      color: var(--text-main);
+    }
+
+    .form-group input, .form-group select {
+      padding: 9px 12px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      font-size: 0.9rem;
+      outline: none;
+    }
+
+    .form-group input:focus, .form-group select:focus {
+      border-color: var(--accent);
+    }
+
+    .btn-primary {
+      background-color: var(--accent);
+      color: #fff;
+      border: none;
+      padding: 10px 18px;
+      border-radius: 8px;
+      font-weight: 700;
+      font-size: 0.92rem;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: background 0.2s;
+    }
+
+    .btn-primary:hover {
+      background-color: var(--accent-hover);
+    }
+
+    .btn-danger {
+      background: none;
+      border: none;
+      color: var(--danger);
+      cursor: pointer;
+      padding: 4px;
+      border-radius: 4px;
+      font-size: 0.85rem;
+    }
+
+    .btn-danger:hover {
+      background: #fee2e2;
+    }
+
+    /* Closet Table / List */
+    .closet-list-card {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 20px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+    }
+
+    .closet-filter-bar {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 16px;
+      overflow-x: auto;
+      padding-bottom: 4px;
+    }
+
+    .filter-chip {
+      padding: 6px 14px;
+      border-radius: 20px;
+      border: 1px solid var(--border);
+      background: #ffffff;
+      font-size: 0.85rem;
+      font-weight: 600;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+
+    .filter-chip.active {
+      background: var(--accent);
+      color: #ffffff;
+      border-color: var(--accent);
+    }
+
+    .closet-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.92rem;
+    }
+
+    .closet-table th {
+      text-align: left;
+      padding: 12px 14px;
+      background: #f8fafc;
+      border-bottom: 1px solid var(--border);
+      color: var(--text-muted);
+      font-weight: 700;
+    }
+
+    .closet-table td {
+      padding: 12px 14px;
+      border-bottom: 1px solid var(--border);
+      vertical-align: middle;
+    }
+
+    .closet-table tr:hover {
+      background-color: #fafbfc;
+    }
+
+    footer {
+      text-align: center;
+      color: var(--text-muted);
+      font-size: 0.85rem;
+      margin-top: 40px;
+      padding-bottom: 20px;
+    }
+
+    /* Loading Spinner */
+    .spinner {
+      display: inline-block;
+      width: 14px;
+      height: 14px;
+      border: 2px solid rgba(0,0,0,0.1);
+      border-radius: 50%;
+      border-top-color: var(--accent);
+      animation: spin 0.8s linear infinite;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    <!-- 서비스 소개 헤더 -->
+    <header>
+      <div class="logo"><i class="fa-solid fa-shirt"></i> OOOOTD</div>
+      <div class="subtitle">내 옷장 기반 날씨 맞춤 코디 & 쇼핑 추천</div>
+      <p class="desc">
+        오늘 날씨에 맞춰 내가 등록해둔 옷으로 최적의 데일리 룩을 자동 매칭합니다.
+        보유하지 않은 부위는 센스 있는 추천 아이템 링크로 채워드립니다!
+      </p>
+    </header>
+
+    <!-- 날씨 실시간 연동 Bar -->
+    <div class="weather-bar">
+      <div class="weather-info">
+        <div id="weather-icon" class="weather-icon-large">🌤️</div>
+        <div>
+          <div style="display: flex; align-items: baseline; gap: 8px;">
+            <span id="weather-temp" class="weather-temp">--°C</span>
+            <span id="weather-condition" style="font-weight: 600; color: #475569;">날씨 확인 중...</span>
+          </div>
+          <div id="weather-tip" class="weather-details">실시간 기상 정보를 불러오는 중입니다.</div>
+        </div>
+      </div>
+
+      <div class="weather-actions">
+        <select id="city-select" class="city-select" onchange="changeCity(this.value)">
+          <option value="Seoul" selected>서울</option>
+          <option value="Busan">부산</option>
+          <option value="Incheon">인천</option>
+          <option value="Daegu">대구</option>
+          <option value="Daejeon">대전</option>
+          <option value="Gwangju">광주</option>
+          <option value="Jeju">제주</option>
+        </select>
+        <button class="btn-icon" onclick="fetchLiveWeather()" title="날씨 새로고침">
+          <i class="fa-solid fa-rotate-right"></i> 새로고침
+        </button>
+      </div>
+    </div>
+
+    <!-- 탭 네비게이션 -->
+    <div class="tabs">
+      <button class="tab-btn active" onclick="switchTab('recommendTab', this)">
+        <i class="fa-solid fa-wand-magic-sparkles"></i> 오늘의 코디 추천
+      </button>
+      <button class="tab-btn" onclick="switchTab('closetTab', this)">
+        <i class="fa-solid fa-door-open"></i> 내 옷장 관리 (<span id="closet-count">0</span>)
+      </button>
+    </div>
+
+    <!-- 1. 오늘의 코디 추천 탭 -->
+    <div id="recommendTab" class="tab-pane active">
+      <div class="outfit-card">
+        <div class="outfit-header">
+          <div>
+            <div id="recommend-title" class="outfit-title">
+              <i class="fa-solid fa-sparkles" style="color: #6366f1;"></i> 오늘의 추천 룩
+            </div>
+            <div id="recommend-desc" class="outfit-reason">기온과 옷장 상태를 분석하여 코디를 조합 중입니다.</div>
+          </div>
+          <span class="badge" id="recommend-tier-badge">기온 맞춤형</span>
+        </div>
+
+        <!-- 코디 아이템 4종 그리드 -->
+        <div class="items-grid" id="outfit-items-container">
+          <!-- JS로 동적 렌더링 -->
+        </div>
+
+        <!-- 추가 구매 제안 박스 (링크 연결) -->
+        <div class="addon-box" id="addon-box">
+          <div class="addon-title">
+            <i class="fa-solid fa-lightbulb"></i> <span id="addon-title-text">이런 아이템을 추가해보세요!</span>
+          </div>
+          <div class="addon-desc" id="addon-desc-text">
+            스타일을 더 풍성하게 만들어 줄 추천 아이템을 확인해보세요.
+          </div>
+          <a id="addon-link" href="#" target="_blank" rel="noopener noreferrer" class="addon-link">
+            <span>아이템 검색 및 구매하기</span> <i class="fa-solid fa-arrow-up-right-from-square"></i>
+          </a>
+        </div>
+      </div>
+    </div>
+
+    <!-- 2. 내 옷장 관리 탭 -->
+    <div id="closetTab" class="tab-pane">
+      <!-- 옷 등록 폼 -->
+      <div class="closet-form-container">
+        <h3 style="font-size: 1.1rem; font-weight: 700; margin-bottom: 14px;">
+          <i class="fa-solid fa-plus-circle" style="color: var(--accent);"></i> 새 옷 등록하기
+        </h3>
+        <form id="add-cloth-form" onsubmit="handleAddCloth(event)">
+          <div class="form-grid">
+            <div class="form-group">
+              <label for="cloth-category">카테고리</label>
+              <select id="cloth-category" required>
+                <option value="outer">아우터 (Outer)</option>
+                <option value="top" selected>상의 (Top)</option>
+                <option value="bottom">하의 (Bottom)</option>
+                <option value="shoes">신발 (Shoes)</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="cloth-name">옷 이름 / 특징</label>
+              <input type="text" id="cloth-name" placeholder="예: 오버핏 울 코트, 화이트 셔츠" required>
+            </div>
+            <div class="form-group">
+              <label for="cloth-season">적합 기온/계절</label>
+              <select id="cloth-season" required>
+                <option value="winter">겨울/한파 (4°C 이하)</option>
+                <option value="chilly" selected>늦가을/초겨울 (5°C ~ 11°C)</option>
+                <option value="mild">봄/가을 (12°C ~ 19°C)</option>
+                <option value="warm">초여름/선선 (20°C ~ 25°C)</option>
+                <option value="hot">한여름 (26°C 이상)</option>
+              </select>
+            </div>
+          </div>
+          <button type="submit" class="btn-primary">
+            <i class="fa-solid fa-check"></i> 옷장에 추가하기
+          </button>
+        </form>
+      </div>
+
+      <!-- 옷 목록 -->
+      <div class="closet-list-card">
+        <div class="closet-header">
+          <h3 style="font-size: 1.1rem; font-weight: 700;">내 보유 옷 목록</h3>
+          <button class="btn-icon" onclick="resetDefaultCloset()" style="font-size: 0.8rem;">
+            <i class="fa-solid fa-arrows-rotate"></i> 기본 옷장 샘플로 리셋
+          </button>
+        </div>
+
+        <!-- 카테고리 필터 칩 -->
+        <div class="closet-filter-bar">
+          <button class="filter-chip active" onclick="filterCloset('all', this)">전체</button>
+          <button class="filter-chip" onclick="filterCloset('outer', this)">아우터</button>
+          <button class="filter-chip" onclick="filterCloset('top', this)">상의</button>
+          <button class="filter-chip" onclick="filterCloset('bottom', this)">하의</button>
+          <button class="filter-chip" onclick="filterCloset('shoes', this)">신발</button>
+        </div>
+
+        <table class="closet-table">
+          <thead>
+            <tr>
+              <th>카테고리</th>
+              <th>옷 이름</th>
+              <th>적합 시즌</th>
+              <th style="width: 70px; text-align: center;">관리</th>
+            </tr>
+          </thead>
+          <tbody id="closet-table-body">
+            <!-- 동적 렌더링 -->
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <footer>
+      <p>© OOOOTD. Weather data provided by Open-Meteo. All rights reserved.</p>
+    </footer>
+  </div>
+
+  <script>
+    /* ==========================================================
+       1. 기본 데이터 & 로컬 스토리지 (옷장 관리)
+       ========================================================== */
+    const DEFAULT_CLOTHES = [
+      { id: 1, category: 'outer', name: '롱 패딩 점퍼', season: 'winter' },
+      { id: 2, category: 'outer', name: '오버핏 네이비 울 코트', season: 'chilly' },
+      { id: 3, category: 'outer', name: '클래식 테일러드 자켓', season: 'mild' },
+      { id: 4, category: 'outer', name: '라이트 윈드브레이커 (바람막이)', season: 'warm' },
+      { id: 5, category: 'top', name: '터틀넥 캐시미어 니트', season: 'chilly' },
+      { id: 6, category: 'top', name: '베이직 화이트 코튼 셔츠', season: 'mild' },
+      { id: 7, category: 'top', name: '오버사이즈 맨투맨 스웨트셔츠', season: 'mild' },
+      { id: 8, category: 'top', name: '릴렉스 반팔 티셔츠', season: 'warm' },
+      { id: 9, category: 'bottom', name: '기모 슬랙스', season: 'chilly' },
+      { id: 10, category: 'bottom', name: '스트레이트 핏 중청 데님', season: 'mild' },
+      { id: 11, category: 'bottom', name: '와이드 카고 치노팬츠', season: 'mild' },
+      { id: 12, category: 'bottom', name: '린넨 밴딩 하프 팬츠', season: 'hot' },
+      { id: 13, category: 'shoes', name: '첼시 가죽 부츠', season: 'chilly' },
+      { id: 14, category: 'shoes', name: '화이트 레더 스니커즈', season: 'mild' },
+      { id: 15, category: 'shoes', name: '클래식 러닝화', season: 'warm' }
+    ];
+
+    const SEASON_LABELS = {
+      winter: '겨울/한파 (4°C 이하)',
+      chilly: '늦가을/초겨울 (5°C~11°C)',
+      mild: '봄/가을 (12°C~19°C)',
+      warm: '초여름/선선 (20°C~25°C)',
+      hot: '한여름 (26°C 이상)'
+    };
+
+    const CATEGORY_NAMES = {
+      outer: 'Outer (아우터)',
+      top: 'Top (상의)',
+      bottom: 'Bottom (하의)',
+      shoes: 'Shoes (신발)'
+    };
+
+    const CITY_COORDS = {
+      Seoul: { lat: 37.5665, lon: 126.9780, name: '서울' },
+      Busan: { lat: 35.1796, lon: 129.0756, name: '부산' },
+      Incheon: { lat: 37.4563, lon: 126.7052, name: '인천' },
+      Daegu: { lat: 35.8714, lon: 128.6014, name: '대구' },
+      Daejeon: { lat: 36.3504, lon: 127.3845, name: '대전' },
+      Gwangju: { lat: 35.1595, lon: 126.8526, name: '광주' },
+      Jeju: { lat: 33.4996, lon: 126.5312, name: '제주' }
+    };
+
+    let currentCity = 'Seoul';
+    let currentWeather = { temp: 15, code: 0, isDay: 1 };
+    let closetItems = [];
+    let currentFilter = 'all';
+
+    function initCloset() {
+      const stored = localStorage.getItem('ooootd_closet');
+      if (stored) {
+        try {
+          closetItems = JSON.parse(stored);
+        } catch(e) {
+          closetItems = [...DEFAULT_CLOTHES];
+        }
+      } else {
+        closetItems = [...DEFAULT_CLOTHES];
+        saveCloset();
+      }
+      updateClosetUI();
+    }
+
+    function saveCloset() {
+      localStorage.setItem('ooootd_closet', JSON.stringify(closetItems));
+      updateClosetUI();
+      generateRecommendation();
+    }
+
+    function resetDefaultCloset() {
+      if (confirm('옷장을 기본 추천 샘플 목록으로 초기화하시겠습니까?')) {
+        closetItems = [...DEFAULT_CLOTHES];
+        saveCloset();
+      }
+    }
+
+    function handleAddCloth(e) {
+      e.preventDefault();
+      const cat = document.getElementById('cloth-category').value;
+      const name = document.getElementById('cloth-name').value.trim();
+      const season = document.getElementById('cloth-season').value;
+
+      if (!name) return;
+
+      const newItem = {
+        id: Date.now(),
+        category: cat,
+        name: name,
+        season: season
+      };
+
+      closetItems.unshift(newItem);
+      saveCloset();
+      document.getElementById('cloth-name').value = '';
+      alert(`[${name}] 아이템이 옷장에 등록되었습니다!`);
+    }
+
+    function deleteCloth(id) {
+      closetItems = closetItems.filter(item => item.id !== id);
+      saveCloset();
+    }
+
+    function filterCloset(category, chipEl) {
+      currentFilter = category;
+      document.querySelectorAll('.filter-chip').forEach(c => c.classList.remove('active'));
+      if (chipEl) chipEl.classList.add('active');
+      renderClosetTable();
+    }
+
+    function updateClosetUI() {
+      document.getElementById('closet-count').textContent = closetItems.length;
+      renderClosetTable();
+    }
+
+    function renderClosetTable() {
+      const tbody = document.getElementById('closet-table-body');
+      tbody.innerHTML = '';
+
+      const filtered = currentFilter === 'all' 
+        ? closetItems 
+        : closetItems.filter(item => item.category === currentFilter);
+
+      if (filtered.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="4" style="text-align: center; color: var(--text-muted); padding: 24px;">등록된 옷이 없습니다. 새 옷을 추가해 보세요!</td></tr>`;
+        return;
+      }
+
+      filtered.forEach(item => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td><strong>${CATEGORY_NAMES[item.category] || item.category}</strong></td>
+          <td>${escapeHtml(item.name)}</td>
+          <td><span class="item-season-badge">${SEASON_LABELS[item.season] || item.season}</span></td>
+          <td style="text-align: center;">
+            <button class="btn-danger" onclick="deleteCloth(${item.id})" title="삭제">
+              <i class="fa-solid fa-trash-can"></i>
+            </button>
+          </td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    /* ==========================================================
+       2. 실제 날씨 API 연동 (Open-Meteo)
+       ========================================================== */
+    async function fetchLiveWeather() {
+      const city = CITY_COORDS[currentCity] || CITY_COORDS['Seoul'];
+      const tempEl = document.getElementById('weather-temp');
+      const condEl = document.getElementById('weather-condition');
+      const tipEl = document.getElementById('weather-tip');
+      const iconEl = document.getElementById('weather-icon');
+
+      condEl.innerHTML = '<span class="spinner"></span> 날씨 조회 중...';
+
+      try {
+        const res = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${city.lat}&longitude=${city.lon}&current_weather=true&timezone=auto`);
+        if (!res.ok) throw new Error('Weather API request failed');
+        const data = await res.json();
+        const cw = data.current_weather;
+
+        currentWeather = {
+          temp: Math.round(cw.temperature),
+          code: cw.weathercode,
+          wind: cw.windspeed
+        };
+
+        const weatherInfo = parseWeatherCode(cw.weathercode);
+        tempEl.textContent = `${currentWeather.temp}°C`;
+        condEl.textContent = `${city.name} - ${weatherInfo.text}`;
+        iconEl.textContent = weatherInfo.icon;
+        tipEl.textContent = getWeatherAdvice(currentWeather.temp, cw.weathercode);
+
+        generateRecommendation();
+      } catch (err) {
+        console.error('날씨 조회 에러:', err);
+        tempEl.textContent = '15°C (기본값)';
+        condEl.textContent = `${city.name} - 맑음`;
+        iconEl.textContent = '🌤️';
+        tipEl.textContent = '날씨 정보를 불러오지 못해 기본 기온(15°C) 기준으로 코디를 추천합니다.';
+        currentWeather = { temp: 15, code: 0, wind: 0 };
+        generateRecommendation();
+      }
+    }
+
+    function changeCity(cityName) {
+      currentCity = cityName;
+      fetchLiveWeather();
+    }
+
+    function parseWeatherCode(code) {
+      if (code === 0) return { icon: '☀️', text: '맑음' };
+      if ([1, 2].includes(code)) return { icon: '🌤️', text: '대체로 맑음' };
+      if (code === 3) return { icon: '☁️', text: '흐림' };
+      if ([45, 48].includes(code)) return { icon: '🌫️', text: '안개' };
+      if ([51, 53, 55, 61, 63, 65, 80, 81, 82].includes(code)) return { icon: '🌧️', text: '비' };
+      if ([71, 73, 75, 77, 85, 86].includes(code)) return { icon: '❄️', text: '눈' };
+      if ([95, 96, 99].includes(code)) return { icon: '⛈️', text: '뇌우' };
+      return { icon: '🌤️', text: '구름 조금' };
+    }
+
+    function getWeatherAdvice(temp, code) {
+      let advice = '';
+      if (temp <= 4) advice = '한파에 대비해 롱패딩, 목도리 등 보온용품을 단단히 챙기세요.';
+      else if (temp <= 11) advice = '체감온도가 쌀쌀합니다. 도톰한 코트나 니트를 겹쳐 입으세요.';
+      else if (temp <= 19) advice = '자켓이나 가디건을 걸치기 딱 좋은 선선한 날씨입니다.';
+      else if (temp <= 25) advice = '활동하기 쾌적하며 얇은 셔츠나 긴팔/반팔 조합이 좋습니다.';
+      else advice = '무더운 날씨입니다. 통풍이 잘되는 시원한 린넨이나 반팔을 추천합니다.';
+
+      if ([51, 53, 55, 61, 63, 65, 80, 81, 82].includes(code)) {
+        advice += ' ⚠️ 비 예보가 있으니 우산과 방수 신발을 챙기세요!';
+      }
+      return advice;
+    }
+
+    /* ==========================================================
+       3. 동적 추천 알고리즘 (날씨 & 내 옷장 매칭 + 추가 쇼핑 추천)
+       ========================================================== */
+    function getTemperatureSeason(temp) {
+      if (temp <= 4) return 'winter';
+      if (temp <= 11) return 'chilly';
+      if (temp <= 19) return 'mild';
+      if (temp <= 25) return 'warm';
+      return 'hot';
+    }
+
+    function generateRecommendation() {
+      const temp = currentWeather.temp;
+      const targetSeason = getTemperatureSeason(temp);
+
+      const titleEl = document.getElementById('recommend-title');
+      const descEl = document.getElementById('recommend-desc');
+      const badgeEl = document.getElementById('recommend-tier-badge');
+      const container = document.getElementById('outfit-items-container');
+
+      // 시즌별 타이틀 & 설명 설정
+      const metaMap = {
+        winter: { title: '따뜻한 방한 윈터 룩', badge: '❄️ 한파 대비', desc: `현재 기온 ${temp}°C, 매서운 추위를 막아주는 든든한 보온 코디` },
+        chilly: { title: '클래식 어텀 & 윈터 룩', badge: '🍂 쌀쌀한 날씨', desc: `현재 기온 ${temp}°C, 코트와 포근한 니트의 분위기 있는 조합` },
+        mild: { title: '내추럴 모던 데일리 룩', badge: '🌿 선선하고 쾌적', desc: `현재 기온 ${temp}°C, 자켓과 셔츠로 연출하는 단정한 코디` },
+        warm: { title: '가벼운 캐주얼 시티 룩', badge: '☀️ 산뜻한 날씨', desc: `현재 기온 ${temp}°C, 편안하고 가벼운 활동성 중심의 조합` },
+        hot: { title: '시원한 썸머 쿨 룩', badge: '🔥 무더위 대비', desc: `현재 기온 ${temp}°C, 통기성이 뛰어난 쾌적한 여름 스타일링` }
+      };
+
+      const meta = metaMap[targetSeason];
+      titleEl.innerHTML = `<i class="fa-solid fa-wand-magic-sparkles" style="color: #6366f1;"></i> ${meta.title}`;
+      descEl.textContent = meta.desc;
+      badgeEl.textContent = meta.badge;
+
+      // 4개 카테고리 매칭 (outer, top, bottom, shoes)
+      const categories = ['outer', 'top', 'bottom', 'shoes'];
+      container.innerHTML = '';
+
+      categories.forEach(cat => {
+        // 1. 해당 기온 시즌과 일치하는 옷 검색
+        let matches = closetItems.filter(item => item.category === cat && item.season === targetSeason);
+
+        // 2. 없으면 인접 기온 옷 검색 (폴백)
+        if (matches.length === 0) {
+          matches = closetItems.filter(item => item.category === cat);
+        }
+
+        // 아이템 선정
+        let chosen = null;
+        if (matches.length > 0) {
+          // 첫 번째 또는 랜덤
+          chosen = matches[0];
+        }
+
+        const card = document.createElement('div');
+        card.className = 'item-card';
+
+        if (chosen) {
+          card.innerHTML = `
+            <div class="item-category">
+              <span>${CATEGORY_NAMES[cat]}</span>
+              <span class="item-season-badge">${SEASON_LABELS[chosen.season]?.split(' ')[0] || chosen.season}</span>
+            </div>
+            <div class="item-name">${escapeHtml(chosen.name)}</div>
+            <div class="item-source"><i class="fa-solid fa-circle-check"></i> 내 옷장 보유</div>
+          `;
+        } else {
+          // 보유 옷이 없는 경우
+          card.innerHTML = `
+            <div class="item-category">${CATEGORY_NAMES[cat]}</div>
+            <div class="item-name" style="color: #94a3b8;">등록된 옷 없음</div>
+            <div class="item-empty-notice">+ 옷장 탭에서 옷을 등록해보세요</div>
+          `;
+        }
+        container.appendChild(card);
+      });
+
+      // 추가 쇼핑 아이템 추천 (외부 링크)
+      updateShoppingAddon(targetSeason, temp);
+    }
+
+    function updateShoppingAddon(season, temp) {
+      const addonTitle = document.getElementById('addon-title-text');
+      const addonDesc = document.getElementById('addon-desc-text');
+      const addonLink = document.getElementById('addon-link');
+
+      const addonPresets = {
+        winter: {
+          title: '극세사 기모 발열 히트텍 & 캐시미어 머플러',
+          desc: `현재 기온 ${temp}°C에는 목과 체온을 감싸주는 캐시미어 머플러를 둘러주면 보온성과 스타일을 둘 다 잡을 수 있어요!`,
+          searchKeyword: '캐시미어 머플러'
+        },
+        chilly: {
+          title: '부드러운 울 머플러 & 클래식 가죽 장갑',
+          desc: `찬 바람이 부는 날씨에 오트밀/베이지 계열의 소프트 머플러로 포인트를 주면 코디가 훨씬 포근해 보입니다.`,
+          searchKeyword: '울 머플러'
+        },
+        mild: {
+          title: '미니멀 실버 체인 목걸이 or 레더 벨트',
+          desc: `자켓 안 셔츠 라인을 돋보이게 해 줄 미니멀한 액세서리나 클래식 벨트로 완성도를 더해보세요!`,
+          searchKeyword: '미니멀 가죽 벨트'
+        },
+        warm: {
+          title: 'UV 차단 코튼 캡 모자 or 캔버스 토트백',
+          desc: `햇살이 비치는 날, 가벼운 코디에 힙한 컬러의 볼캡이나 감성 있는 에코백을 믹스매치해보세요.`,
+          searchKeyword: '볼캡 모자'
+        },
+        hot: {
+          title: '편안한 슬라이드 샌들 & 틴트 선글라스',
+          desc: `무더운 여름 룩에 청량감을 더해줄 편안한 버클 슬라이드 샌들이나 선글라스를 강력 추천합니다.`,
+          searchKeyword: '피셔맨 샌들'
+        }
+      };
+
+      const preset = addonPresets[season] || addonPresets['mild'];
+      addonTitle.textContent = preset.title;
+      addonDesc.textContent = preset.desc;
+      addonLink.href = `https://www.musinsa.com/search/musinsa/goods?q=${encodeURIComponent(preset.searchKeyword)}`;
+      addonLink.innerHTML = `<span>'${preset.searchKeyword}' 아이템 보러가기</span> <i class="fa-solid fa-arrow-up-right-from-square"></i>`;
+    }
+
+    /* ==========================================================
+       4. 탭 전환 & 유틸리티
+       ========================================================== */
+    function switchTab(tabId, btn) {
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+      document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
+
+      btn.classList.add('active');
+      document.getElementById(tabId).classList.add('active');
+    }
+
+    function escapeHtml(text) {
+      const map = {
+        '&': '&amp;',
+        '<': '&lt;',
+        '>': '&gt;',
+        '"': '&quot;',
+        "'": '&#039;'
+      };
+      return String(text).replace(/[&<>"']/g, m => map[m]);
+    }
+
+    // 앱 시작 시 실행
+    window.addEventListener('DOMContentLoaded', () => {
+      initCloset();
+      fetchLiveWeather();
+    });
+  </script>
+</body>
+</html>
