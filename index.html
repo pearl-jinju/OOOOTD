@@ -191,7 +191,7 @@
       display: block;
     }
 
-    /* Style Template Carousel & Palette Controller */
+    /* Style Template & Palette Controller */
     .curation-panel {
       background: #ffffff;
       border: 1px solid var(--border);
@@ -343,13 +343,14 @@
       display: inline-flex;
       align-items: center;
       gap: 6px;
-      font-size: 0.8rem;
+      font-size: 0.82rem;
       font-weight: 700;
       color: #4338ca;
       background: #eef2ff;
-      padding: 4px 10px;
+      padding: 5px 12px;
       border-radius: 6px;
-      margin-top: 8px;
+      margin-top: 10px;
+      border: 1px solid #c7d2fe;
     }
 
     .badge {
@@ -701,10 +702,10 @@
     <!-- 서비스 소개 헤더 -->
     <header>
       <div class="logo"><i class="fa-solid fa-shirt"></i> OOOOTD</div>
-      <div class="subtitle">스타일 템플릿 & 컬러 팔레트 기반 맞춤 코디</div>
+      <div class="subtitle">체계적인 컬러 하모니 & 스타일 템플릿 매칭 엔진</div>
       <p class="desc">
-        단순 날씨 매칭을 넘어 <strong>시티보이, 프렌치 미니멀, 올드머니, 고프코어, 아메카지</strong> 등 
-        원하는 감성의 템플릿과 톤온톤/대비 색상 조화 알고리즘으로 특별한 코디를 제안합니다.
+        무작위 랜덤 추출이 아닌, <strong>실제 패션 색채학 공식(톤온톤, 삼색 제한의 법칙, 보색/유사색 대비)</strong>과
+        스타일별 정통 실루엣 템플릿을 기반으로 완벽한 조화의 코디를 도출합니다.
       </p>
     </header>
 
@@ -754,7 +755,7 @@
       <div class="curation-panel">
         <div class="curation-section-title">
           <span><i class="fa-solid fa-compass" style="color: var(--accent);"></i> 스타일 템플릿 선택</span>
-          <span style="font-size: 0.78rem; font-weight: 500;">취향에 맞는 감성을 선택해보세요</span>
+          <span style="font-size: 0.78rem; font-weight: 500;">원하는 패션 무드를 지정하세요</span>
         </div>
         
         <!-- 템플릿 선택 버튼들 -->
@@ -762,31 +763,31 @@
           <!-- 동적 렌더링 -->
         </div>
 
-        <!-- 컬러 하모니 룰 선택 바 -->
+        <!-- 컬러 하모니 공식 선택 바 -->
         <div class="color-rule-bar">
           <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
             <span style="font-size: 0.85rem; font-weight: 700; color: var(--text-main);">
-              <i class="fa-solid fa-swatchbook" style="color: #6366f1;"></i> 색상 조합 규칙:
+              <i class="fa-solid fa-swatchbook" style="color: #6366f1;"></i> 색채학 조합 공식:
             </span>
             <div class="color-chips">
-              <button class="color-chip active" onclick="selectColorRule('all', this)">
-                자유 조화
+              <button class="color-chip active" onclick="selectColorRule('rule_three', this)" title="전체 룩에 3가지 이하의 조화로운 색상만 사용하여 안정감 부여">
+                3색 제한 공식 (정석)
               </button>
-              <button class="color-chip" onclick="selectColorRule('monochrome', this)">
-                <span class="color-dot" style="background: #0f172a;"></span> 톤온톤/모노크롬
+              <button class="color-chip" onclick="selectColorRule('monochrome', this)" title="명도 차이만 둔 모노톤/톤온톤 조화">
+                <span class="color-dot" style="background: #0f172a;"></span> 톤온톤 (모노크롬)
               </button>
-              <button class="color-chip" onclick="selectColorRule('earthy', this)">
-                <span class="color-dot" style="background: #92400e;"></span> 어스톤/뉴트럴
+              <button class="color-chip" onclick="selectColorRule('earthy', this)" title="베이지, 브라운, 카키, 네이비 중심의 자연스러운 컬러">
+                <span class="color-dot" style="background: #92400e;"></span> 어스톤 & 뉴트럴
               </button>
-              <button class="color-chip" onclick="selectColorRule('point', this)">
-                <span class="color-dot" style="background: #2563eb;"></span> 원포인트 대비
+              <button class="color-chip" onclick="selectColorRule('contrast', this)" title="단정한 무채색 베이스에 선명한 포인트 컬러 매칭">
+                <span class="color-dot" style="background: #2563eb;"></span> 원포인트 액센트
               </button>
             </div>
           </div>
 
           <div class="outfit-action-btns">
-            <button class="btn-icon" onclick="shuffleRecommendation()" title="해당 템플릿 안에서 다른 옷 매칭">
-              <i class="fa-solid fa-shuffle" style="color: var(--accent);"></i> 다른 조합 셔플
+            <button class="btn-icon" id="next-combo-btn" onclick="nextBestCombo()" title="색채학 점수 순위별 다음 최적 조합 보기">
+              <i class="fa-solid fa-arrow-down-short-wide" style="color: var(--accent);"></i> <span id="combo-rank-text">다음 최적 조합 (Rank 1/3)</span>
             </button>
             <button class="btn-icon" onclick="downloadOotdCard()" title="OOTD 카드 이미지로 저장">
               <i class="fa-solid fa-camera"></i> OOTD 카드 저장
@@ -803,8 +804,8 @@
               <i class="fa-solid fa-sparkles" style="color: #6366f1;"></i> 추천 코디 분석 중
             </div>
             <div id="recommend-desc" class="outfit-reason">기온과 옷장 상태를 분석 중입니다.</div>
-            <div id="color-match-notice" class="color-match-notice" style="display: none;">
-              <i class="fa-solid fa-circle-check"></i> <span id="color-match-text">색조합 최적화 적용됨</span>
+            <div id="color-match-notice" class="color-match-notice">
+              <i class="fa-solid fa-circle-check"></i> <span id="color-match-text">색채학 공식 최적화 적용됨</span>
             </div>
           </div>
           <span class="badge" id="recommend-tier-badge">기온 맞춤형</span>
@@ -1084,7 +1085,9 @@
     let closetItems = [];
     let currentFilter = 'all';
     let currentTemplate = 'cityboy';
-    let currentColorRule = 'all';
+    let currentColorRule = 'rule_three';
+    let rankedCombos = [];
+    let currentRankIndex = 0;
     let uploadedImageBase64 = '';
 
     function initCloset() {
@@ -1106,7 +1109,7 @@
     function saveCloset() {
       localStorage.setItem('ooootd_closet_v2', JSON.stringify(closetItems));
       updateClosetUI();
-      generateRecommendation();
+      recalculateRankedCombos();
     }
 
     function resetDefaultCloset() {
@@ -1140,22 +1143,27 @@
     function selectTemplate(tplId) {
       currentTemplate = tplId;
       renderTemplateCards();
-      generateRecommendation();
+      recalculateRankedCombos();
     }
 
     function selectColorRule(rule, chipEl) {
       currentColorRule = rule;
       document.querySelectorAll('.color-chip').forEach(c => c.classList.remove('active'));
       if (chipEl) chipEl.classList.add('active');
-      generateRecommendation();
+      recalculateRankedCombos();
     }
 
-    function shuffleRecommendation() {
-      generateRecommendation(true);
+    function nextBestCombo() {
+      if (!rankedCombos || rankedCombos.length <= 1) {
+        alert('현재 조건에서 추천 가능한 최상의 단일 조합입니다.');
+        return;
+      }
+      currentRankIndex = (currentRankIndex + 1) % Math.min(rankedCombos.length, 5);
+      renderComboAtCurrentRank();
     }
 
     /* ==========================================================
-       3. 색조합 및 스타일 템플릿 추천 알고리즘
+       3. 색채학 공식 & 결정론적(Deterministic) 다차원 채점 엔진
        ========================================================== */
     function getTemperatureSeason(temp) {
       if (temp <= 4) return 'winter';
@@ -1165,34 +1173,148 @@
       return 'hot';
     }
 
-    // 색상 조화도 점수 계산기
-    function evaluateColorHarmony(items, rule) {
+    // 색채학 규칙 점수 계산 함수 (랜덤 없음, 순수 알고리즘)
+    function calculateColorScore(items, rule) {
       const colors = items.filter(Boolean).map(it => it.color || 'black');
       if (colors.length === 0) return 0;
 
-      if (rule === 'monochrome') {
-        // 모노크롬 (블랙/화이트/그레이 또는 동일 색상 위주)
-        const monoColors = ['black', 'white', 'grey'];
-        const isMono = colors.every(c => monoColors.includes(c));
-        return isMono ? 50 : 0;
-      } else if (rule === 'earthy') {
-        // 어스톤 (베이지, 카키, 화이트, 네이비)
-        const earthColors = ['beige', 'khaki', 'white', 'navy'];
-        const matchCount = colors.filter(c => earthColors.includes(c)).length;
-        return matchCount * 15;
-      } else if (rule === 'point') {
-        // 원포인트 (기본 뉴트럴 톤 3개 + 포인트/블루 1개)
-        const hasPoint = colors.includes('point') || colors.includes('blue');
-        return hasPoint ? 40 : 10;
+      const uniqueColors = [...new Set(colors)];
+      let score = 0;
+
+      // 1. 삼색 제한 공식: 룩 전체에 쓰인 색상이 3가지 이하일 때 가장 높은 완성도
+      if (uniqueColors.length <= 3) {
+        score += 35;
+      } else if (uniqueColors.length === 4) {
+        score += 10; // 산만함 감점
       }
-      return 20; // 자유 조화
+
+      // 2. 상하의/신발 색상 균형 (신발-아우터 색상 통일 또는 상하의 대비)
+      const outer = items[0];
+      const top = items[1];
+      const bottom = items[2];
+      const shoes = items[3];
+
+      if (outer && shoes && outer.color === shoes.color) {
+        score += 20; // 샌드위치 컬러링 (안정감 상승)
+      }
+      if (top && bottom && top.color !== bottom.color) {
+        score += 15; // 상하의 명도/색상 구분감
+      }
+
+      // 3. 선택된 컬러 룰별 채점
+      if (rule === 'monochrome') {
+        // 모노톤 (블랙, 화이트, 그레이) 위주
+        const monoList = ['black', 'white', 'grey'];
+        const monoCount = colors.filter(c => monoList.includes(c)).length;
+        score += monoCount * 12;
+      } else if (rule === 'earthy') {
+        // 어스톤 (베이지, 카키, 네이비, 화이트)
+        const earthList = ['beige', 'khaki', 'navy', 'white'];
+        const earthCount = colors.filter(c => earthList.includes(c)).length;
+        score += earthCount * 12;
+      } else if (rule === 'contrast') {
+        // 단정 베이스 + 원포인트
+        const hasPoint = colors.includes('point') || colors.includes('blue');
+        const neutrals = colors.filter(c => ['black', 'white', 'grey'].includes(c)).length;
+        if (hasPoint && neutrals >= 2) {
+          score += 45;
+        }
+      } else if (rule === 'rule_three') {
+        // 3색 정석: 2~3개 조화로운 뉴트럴 조합
+        if (uniqueColors.length >= 2 && uniqueColors.length <= 3) {
+          score += 30;
+        }
+      }
+
+      return score;
     }
 
-    function generateRecommendation(isShuffle = false) {
+    // 전체 조합 순위 매기기 (결정론적 알고리즘)
+    function recalculateRankedCombos() {
       const temp = currentWeather.temp;
       const targetSeason = getTemperatureSeason(temp);
       const activeTemplate = STYLE_TEMPLATES.find(t => t.id === currentTemplate) || STYLE_TEMPLATES[0];
 
+      // 카테고리별 후보군 필터링 (기온 및 스타일 적합군 우선 선별)
+      const categories = ['outer', 'top', 'bottom', 'shoes'];
+      const candidatesByCategory = {};
+
+      categories.forEach(cat => {
+        let pool = closetItems.filter(item => item.category === cat);
+        // 기온 우선, 없으면 전체
+        let seasonPool = pool.filter(item => item.season === targetSeason);
+        candidatesByCategory[cat] = seasonPool.length > 0 ? seasonPool : pool;
+      });
+
+      // 아우터, 상의, 하의, 신발의 데카르트 곱(Cartesian Product) 조합 생성 및 점수화
+      const combos = [];
+      const outers = candidatesByCategory['outer'].length > 0 ? candidatesByCategory['outer'] : [null];
+      const tops = candidatesByCategory['top'].length > 0 ? candidatesByCategory['top'] : [null];
+      const bottoms = candidatesByCategory['bottom'].length > 0 ? candidatesByCategory['bottom'] : [null];
+      const shoesList = candidatesByCategory['shoes'].length > 0 ? candidatesByCategory['shoes'] : [null];
+
+      for (let o of outers) {
+        for (let t of tops) {
+          for (let b of bottoms) {
+            for (let s of shoesList) {
+              const comboItems = [o, t, b, s];
+              
+              // 1. 기온 점수 (정확도)
+              let tempScore = 0;
+              comboItems.forEach(it => {
+                if (it && it.season === targetSeason) tempScore += 25;
+              });
+
+              // 2. 템플릿 스타일 정합도 점수
+              let styleScore = 0;
+              comboItems.forEach(it => {
+                if (it && activeTemplate.compatibleStyles.includes(it.style)) styleScore += 20;
+                if (it && activeTemplate.preferredColors.includes(it.color)) styleScore += 10;
+              });
+
+              // 3. 색채학 하모니 공식 점수
+              let colorScore = calculateColorScore(comboItems, currentColorRule);
+
+              const totalScore = tempScore + styleScore + colorScore;
+
+              combos.push({
+                items: comboItems,
+                totalScore,
+                tempScore,
+                styleScore,
+                colorScore
+              });
+            }
+          }
+        }
+      }
+
+      // 점수 내림차순 정렬 (높은 점수순)
+      combos.sort((a, b) => b.totalScore - a.totalScore);
+
+      rankedCombos = combos;
+      currentRankIndex = 0;
+      renderComboAtCurrentRank();
+    }
+
+    function renderComboAtCurrentRank() {
+      if (!rankedCombos || rankedCombos.length === 0) {
+        generateRecommendationFallback();
+        return;
+      }
+
+      const selected = rankedCombos[currentRankIndex] || rankedCombos[0];
+      const comboItems = selected.items;
+      const temp = currentWeather.temp;
+      const targetSeason = getTemperatureSeason(temp);
+      const activeTemplate = STYLE_TEMPLATES.find(t => t.id === currentTemplate) || STYLE_TEMPLATES[0];
+
+      // 버튼 랭크 텍스트 업데이트
+      const rankText = document.getElementById('combo-rank-text');
+      const maxRank = Math.min(rankedCombos.length, 5);
+      rankText.textContent = `다음 최적 조합 (Rank ${currentRankIndex + 1}/${maxRank})`;
+
+      // 헤더 타이틀 및 설명
       const titleEl = document.getElementById('recommend-title');
       const descEl = document.getElementById('recommend-desc');
       const badgeEl = document.getElementById('recommend-tier-badge');
@@ -1200,49 +1322,25 @@
       const colorMatchText = document.getElementById('color-match-text');
       const container = document.getElementById('outfit-items-container');
 
-      // 제목 및 템플릿 설명 세팅
       titleEl.innerHTML = `<i class="fa-solid ${activeTemplate.icon}" style="color: #6366f1;"></i> [${activeTemplate.name}] ${getSeasonTitle(targetSeason)}`;
-      descEl.textContent = `현재 기온 ${temp}°C에 맞춘 ${activeTemplate.desc}`;
+      descEl.textContent = `현재 기온 ${temp}°C에 맞춘 ${activeTemplate.desc} (조화 점수: ${selected.totalScore}점)`;
       badgeEl.textContent = `기온: ${temp}°C (${SEASON_LABELS[targetSeason]?.split(' ')[0]})`;
 
+      const ruleDescriptions = {
+        rule_three: '3색 제한 정석 (안정된 컬러 밸런스)',
+        monochrome: '톤온톤 모노크롬 (절제된 세련미)',
+        earthy: '어스톤 & 뉴트럴 하모니 (자연스러운 편안함)',
+        contrast: '원포인트 컬러 대비 (감각적인 포인트)'
+      };
+      colorNotice.style.display = 'inline-flex';
+      colorMatchText.textContent = `색채학 공식 적용: ${ruleDescriptions[currentColorRule]} / 종합 매칭도 최상`;
+
+      // 4개 아이템 카드 렌더링
       const categories = ['outer', 'top', 'bottom', 'shoes'];
       container.innerHTML = '';
 
-      // 추천 아이템 선별:
-      // 1순위: 기온 일치 + 템플릿 스타일 일치 + 선호 색상 일치
-      // 2순위: 기온 일치 + 템플릿 스타일 일치
-      // 3순위: 기온 일치 + 카테고리 일치
-      // 4순위: 카테고리 일치
-      const chosenItems = [];
-
-      categories.forEach(cat => {
-        let pool = closetItems.filter(item => item.category === cat);
-
-        // 후보군 점수 매기기
-        let scored = pool.map(item => {
-          let score = 0;
-          if (item.season === targetSeason) score += 40;
-          if (activeTemplate.compatibleStyles.includes(item.style)) score += 30;
-          if (activeTemplate.preferredColors.includes(item.color)) score += 20;
-          
-          // 색상 룰 가산점
-          if (currentColorRule === 'monochrome' && ['black', 'white', 'grey'].includes(item.color)) score += 25;
-          if (currentColorRule === 'earthy' && ['beige', 'khaki', 'white'].includes(item.color)) score += 25;
-          if (currentColorRule === 'point' && ['point', 'blue'].includes(item.color)) score += 20;
-
-          // 셔플 시 약간의 랜덤성 부여
-          if (isShuffle) {
-            score += Math.random() * 25;
-          }
-
-          return { item, score };
-        });
-
-        scored.sort((a, b) => b.score - a.score);
-
-        const chosen = scored.length > 0 ? scored[0].item : null;
-        chosenItems.push(chosen);
-
+      categories.forEach((cat, idx) => {
+        const chosen = comboItems[idx];
         const card = document.createElement('div');
         card.className = 'item-card';
 
@@ -1268,7 +1366,7 @@
                 ${chosen.style || '데일리'}
               </span>
             </div>
-            <div class="item-source"><i class="fa-solid fa-circle-check"></i> 내 옷장 매칭</div>
+            <div class="item-source"><i class="fa-solid fa-circle-check"></i> 색상 조화 매칭</div>
           `;
         } else {
           card.innerHTML = `
@@ -1281,17 +1379,13 @@
         container.appendChild(card);
       });
 
-      // 컬러 매칭 안내 배지 표시
-      const ruleLabels = {
-        all: '자연스러운 톤 매칭',
-        monochrome: '세련된 모노크롬 / 톤온톤 매칭',
-        earthy: '내추럴 어스톤(베이지/카키) 하모니',
-        point: '감각적인 원포인트 컬러 대비'
-      };
-      colorNotice.style.display = 'inline-flex';
-      colorMatchText.textContent = `${activeTemplate.name} × ${ruleLabels[currentColorRule] || '색상 조화'} 적용됨`;
-
       updateShoppingAddon(activeTemplate, targetSeason, temp);
+    }
+
+    function generateRecommendationFallback() {
+      // 옷장이 비어있을 때
+      const container = document.getElementById('outfit-items-container');
+      container.innerHTML = '<div style="grid-column: 1/-1; text-align: center; padding: 20px;">옷장에 등록된 옷이 부족합니다. 새 옷을 등록해주세요.</div>';
     }
 
     function getSeasonTitle(season) {
@@ -1375,7 +1469,7 @@
         iconEl.textContent = weatherInfo.icon;
         tipEl.textContent = getWeatherAdvice(currentWeather.temp, cw.weathercode);
 
-        generateRecommendation();
+        recalculateRankedCombos();
       } catch (err) {
         console.error('날씨 조회 에러:', err);
         tempEl.textContent = '15°C (기본값)';
@@ -1383,7 +1477,7 @@
         iconEl.textContent = '🌤️';
         tipEl.textContent = '날씨 정보를 불러오지 못해 기본 기온(15°C) 기준으로 코디를 추천합니다.';
         currentWeather = { temp: 15, code: 0, wind: 0 };
-        generateRecommendation();
+        recalculateRankedCombos();
       }
     }
 
