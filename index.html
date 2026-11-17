@@ -308,7 +308,7 @@
     /* Virtual Fitting Room & Outfit Layout */
     .outfit-main-layout {
       display: grid;
-      grid-template-columns: 280px 1fr;
+      grid-template-columns: 290px 1fr;
       gap: 20px;
       margin-bottom: 24px;
     }
@@ -344,9 +344,9 @@
 
     .mannequin-stage {
       position: relative;
-      width: 240px;
-      height: 440px;
-      background: radial-gradient(circle at center 40%, #ffffff 0%, #f1f5f9 100%);
+      width: 250px;
+      height: 450px;
+      background: radial-gradient(circle at center 35%, #ffffff 0%, #f1f5f9 100%);
       border-radius: 12px;
       border: 1px solid #e2e8f0;
       overflow: hidden;
@@ -358,9 +358,9 @@
     /* Silhouette SVG Background */
     .mannequin-silhouette {
       position: absolute;
-      width: 170px;
-      height: 380px;
-      opacity: 0.25;
+      width: 180px;
+      height: 400px;
+      opacity: 0.18;
       pointer-events: none;
       z-index: 1;
     }
@@ -372,12 +372,13 @@
       align-items: center;
       justify-content: center;
       transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-      z-index: 2;
     }
 
     .fit-layer img {
+      max-width: 100%;
+      max-height: 100%;
       object-fit: contain;
-      filter: drop-shadow(0 4px 6px rgba(0,0,0,0.15));
+      filter: drop-shadow(0 6px 8px rgba(0,0,0,0.18));
     }
 
     /* Specific coordinates for clothes layers */
@@ -390,42 +391,23 @@
 
     .fit-layer-outer {
       top: 50px;
-      width: 160px;
-      height: 160px;
+      width: 165px;
+      height: 165px;
       z-index: 5;
     }
 
     .fit-layer-bottom {
       top: 170px;
-      width: 110px;
-      height: 170px;
+      width: 120px;
+      height: 180px;
       z-index: 2;
     }
 
     .fit-layer-shoes {
-      bottom: 20px;
-      width: 100px;
+      bottom: 18px;
+      width: 110px;
       height: 60px;
       z-index: 4;
-    }
-
-    .fit-layer img {
-      max-width: 100%;
-      max-height: 100%;
-      border-radius: 6px;
-    }
-
-    /* Placeholder clothes block if image is not uploaded */
-    .fit-placeholder-badge {
-      padding: 6px 12px;
-      border-radius: 8px;
-      font-size: 0.75rem;
-      font-weight: 700;
-      color: #ffffff;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.15);
-      text-align: center;
-      white-space: nowrap;
-      border: 1px solid rgba(255,255,255,0.4);
     }
 
     /* Outfit Recommendation Right Column */
@@ -956,7 +938,7 @@
             </div>
 
             <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 10px; text-align: center;">
-              * 내 옷 사진을 업로드하면 실제 옷으로 피팅됩니다
+              * 기본 옷 및 등록한 실제 옷 사진이 마네킹에 피팅됩니다
             </div>
           </div>
 
@@ -1073,7 +1055,7 @@
         <div class="closet-header">
           <h3 style="font-size: 1.1rem; font-weight: 700;">내 보유 옷 목록</h3>
           <button class="btn-icon" onclick="resetDefaultCloset()" style="font-size: 0.8rem;">
-            <i class="fa-solid fa-arrows-rotate"></i> 스타일별 풍성한 샘플 옷장으로 리셋
+            <i class="fa-solid fa-arrows-rotate"></i> 임시 누끼 이미지가 포함된 기본 옷장으로 리셋
           </button>
         </div>
 
@@ -1109,6 +1091,75 @@
   </div>
 
   <script>
+    /* ==========================================================
+       SVG 누끼(투명 배경) 임시 이미지 생성 헬퍼
+       외부 이미지 차단/오프라인에서도 100% 작동하는 투명 벡터 그래픽
+       ========================================================== */
+    function createClothingSvg(category, colorHex, strokeColor = '#334155') {
+      let svgContent = '';
+      if (category === 'outer') {
+        svgContent = `
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 160" width="160" height="160">
+            <!-- 코트/자켓 몸체 -->
+            <path d="M45,28 L30,48 L15,115 L40,118 L48,65 L48,150 L112,150 L112,65 L120,118 L145,115 L130,48 L115,28 Q80,24 45,28 Z" 
+                  fill="${colorHex}" stroke="${strokeColor}" stroke-width="3" stroke-linejoin="round"/>
+            <!-- 카라 및 라펠 -->
+            <path d="M48,28 L80,75 L62,30 Z" fill="#ffffff" opacity="0.25"/>
+            <path d="M112,28 L80,75 L98,30 Z" fill="#ffffff" opacity="0.25"/>
+            <!-- 중앙 여밈선 & 단추 -->
+            <line x1="80" y1="75" x2="80" y2="150" stroke="${strokeColor}" stroke-width="2.5" stroke-dasharray="8,6"/>
+            <circle cx="75" cy="90" r="3" fill="${strokeColor}"/>
+            <circle cx="75" cy="115" r="3" fill="${strokeColor}"/>
+            <circle cx="75" cy="138" r="3" fill="${strokeColor}"/>
+          </svg>
+        `;
+      } else if (category === 'top') {
+        svgContent = `
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 140 120" width="140" height="120">
+            <!-- 상의/셔츠/니트 몸체 -->
+            <path d="M44,18 L24,32 L6,62 L28,72 L38,48 L38,114 L102,114 L102,48 L112,72 L134,62 L116,32 L96,18 Q70,28 44,18 Z" 
+                  fill="${colorHex}" stroke="${strokeColor}" stroke-width="3" stroke-linejoin="round"/>
+            <!-- 넥라인 -->
+            <path d="M50,19 Q70,36 90,19" fill="none" stroke="${strokeColor}" stroke-width="2.5"/>
+            <!-- 소매 주름 디테일 -->
+            <line x1="26" y1="68" x2="36" y2="48" stroke="${strokeColor}" stroke-width="1.5" opacity="0.6"/>
+            <line x1="114" y1="68" x2="104" y2="48" stroke="${strokeColor}" stroke-width="1.5" opacity="0.6"/>
+          </svg>
+        `;
+      } else if (category === 'bottom') {
+        svgContent = `
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 180" width="120" height="180">
+            <!-- 바지/슬랙스/데님 몸체 -->
+            <path d="M26,12 L94,12 L96,172 L67,172 L60,56 L53,172 L24,172 Z" 
+                  fill="${colorHex}" stroke="${strokeColor}" stroke-width="3" stroke-linejoin="round"/>
+            <!-- 허리 벨트 루프 & 지퍼선 -->
+            <line x1="26" y1="26" x2="94" y2="26" stroke="${strokeColor}" stroke-width="2"/>
+            <line x1="60" y1="26" x2="60" y2="54" stroke="${strokeColor}" stroke-width="2.5"/>
+            <!-- 포켓 라인 -->
+            <path d="M28,34 Q40,38 48,30" fill="none" stroke="${strokeColor}" stroke-width="2"/>
+            <path d="M92,34 Q80,38 72,30" fill="none" stroke="${strokeColor}" stroke-width="2"/>
+          </svg>
+        `;
+      } else if (category === 'shoes') {
+        svgContent = `
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 60" width="120" height="60">
+            <!-- 좌측 신발 -->
+            <path d="M12,38 Q18,22 34,22 L46,26 L48,46 L10,46 Z" 
+                  fill="${colorHex}" stroke="${strokeColor}" stroke-width="2.5" stroke-linejoin="round"/>
+            <rect x="8" y="46" width="42" height="6" rx="2" fill="#ffffff" stroke="${strokeColor}" stroke-width="2"/>
+            <!-- 우측 신발 -->
+            <path d="M108,38 Q102,22 86,22 L74,26 L72,46 L110,46 Z" 
+                  fill="${colorHex}" stroke="${strokeColor}" stroke-width="2.5" stroke-linejoin="round"/>
+            <rect x="70" y="46" width="42" height="6" rx="2" fill="#ffffff" stroke="${strokeColor}" stroke-width="2"/>
+            <!-- 신발끈/디테일 -->
+            <line x1="32" y1="26" x2="42" y2="34" stroke="#ffffff" stroke-width="2" opacity="0.8"/>
+            <line x1="88" y1="26" x2="78" y2="34" stroke="#ffffff" stroke-width="2" opacity="0.8"/>
+          </svg>
+        `;
+      }
+      return 'data:image/svg+xml;utf8,' + encodeURIComponent(svgContent.trim());
+    }
+
     /* ==========================================================
        1. 스타일 템플릿 & 풍부한 옷장 기본 데이터
        ========================================================== */
@@ -1156,12 +1207,12 @@
     ];
 
     const COLOR_HEX = {
-      black: '#111827',
+      black: '#1e293b',
       white: '#f8fafc',
       grey: '#64748b',
       navy: '#1e3a8a',
       beige: '#d97706',
-      khaki: '#3f6212',
+      khaki: '#4d7c0f',
       blue: '#2563eb',
       point: '#dc2626'
     };
@@ -1177,42 +1228,43 @@
       point: '포인트컬러'
     };
 
+    // 임시 누끼 이미지를 기본 장착한 28종 샘플 의류 데이터
     const DEFAULT_CLOTHES = [
       // Outer
-      { id: 1, category: 'outer', name: '헤비 오버사이즈 롱 패딩', season: 'winter', color: 'black', style: 'cityboy', image: '' },
-      { id: 2, category: 'outer', name: '캐시미어 블렌드 싱글 울 코트', season: 'chilly', color: 'black', style: 'minimal', image: '' },
-      { id: 3, category: 'outer', name: '카멜 브라운 핸드메이드 로브 코트', season: 'chilly', color: 'beige', style: 'oldmoney', image: '' },
-      { id: 4, category: 'outer', name: '테크니컬 방수 쉘 윈드브레이커', season: 'mild', color: 'khaki', style: 'gorpcore', image: '' },
-      { id: 5, category: 'outer', name: '클래식 테일러드 네이비 블레이저', season: 'mild', color: 'navy', style: 'oldmoney', image: '' },
-      { id: 6, category: 'outer', name: '오버핏 옥스포드 워크자켓', season: 'mild', color: 'beige', style: 'cityboy', image: '' },
-      { id: 7, category: 'outer', name: '라이트 코튼 셔츠 자켓', season: 'warm', color: 'navy', style: 'casual', image: '' },
+      { id: 1, category: 'outer', name: '헤비 오버사이즈 롱 패딩', season: 'winter', color: 'black', style: 'cityboy', image: createClothingSvg('outer', COLOR_HEX.black) },
+      { id: 2, category: 'outer', name: '캐시미어 블렌드 싱글 울 코트', season: 'chilly', color: 'black', style: 'minimal', image: createClothingSvg('outer', '#0f172a') },
+      { id: 3, category: 'outer', name: '카멜 브라운 핸드메이드 로브 코트', season: 'chilly', color: 'beige', style: 'oldmoney', image: createClothingSvg('outer', COLOR_HEX.beige) },
+      { id: 4, category: 'outer', name: '테크니컬 방수 쉘 윈드브레이커', season: 'mild', color: 'khaki', style: 'gorpcore', image: createClothingSvg('outer', COLOR_HEX.khaki) },
+      { id: 5, category: 'outer', name: '클래식 테일러드 네이비 블레이저', season: 'mild', color: 'navy', style: 'oldmoney', image: createClothingSvg('outer', COLOR_HEX.navy) },
+      { id: 6, category: 'outer', name: '오버핏 옥스포드 워크자켓', season: 'mild', color: 'beige', style: 'cityboy', image: createClothingSvg('outer', '#b45309') },
+      { id: 7, category: 'outer', name: '라이트 코튼 셔츠 자켓', season: 'warm', color: 'navy', style: 'casual', image: createClothingSvg('outer', '#1d4ed8') },
 
       // Top
-      { id: 8, category: 'top', name: '헤비 울 터틀넥 니트', season: 'winter', color: 'white', style: 'oldmoney', image: '' },
-      { id: 9, category: 'top', name: '모헤어 오버핏 케이블 니트', season: 'chilly', color: 'grey', style: 'cityboy', image: '' },
-      { id: 10, category: 'top', name: '프리미엄 파인 울 크루넥 니트', season: 'chilly', color: 'navy', style: 'minimal', image: '' },
-      { id: 11, category: 'top', name: '오버사이즈 옥스포드 스트라이프 셔츠', season: 'mild', color: 'blue', style: 'cityboy', image: '' },
-      { id: 12, category: 'top', name: '베이직 포플린 화이트 셔츠', season: 'mild', color: 'white', style: 'minimal', image: '' },
-      { id: 13, category: 'top', name: '헤비웨이트 빈티지 스웨트셔츠', season: 'mild', color: 'grey', style: 'casual', image: '' },
-      { id: 14, category: 'top', name: '쿨맥스 기능성 긴팔 롱슬리브', season: 'warm', color: 'black', style: 'gorpcore', image: '' },
-      { id: 15, category: 'top', name: '수피마 코튼 릴렉스 반팔 티셔츠', season: 'hot', color: 'white', style: 'casual', image: '' },
+      { id: 8, category: 'top', name: '헤비 울 터틀넥 니트', season: 'winter', color: 'white', style: 'oldmoney', image: createClothingSvg('top', COLOR_HEX.white) },
+      { id: 9, category: 'top', name: '모헤어 오버핏 케이블 니트', season: 'chilly', color: 'grey', style: 'cityboy', image: createClothingSvg('top', COLOR_HEX.grey) },
+      { id: 10, category: 'top', name: '프리미엄 파인 울 크루넥 니트', season: 'chilly', color: 'navy', style: 'minimal', image: createClothingSvg('top', COLOR_HEX.navy) },
+      { id: 11, category: 'top', name: '오버사이즈 옥스포드 스트라이프 셔츠', season: 'mild', color: 'blue', style: 'cityboy', image: createClothingSvg('top', COLOR_HEX.blue) },
+      { id: 12, category: 'top', name: '베이직 포플린 화이트 셔츠', season: 'mild', color: 'white', style: 'minimal', image: createClothingSvg('top', '#ffffff') },
+      { id: 13, category: 'top', name: '헤비웨이트 빈티지 스웨트셔츠', season: 'mild', color: 'grey', style: 'casual', image: createClothingSvg('top', '#94a3b8') },
+      { id: 14, category: 'top', name: '쿨맥스 기능성 긴팔 롱슬리브', season: 'warm', color: 'black', style: 'gorpcore', image: createClothingSvg('top', COLOR_HEX.black) },
+      { id: 15, category: 'top', name: '수피마 코튼 릴렉스 반팔 티셔츠', season: 'hot', color: 'white', style: 'casual', image: createClothingSvg('top', '#ffffff') },
 
       // Bottom
-      { id: 16, category: 'bottom', name: '와이드 울 기모 슬랙스', season: 'winter', color: 'grey', style: 'minimal', image: '' },
-      { id: 17, category: 'bottom', name: '원턱 테이퍼드 치노팬츠', season: 'chilly', color: 'beige', style: 'oldmoney', image: '' },
-      { id: 18, category: 'bottom', name: '딥 인디고 와이드 셀비지 데님', season: 'mild', color: 'blue', style: 'cityboy', image: '' },
-      { id: 19, category: 'bottom', name: '스트레이트 세미와이드 블랙진', season: 'mild', color: 'black', style: 'minimal', image: '' },
-      { id: 20, category: 'bottom', name: '나일론 유틸리티 와이드 카고팬츠', season: 'mild', color: 'khaki', style: 'gorpcore', image: '' },
-      { id: 21, category: 'bottom', name: '크림 아이보리 와이드 팬츠', season: 'warm', color: 'white', style: 'oldmoney', image: '' },
-      { id: 22, category: 'bottom', name: '이지 린넨 밴딩 하프 쇼츠', season: 'hot', color: 'black', style: 'casual', image: '' },
+      { id: 16, category: 'bottom', name: '와이드 울 기모 슬랙스', season: 'winter', color: 'grey', style: 'minimal', image: createClothingSvg('bottom', COLOR_HEX.grey) },
+      { id: 17, category: 'bottom', name: '원턱 테이퍼드 치노팬츠', season: 'chilly', color: 'beige', style: 'oldmoney', image: createClothingSvg('bottom', COLOR_HEX.beige) },
+      { id: 18, category: 'bottom', name: '딥 인디고 와이드 셀비지 데님', season: 'mild', color: 'blue', style: 'cityboy', image: createClothingSvg('bottom', '#1e3a8a') },
+      { id: 19, category: 'bottom', name: '스트레이트 세미와이드 블랙진', season: 'mild', color: 'black', style: 'minimal', image: createClothingSvg('bottom', COLOR_HEX.black) },
+      { id: 20, category: 'bottom', name: '나일론 유틸리티 와이드 카고팬츠', season: 'mild', color: 'khaki', style: 'gorpcore', image: createClothingSvg('bottom', COLOR_HEX.khaki) },
+      { id: 21, category: 'bottom', name: '크림 아이보리 와이드 팬츠', season: 'warm', color: 'white', style: 'oldmoney', image: createClothingSvg('bottom', '#fef3c7') },
+      { id: 22, category: 'bottom', name: '이지 린넨 밴딩 하프 쇼츠', season: 'hot', color: 'black', style: 'casual', image: createClothingSvg('bottom', '#334155') },
 
       // Shoes
-      { id: 23, category: 'shoes', name: '클래식 첼시 가죽 부츠', season: 'chilly', color: 'black', style: 'minimal', image: '' },
-      { id: 24, category: 'shoes', name: '프리미엄 스웨이드 로퍼', season: 'chilly', color: 'beige', style: 'oldmoney', image: '' },
-      { id: 25, category: 'shoes', name: '빈티지 레트로 러닝화 (레더)', season: 'mild', color: 'grey', style: 'cityboy', image: '' },
-      { id: 26, category: 'shoes', name: '어반 고어텍스 트레일 하이킹화', season: 'mild', color: 'black', style: 'gorpcore', image: '' },
-      { id: 27, category: 'shoes', name: '화이트 미니멀 레더 스니커즈', season: 'warm', color: 'white', style: 'casual', image: '' },
-      { id: 28, category: 'shoes', name: '투스트랩 가죽 슬라이드 샌들', season: 'hot', color: 'black', style: 'minimal', image: '' }
+      { id: 23, category: 'shoes', name: '클래식 첼시 가죽 부츠', season: 'chilly', color: 'black', style: 'minimal', image: createClothingSvg('shoes', COLOR_HEX.black) },
+      { id: 24, category: 'shoes', name: '프리미엄 스웨이드 로퍼', season: 'chilly', color: 'beige', style: 'oldmoney', image: createClothingSvg('shoes', COLOR_HEX.beige) },
+      { id: 25, category: 'shoes', name: '빈티지 레트로 러닝화 (레더)', season: 'mild', color: 'grey', style: 'cityboy', image: createClothingSvg('shoes', COLOR_HEX.grey) },
+      { id: 26, category: 'shoes', name: '어반 고어텍스 트레일 하이킹화', season: 'mild', color: 'black', style: 'gorpcore', image: createClothingSvg('shoes', '#090d16') },
+      { id: 27, category: 'shoes', name: '화이트 미니멀 레더 스니커즈', season: 'warm', color: 'white', style: 'casual', image: createClothingSvg('shoes', '#f8fafc') },
+      { id: 28, category: 'shoes', name: '투스트랩 가죽 슬라이드 샌들', season: 'hot', color: 'black', style: 'minimal', image: createClothingSvg('shoes', '#111827') }
     ];
 
     const SEASON_LABELS = {
@@ -1258,7 +1310,7 @@
     let uploadedImageBase64 = '';
 
     function initCloset() {
-      const stored = localStorage.getItem('ooootd_closet_v2');
+      const stored = localStorage.getItem('ooootd_closet_v3');
       if (stored) {
         try {
           closetItems = JSON.parse(stored);
@@ -1274,13 +1326,13 @@
     }
 
     function saveCloset() {
-      localStorage.setItem('ooootd_closet_v2', JSON.stringify(closetItems));
+      localStorage.setItem('ooootd_closet_v3', JSON.stringify(closetItems));
       updateClosetUI();
       recalculateRankedCombos();
     }
 
     function resetDefaultCloset() {
-      if (confirm('스타일 템플릿과 색상 정보가 풍부한 기본 옷장 샘플(28개 아이템)로 리셋하시겠습니까?')) {
+      if (confirm('임시 누끼 이미지가 모두 세팅된 28종 기본 옷장으로 리셋하시겠습니까?')) {
         closetItems = [...DEFAULT_CLOTHES];
         saveCloset();
       }
@@ -1361,10 +1413,10 @@
       const shoes = items[3];
 
       if (outer && shoes && outer.color === shoes.color) {
-        score += 20; // 샌드위치 컬러링
+        score += 20;
       }
       if (top && bottom && top.color !== bottom.color) {
-        score += 15; // 상하의 명도/색상 구분
+        score += 15;
       }
 
       // 3. 선택된 컬러 룰별 채점
@@ -1460,13 +1512,13 @@
       const bottom = comboItems[2];
       const shoes = comboItems[3];
 
-      renderLayer('fit-outer-layer', outer, '아우터');
-      renderLayer('fit-top-layer', top, '상의');
-      renderLayer('fit-bottom-layer', bottom, '하의');
-      renderLayer('fit-shoes-layer', shoes, '신발');
+      renderLayer('fit-outer-layer', outer);
+      renderLayer('fit-top-layer', top);
+      renderLayer('fit-bottom-layer', bottom);
+      renderLayer('fit-shoes-layer', shoes);
     }
 
-    function renderLayer(containerId, item, fallbackLabel) {
+    function renderLayer(containerId, item) {
       const el = document.getElementById(containerId);
       if (!el) return;
       el.innerHTML = '';
@@ -1478,25 +1530,11 @@
 
       el.style.display = 'flex';
 
-      if (item.image) {
-        // 사용자가 업로드한 실제 옷 이미지 합성
-        const img = document.createElement('img');
-        img.src = item.image;
-        img.alt = item.name;
-        el.appendChild(img);
-      } else {
-        // 이미지가 없을 때는 해당 옷의 컬러와 아이콘이 반영된 세련된 마네킹 레이어 블록으로 표시
-        const hex = COLOR_HEX[item.color] || '#334155';
-        const isLight = ['white', 'beige', 'grey'].includes(item.color);
-        const textColor = isLight ? '#0f172a' : '#ffffff';
-
-        const badge = document.createElement('div');
-        badge.className = 'fit-placeholder-badge';
-        badge.style.backgroundColor = hex;
-        badge.style.color = textColor;
-        badge.innerHTML = `<i class="fa-solid ${CATEGORY_ICONS[item.category] || 'fa-shirt'}"></i> ${escapeHtml(item.name)}`;
-        el.appendChild(badge);
-      }
+      // 업로드 이미지 또는 기본 SVG 누끼 이미지 렌더링
+      const img = document.createElement('img');
+      img.src = item.image || createClothingSvg(item.category, COLOR_HEX[item.color] || '#334155');
+      img.alt = item.name;
+      el.appendChild(img);
     }
 
     function renderComboAtCurrentRank() {
@@ -1550,14 +1588,11 @@
         card.className = 'item-card';
 
         if (chosen) {
-          const imgPreviewHtml = chosen.image 
-            ? `<img src="${chosen.image}" class="item-img-preview" alt="${chosen.name}">` 
-            : `<div class="item-img-placeholder"><i class="fa-solid ${CATEGORY_ICONS[chosen.category] || 'fa-shirt'}"></i></div>`;
-
+          const imgSrc = chosen.image || createClothingSvg(chosen.category, COLOR_HEX[chosen.color] || '#334155');
           const dotColor = COLOR_HEX[chosen.color] || '#333';
 
           card.innerHTML = `
-            ${imgPreviewHtml}
+            <img src="${imgSrc}" class="item-img-preview" alt="${chosen.name}">
             <div class="item-category">
               <span>${CATEGORY_NAMES[cat]}</span>
               <span class="item-season-badge">${SEASON_LABELS[chosen.season]?.split(' ')[0] || chosen.season}</span>
@@ -1746,6 +1781,8 @@
 
       if (!name) return;
 
+      const fallbackSvg = createClothingSvg(cat, COLOR_HEX[color] || '#334155');
+
       const newItem = {
         id: Date.now(),
         category: cat,
@@ -1753,7 +1790,7 @@
         season: season,
         color: color,
         style: style,
-        image: uploadedImageBase64 || ''
+        image: uploadedImageBase64 || fallbackSvg
       };
 
       closetItems.unshift(newItem);
@@ -1799,10 +1836,8 @@
 
       filtered.forEach(item => {
         const tr = document.createElement('tr');
-        const thumbHtml = item.image 
-          ? `<img src="${item.image}" class="table-thumb" alt="옷 사진">` 
-          : `<div class="table-thumb" style="display:flex;align-items:center;justify-content:center;color:#94a3b8;"><i class="fa-solid ${CATEGORY_ICONS[item.category] || 'fa-shirt'}"></i></div>`;
-
+        const imgSrc = item.image || createClothingSvg(item.category, COLOR_HEX[item.color] || '#334155');
+        const thumbHtml = `<img src="${imgSrc}" class="table-thumb" alt="옷 사진">`;
         const dotColor = COLOR_HEX[item.color] || '#333';
 
         tr.innerHTML = `
