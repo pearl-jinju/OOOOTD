@@ -381,7 +381,6 @@
       filter: drop-shadow(0 6px 8px rgba(0,0,0,0.18));
     }
 
-    /* Specific coordinates for clothes layers */
     .fit-layer-top {
       top: 60px;
       width: 140px;
@@ -625,30 +624,43 @@
       background-color: #86198f;
     }
 
-    /* Closet Management */
-    .closet-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 16px;
-      flex-wrap: wrap;
-      gap: 12px;
-    }
-
+    /* Simplified Smart Closet Registration Form */
     .closet-form-container {
-      background: var(--card-bg);
-      border: 1px solid var(--border);
+      background: #ffffff;
+      border: 1.5px solid #c7d2fe;
       border-radius: 16px;
-      padding: 20px;
+      padding: 24px;
       margin-bottom: 24px;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+      box-shadow: 0 4px 6px -1px rgba(79, 70, 229, 0.05);
     }
 
-    .form-grid {
+    .smart-form-title {
+      font-size: 1.15rem;
+      font-weight: 800;
+      color: #312e81;
+      margin-bottom: 4px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .smart-form-desc {
+      font-size: 0.88rem;
+      color: var(--text-muted);
+      margin-bottom: 18px;
+    }
+
+    .simple-form-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
-      gap: 12px;
-      margin-bottom: 14px;
+      grid-template-columns: 200px 1fr 1fr;
+      gap: 16px;
+      margin-bottom: 18px;
+    }
+
+    @media (max-width: 768px) {
+      .simple-form-grid {
+        grid-template-columns: 1fr;
+      }
     }
 
     .form-group {
@@ -658,40 +670,73 @@
     }
 
     .form-group label {
-      font-size: 0.85rem;
+      font-size: 0.88rem;
       font-weight: 700;
       color: var(--text-main);
     }
 
     .form-group input, .form-group select {
-      padding: 9px 12px;
+      padding: 10px 14px;
       border: 1px solid var(--border);
       border-radius: 8px;
-      font-size: 0.9rem;
+      font-size: 0.92rem;
       outline: none;
+      background: #ffffff;
     }
 
     .form-group input:focus, .form-group select:focus {
       border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+    }
+
+    /* AI Analysis Live Preview Card */
+    .ai-analysis-box {
+      background: linear-gradient(135deg, #f0fdf4 0%, #ecfdf5 100%);
+      border: 1px solid #a7f3d0;
+      border-radius: 12px;
+      padding: 14px 18px;
+      margin-bottom: 18px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .ai-badge {
+      background: #059669;
+      color: #ffffff;
+      padding: 4px 8px;
+      border-radius: 6px;
+      font-size: 0.75rem;
+      font-weight: 800;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .ai-analysis-text {
+      font-size: 0.88rem;
+      color: #065f46;
+      line-height: 1.45;
     }
 
     .btn-primary {
       background-color: var(--accent);
       color: #fff;
       border: none;
-      padding: 10px 18px;
+      padding: 12px 24px;
       border-radius: 8px;
       font-weight: 700;
-      font-size: 0.92rem;
+      font-size: 0.95rem;
       cursor: pointer;
       display: inline-flex;
       align-items: center;
-      gap: 6px;
-      transition: background 0.2s;
+      gap: 8px;
+      transition: background 0.2s, transform 0.1s;
     }
 
     .btn-primary:hover {
       background-color: var(--accent-hover);
+      transform: translateY(-1px);
     }
 
     .btn-danger {
@@ -768,8 +813,8 @@
     }
 
     .table-thumb {
-      width: 44px;
-      height: 44px;
+      width: 46px;
+      height: 46px;
       border-radius: 6px;
       object-fit: cover;
       border: 1px solid var(--border);
@@ -806,10 +851,10 @@
     <!-- 서비스 소개 헤더 -->
     <header>
       <div class="logo"><i class="fa-solid fa-shirt"></i> OOOOTD</div>
-      <div class="subtitle">체계적인 컬러 하모니 & 가상 마네킹 피팅룸</div>
+      <div class="subtitle">체계적인 컬러 하모니 & 스마트 가상 마네킹 피팅룸</div>
       <p class="desc">
-        내가 등록한 옷 이미지들을 조합하여 <strong>가상 마네킹 모델이 착용한 전신 룩</strong>을 즉시 합성해 드립니다.
-        날씨와 색채학 공식에 맞춘 완성도 높은 코디를 직접 입혀보고 확인해보세요!
+        카테고리와 옷 이름만 입력하고 사진을 올리면 <strong>AI 색상·스타일 분석 엔진</strong>이 알아서 주요 색상과 적합 계절을 파악합니다.
+        가상 마네킹에 바로 입혀진 전신 룩을 실시간으로 확인해보세요!
       </p>
     </header>
 
@@ -980,72 +1025,54 @@
       </div>
     </div>
 
-    <!-- 2. 내 옷장 관리 탭 -->
+    <!-- 2. 내 옷장 관리 탭 (초간편 3필드 자동 분석 등록) -->
     <div id="closetTab" class="tab-pane">
-      <!-- 옷 등록 폼 (사진 & 색상 & 스타일 무드 포함) -->
       <div class="closet-form-container">
-        <h3 style="font-size: 1.1rem; font-weight: 700; margin-bottom: 14px;">
-          <i class="fa-solid fa-plus-circle" style="color: var(--accent);"></i> 새 옷 등록하기 (사진 첨부 시 피팅룸 즉시 반영)
-        </h3>
-        <form id="add-cloth-form" onsubmit="handleAddCloth(event)">
-          <div class="form-grid">
+        <div class="smart-form-title">
+          <i class="fa-solid fa-wand-magic-sparkles" style="color: var(--accent);"></i> 스마트 원스톱 옷 등록
+        </div>
+        <p class="smart-form-desc">
+          복잡한 계절, 색상, 스타일 선택은 생략하세요! <strong>카테고리와 이름만 적고 사진을 첨부</strong>하면 시스템이 이미지와 이름을 분석해 자동 세팅합니다.
+        </p>
+
+        <form id="add-cloth-form" onsubmit="handleSmartAddCloth(event)">
+          <div class="simple-form-grid">
             <div class="form-group">
-              <label for="cloth-category">카테고리</label>
-              <select id="cloth-category" required>
+              <label for="cloth-category"><i class="fa-solid fa-layer-group"></i> 카테고리 (필수)</label>
+              <select id="cloth-category" required onchange="triggerSmartAnalysis()">
                 <option value="outer">아우터 (Outer)</option>
                 <option value="top" selected>상의 (Top)</option>
                 <option value="bottom">하의 (Bottom)</option>
                 <option value="shoes">신발 (Shoes)</option>
               </select>
             </div>
+            
             <div class="form-group">
-              <label for="cloth-name">옷 이름 / 특징</label>
-              <input type="text" id="cloth-name" placeholder="예: 오버핏 울 코트, 중청 와이드 데님" required>
+              <label for="cloth-name"><i class="fa-solid fa-tag"></i> 옷 이름 / 설명 (필수)</label>
+              <input type="text" id="cloth-name" placeholder="예: 오버핏 울 코트, 화이트 코튼 셔츠, 중청 와이드 데님" required oninput="triggerSmartAnalysis()">
             </div>
+
             <div class="form-group">
-              <label for="cloth-season">적합 기온/계절</label>
-              <select id="cloth-season" required>
-                <option value="winter">겨울/한파 (4°C 이하)</option>
-                <option value="chilly" selected>늦가을/초겨울 (5°C ~ 11°C)</option>
-                <option value="mild">봄/가을 (12°C ~ 19°C)</option>
-                <option value="warm">초여름/선선 (20°C ~ 25°C)</option>
-                <option value="hot">한여름 (26°C 이상)</option>
-              </select>
-            </div>
-            <div class="form-group">
-              <label for="cloth-color">주요 색상 계열</label>
-              <select id="cloth-color" required>
-                <option value="black" selected>블랙 (Black)</option>
-                <option value="white">화이트/아이보리</option>
-                <option value="grey">그레이 (Grey)</option>
-                <option value="navy">네이비 (Navy)</option>
-                <option value="beige">베이지/브라운</option>
-                <option value="khaki">카키/올리브</option>
-                <option value="blue">블루/데님</option>
-                <option value="point">포인트 컬러 (레드/그린/옐로우 등)</option>
-              </select>
-            </div>
-            <div class="form-group">
-              <label for="cloth-style">스타일 분류</label>
-              <select id="cloth-style" required>
-                <option value="casual" selected>캐주얼/데일리</option>
-                <option value="cityboy">시티보이/오버핏</option>
-                <option value="minimal">프렌치 미니멀/깔끔</option>
-                <option value="oldmoney">올드머니/클래식</option>
-                <option value="gorpcore">고프코어/아웃도어</option>
-                <option value="street">스트릿/아메카지</option>
-              </select>
-            </div>
-            <div class="form-group" style="grid-column: 1 / -1;">
-              <label for="cloth-image">옷 사진 첨부 (가상 피팅룸에 착용됩니다!)</label>
-              <input type="file" id="cloth-image" accept="image/*" onchange="previewUploadImage(this)">
-              <div id="image-preview-box" style="display: none; margin-top: 8px;">
-                <img id="image-preview" src="" alt="미리보기" style="width: 80px; height: 80px; object-fit: cover; border-radius: 8px; border: 1px solid var(--border);">
-              </div>
+              <label for="cloth-image"><i class="fa-solid fa-camera"></i> 옷 사진 첨부</label>
+              <input type="file" id="cloth-image" accept="image/*" onchange="handleSmartImageUpload(this)">
             </div>
           </div>
+
+          <!-- 실시간 자동 분석 결과 카드 -->
+          <div class="ai-analysis-box" id="ai-analysis-box">
+            <div class="ai-badge">
+              <i class="fa-solid fa-brain"></i> 자동 판단
+            </div>
+            <div class="ai-analysis-text" id="ai-analysis-text">
+              옷 이름이나 사진을 입력하시면 <strong>주요 색상, 추천 스타일, 적합 계절</strong>이 자동 추출됩니다.
+            </div>
+            <div id="image-preview-box" style="display: none; margin-left: auto;">
+              <img id="image-preview" src="" alt="미리보기" style="width: 50px; height: 50px; object-fit: cover; border-radius: 8px; border: 1px solid #cbd5e1;">
+            </div>
+          </div>
+
           <button type="submit" class="btn-primary">
-            <i class="fa-solid fa-check"></i> 옷장에 추가하기
+            <i class="fa-solid fa-plus"></i> 내 옷장에 추가하기
           </button>
         </form>
       </div>
@@ -1055,7 +1082,7 @@
         <div class="closet-header">
           <h3 style="font-size: 1.1rem; font-weight: 700;">내 보유 옷 목록</h3>
           <button class="btn-icon" onclick="resetDefaultCloset()" style="font-size: 0.8rem;">
-            <i class="fa-solid fa-arrows-rotate"></i> 임시 누끼 이미지가 포함된 기본 옷장으로 리셋
+            <i class="fa-solid fa-arrows-rotate"></i> 기본 샘플 옷장으로 리셋
           </button>
         </div>
 
@@ -1074,7 +1101,7 @@
               <th style="width: 60px;">사진</th>
               <th>카테고리</th>
               <th>옷 이름</th>
-              <th>색상 / 스타일 / 시즌</th>
+              <th>색상 / 스타일 / 시즌 (자동 분류)</th>
               <th style="width: 70px; text-align: center;">관리</th>
             </tr>
           </thead>
@@ -1093,20 +1120,16 @@
   <script>
     /* ==========================================================
        SVG 누끼(투명 배경) 임시 이미지 생성 헬퍼
-       외부 이미지 차단/오프라인에서도 100% 작동하는 투명 벡터 그래픽
        ========================================================== */
     function createClothingSvg(category, colorHex, strokeColor = '#334155') {
       let svgContent = '';
       if (category === 'outer') {
         svgContent = `
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 160" width="160" height="160">
-            <!-- 코트/자켓 몸체 -->
             <path d="M45,28 L30,48 L15,115 L40,118 L48,65 L48,150 L112,150 L112,65 L120,118 L145,115 L130,48 L115,28 Q80,24 45,28 Z" 
                   fill="${colorHex}" stroke="${strokeColor}" stroke-width="3" stroke-linejoin="round"/>
-            <!-- 카라 및 라펠 -->
             <path d="M48,28 L80,75 L62,30 Z" fill="#ffffff" opacity="0.25"/>
             <path d="M112,28 L80,75 L98,30 Z" fill="#ffffff" opacity="0.25"/>
-            <!-- 중앙 여밈선 & 단추 -->
             <line x1="80" y1="75" x2="80" y2="150" stroke="${strokeColor}" stroke-width="2.5" stroke-dasharray="8,6"/>
             <circle cx="75" cy="90" r="3" fill="${strokeColor}"/>
             <circle cx="75" cy="115" r="3" fill="${strokeColor}"/>
@@ -1116,12 +1139,9 @@
       } else if (category === 'top') {
         svgContent = `
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 140 120" width="140" height="120">
-            <!-- 상의/셔츠/니트 몸체 -->
             <path d="M44,18 L24,32 L6,62 L28,72 L38,48 L38,114 L102,114 L102,48 L112,72 L134,62 L116,32 L96,18 Q70,28 44,18 Z" 
                   fill="${colorHex}" stroke="${strokeColor}" stroke-width="3" stroke-linejoin="round"/>
-            <!-- 넥라인 -->
             <path d="M50,19 Q70,36 90,19" fill="none" stroke="${strokeColor}" stroke-width="2.5"/>
-            <!-- 소매 주름 디테일 -->
             <line x1="26" y1="68" x2="36" y2="48" stroke="${strokeColor}" stroke-width="1.5" opacity="0.6"/>
             <line x1="114" y1="68" x2="104" y2="48" stroke="${strokeColor}" stroke-width="1.5" opacity="0.6"/>
           </svg>
@@ -1129,13 +1149,10 @@
       } else if (category === 'bottom') {
         svgContent = `
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 180" width="120" height="180">
-            <!-- 바지/슬랙스/데님 몸체 -->
             <path d="M26,12 L94,12 L96,172 L67,172 L60,56 L53,172 L24,172 Z" 
                   fill="${colorHex}" stroke="${strokeColor}" stroke-width="3" stroke-linejoin="round"/>
-            <!-- 허리 벨트 루프 & 지퍼선 -->
             <line x1="26" y1="26" x2="94" y2="26" stroke="${strokeColor}" stroke-width="2"/>
             <line x1="60" y1="26" x2="60" y2="54" stroke="${strokeColor}" stroke-width="2.5"/>
-            <!-- 포켓 라인 -->
             <path d="M28,34 Q40,38 48,30" fill="none" stroke="${strokeColor}" stroke-width="2"/>
             <path d="M92,34 Q80,38 72,30" fill="none" stroke="${strokeColor}" stroke-width="2"/>
           </svg>
@@ -1143,15 +1160,12 @@
       } else if (category === 'shoes') {
         svgContent = `
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 60" width="120" height="60">
-            <!-- 좌측 신발 -->
             <path d="M12,38 Q18,22 34,22 L46,26 L48,46 L10,46 Z" 
                   fill="${colorHex}" stroke="${strokeColor}" stroke-width="2.5" stroke-linejoin="round"/>
             <rect x="8" y="46" width="42" height="6" rx="2" fill="#ffffff" stroke="${strokeColor}" stroke-width="2"/>
-            <!-- 우측 신발 -->
             <path d="M108,38 Q102,22 86,22 L74,26 L72,46 L110,46 Z" 
                   fill="${colorHex}" stroke="${strokeColor}" stroke-width="2.5" stroke-linejoin="round"/>
             <rect x="70" y="46" width="42" height="6" rx="2" fill="#ffffff" stroke="${strokeColor}" stroke-width="2"/>
-            <!-- 신발끈/디테일 -->
             <line x1="32" y1="26" x2="42" y2="34" stroke="#ffffff" stroke-width="2" opacity="0.8"/>
             <line x1="88" y1="26" x2="78" y2="34" stroke="#ffffff" stroke-width="2" opacity="0.8"/>
           </svg>
@@ -1228,7 +1242,6 @@
       point: '포인트컬러'
     };
 
-    // 임시 누끼 이미지를 기본 장착한 28종 샘플 의류 데이터
     const DEFAULT_CLOTHES = [
       // Outer
       { id: 1, category: 'outer', name: '헤비 오버사이즈 롱 패딩', season: 'winter', color: 'black', style: 'cityboy', image: createClothingSvg('outer', COLOR_HEX.black) },
@@ -1308,6 +1321,7 @@
     let rankedCombos = [];
     let currentRankIndex = 0;
     let uploadedImageBase64 = '';
+    let detectedImageColor = null;
 
     function initCloset() {
       const stored = localStorage.getItem('ooootd_closet_v3');
@@ -1336,6 +1350,241 @@
         closetItems = [...DEFAULT_CLOTHES];
         saveCloset();
       }
+    }
+
+    /* ==========================================================
+       AI/지능형 색상·스타일·계절 자동 분석 엔진
+       ========================================================== */
+    function analyzeImageMainColor(base64Data, callback) {
+      const img = new Image();
+      img.onload = function() {
+        const canvas = document.createElement('canvas');
+        canvas.width = 40;
+        canvas.height = 40;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, 40, 40);
+
+        try {
+          const imgData = ctx.getImageData(0, 0, 40, 40).data;
+          let r = 0, g = 0, b = 0, count = 0;
+
+          // 배경 투명 또는 극단적 흰색을 제외한 옷 본체의 평균 RGB 추출
+          for (let i = 0; i < imgData.length; i += 4) {
+            const alpha = imgData[i+3];
+            const cr = imgData[i];
+            const cg = imgData[i+1];
+            const cb = imgData[i+2];
+
+            if (alpha > 50 && !(cr > 245 && cg > 245 && cb > 245)) {
+              r += cr;
+              g += cg;
+              b += cb;
+              count++;
+            }
+          }
+
+          if (count > 0) {
+            r = Math.round(r / count);
+            g = Math.round(g / count);
+            b = Math.round(b / count);
+            callback(classifyRgbToPalette(r, g, b));
+          } else {
+            callback('black');
+          }
+        } catch(e) {
+          callback('black');
+        }
+      };
+      img.onerror = () => callback('black');
+      img.src = base64Data;
+    }
+
+    // RGB를 앱의 8가지 핵심 컬러 팔레트로 매핑
+    function classifyRgbToPalette(r, g, b) {
+      const brightness = (r + g + b) / 3;
+      if (brightness < 45) return 'black';
+      if (brightness > 225) return 'white';
+
+      // 채도 계산
+      const max = Math.max(r, g, b);
+      const min = Math.min(r, g, b);
+      const diff = max - min;
+
+      if (diff < 18) {
+        return brightness > 140 ? 'white' : 'grey';
+      }
+
+      // 파란색 / 데님
+      if (b > r + 15 && b > g + 10) {
+        return brightness < 80 ? 'navy' : 'blue';
+      }
+
+      // 녹색 / 카키 / 올리브
+      if (g > r && g > b) {
+        return 'khaki';
+      }
+
+      // 베이지 / 브라운 / 카멜
+      if (r > b + 25 && g > b + 15) {
+        return 'beige';
+      }
+
+      // 포인트 컬러
+      if (r > g + 35 && r > b + 35) {
+        return 'point';
+      }
+
+      return 'grey';
+    }
+
+    // 옷 이름 텍스트 분석 (자연어 태깅 엔진)
+    function inferAttributesFromName(category, name) {
+      const lower = name.toLowerCase();
+
+      // 1. 색상 추론
+      let color = null;
+      if (lower.includes('블랙') || lower.includes('검정') || lower.includes('black')) color = 'black';
+      else if (lower.includes('화이트') || lower.includes('흰') || lower.includes('아이보리') || lower.includes('크림') || lower.includes('white')) color = 'white';
+      else if (lower.includes('그레이') || lower.includes('회색') || lower.includes('grey') || lower.includes('gray')) color = 'grey';
+      else if (lower.includes('네이비') || lower.includes('곤색') || lower.includes('navy')) color = 'navy';
+      else if (lower.includes('베이지') || lower.includes('브라운') || lower.includes('카멜') || lower.includes('beige')) color = 'beige';
+      else if (lower.includes('카키') || lower.includes('올리브') || lower.includes('khaki')) color = 'khaki';
+      else if (lower.includes('블루') || lower.includes('데님') || lower.includes('청') || lower.includes('blue')) color = 'blue';
+
+      // 2. 계절(기온) 추론
+      let season = 'mild';
+      if (lower.includes('패딩') || lower.includes('다운') || lower.includes('기모') || lower.includes('헤비') || lower.includes('방한')) {
+        season = 'winter';
+      } else if (lower.includes('코트') || lower.includes('터틀넥') || lower.includes('목폴라') || lower.includes('울') || lower.includes('모헤어') || lower.includes('부츠')) {
+        season = 'chilly';
+      } else if (lower.includes('반팔') || lower.includes('린넨') || lower.includes('쇼츠') || lower.includes('샌들') || lower.includes('슬리퍼')) {
+        season = 'hot';
+      } else if (lower.includes('반바지') || lower.includes('반소매') || lower.includes('쿨') || lower.includes('썸머')) {
+        season = 'warm';
+      } else {
+        // 기본 간절기
+        if (category === 'outer') season = 'mild';
+        else if (category === 'top') season = 'mild';
+        else season = 'mild';
+      }
+
+      // 3. 스타일 추론
+      let style = 'casual';
+      if (lower.includes('오버핏') || lower.includes('시티') || lower.includes('옥스포드') || lower.includes('셀비지') || lower.includes('벌룬')) {
+        style = 'cityboy';
+      } else if (lower.includes('슬랙스') || lower.includes('미니멀') || lower.includes('테일러드') || lower.includes('포플린') || lower.includes('싱글')) {
+        style = 'minimal';
+      } else if (lower.includes('캐시미어') || lower.includes('치노') || lower.includes('로퍼') || lower.includes('클래식') || lower.includes('블레이저')) {
+        style = 'oldmoney';
+      } else if (lower.includes('카고') || lower.includes('방수') || lower.includes('쉘') || lower.includes('바람막이') || lower.includes('고어텍스') || lower.includes('트레일') || lower.includes('나일론')) {
+        style = 'gorpcore';
+      } else if (lower.includes('스트릿') || lower.includes('워싱') || lower.includes('그래픽')) {
+        style = 'street';
+      }
+
+      return { color, season, style };
+    }
+
+    // 사진 업로드 핸들러
+    function handleSmartImageUpload(input) {
+      const previewBox = document.getElementById('image-preview-box');
+      const previewImg = document.getElementById('image-preview');
+
+      if (input.files && input.files[0]) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+          uploadedImageBase64 = e.target.result;
+          previewImg.src = uploadedImageBase64;
+          previewBox.style.display = 'block';
+
+          // 이미지 픽셀 컬러 분석
+          analyzeImageMainColor(uploadedImageBase64, function(color) {
+            detectedImageColor = color;
+            triggerSmartAnalysis();
+          });
+        };
+        reader.readAsDataURL(input.files[0]);
+      } else {
+        uploadedImageBase64 = '';
+        detectedImageColor = null;
+        previewBox.style.display = 'none';
+        triggerSmartAnalysis();
+      }
+    }
+
+    // 사용자 입력 시 실시간 분석 정보 UI 갱신
+    function triggerSmartAnalysis() {
+      const cat = document.getElementById('cloth-category').value;
+      const name = document.getElementById('cloth-name').value.trim();
+      const textEl = document.getElementById('ai-analysis-text');
+
+      if (!name && !uploadedImageBase64) {
+        textEl.innerHTML = '옷 이름이나 사진을 입력하시면 <strong>주요 색상, 추천 스타일, 적합 계절</strong>이 자동 추출됩니다.';
+        return;
+      }
+
+      const inferred = inferAttributesFromName(cat, name);
+      const finalColor = detectedImageColor || inferred.color || 'black';
+      const finalSeason = inferred.season;
+      const finalStyle = inferred.style;
+
+      const dotColor = COLOR_HEX[finalColor] || '#333';
+      const styleNameMap = {
+        cityboy: '시티보이/오버핏',
+        minimal: '프렌치 미니멀/깔끔',
+        oldmoney: '올드머니 클래식',
+        gorpcore: '고프코어/아웃도어',
+        street: '스트릿/아메카지',
+        casual: '캐주얼/데일리'
+      };
+
+      textEl.innerHTML = `
+        분석 완료: 
+        <span style="display:inline-flex; align-items:center; gap:4px; font-weight:700;">
+          <span class="color-dot" style="background:${dotColor};"></span> ${COLOR_LABELS[finalColor]}
+        </span> · 
+        <strong>${styleNameMap[finalStyle] || finalStyle}</strong> · 
+        <span>${SEASON_LABELS[finalSeason]?.split(' ')[0]}</span>
+      `;
+    }
+
+    // 스마트 등록 폼 제출
+    function handleSmartAddCloth(e) {
+      e.preventDefault();
+      const cat = document.getElementById('cloth-category').value;
+      const name = document.getElementById('cloth-name').value.trim();
+
+      if (!name) return;
+
+      const inferred = inferAttributesFromName(cat, name);
+      const finalColor = detectedImageColor || inferred.color || 'black';
+      const finalSeason = inferred.season;
+      const finalStyle = inferred.style;
+
+      const fallbackSvg = createClothingSvg(cat, COLOR_HEX[finalColor] || '#334155');
+
+      const newItem = {
+        id: Date.now(),
+        category: cat,
+        name: name,
+        season: finalSeason,
+        color: finalColor,
+        style: finalStyle,
+        image: uploadedImageBase64 || fallbackSvg
+      };
+
+      closetItems.unshift(newItem);
+      saveCloset();
+
+      // Reset
+      document.getElementById('cloth-name').value = '';
+      document.getElementById('cloth-image').value = '';
+      document.getElementById('image-preview-box').style.display = 'none';
+      uploadedImageBase64 = '';
+      detectedImageColor = null;
+      triggerSmartAnalysis();
+
+      alert(`[${name}] 등록 완료!\n색상: ${COLOR_LABELS[finalColor]}, 스타일: ${finalStyle}, 계절: ${SEASON_LABELS[finalSeason]?.split(' ')[0]}로 자동 분류되어 피팅룸에 적용되었습니다.`);
     }
 
     /* ==========================================================
@@ -1399,14 +1648,12 @@
       const uniqueColors = [...new Set(colors)];
       let score = 0;
 
-      // 1. 삼색 제한 공식
       if (uniqueColors.length <= 3) {
         score += 35;
       } else if (uniqueColors.length === 4) {
         score += 10;
       }
 
-      // 2. 상하의/신발 색상 균형
       const outer = items[0];
       const top = items[1];
       const bottom = items[2];
@@ -1419,7 +1666,6 @@
         score += 15;
       }
 
-      // 3. 선택된 컬러 룰별 채점
       if (rule === 'monochrome') {
         const monoList = ['black', 'white', 'grey'];
         const monoCount = colors.filter(c => monoList.includes(c)).length;
@@ -1530,7 +1776,6 @@
 
       el.style.display = 'flex';
 
-      // 업로드 이미지 또는 기본 SVG 누끼 이미지 렌더링
       const img = document.createElement('img');
       img.src = item.image || createClothingSvg(item.category, COLOR_HEX[item.color] || '#334155');
       img.alt = item.name;
@@ -1549,15 +1794,12 @@
       const targetSeason = getTemperatureSeason(temp);
       const activeTemplate = STYLE_TEMPLATES.find(t => t.id === currentTemplate) || STYLE_TEMPLATES[0];
 
-      // 1. 가상 마네킹에 코디 착용시키기
       renderMannequinFitting(comboItems);
 
-      // 2. 버튼 랭크 텍스트 업데이트
       const rankText = document.getElementById('combo-rank-text');
       const maxRank = Math.min(rankedCombos.length, 5);
       rankText.textContent = `다음 최적 조합 (Rank ${currentRankIndex + 1}/${maxRank})`;
 
-      // 3. 헤더 타이틀 및 설명
       const titleEl = document.getElementById('recommend-title');
       const descEl = document.getElementById('recommend-desc');
       const badgeEl = document.getElementById('recommend-tier-badge');
@@ -1578,7 +1820,6 @@
       colorNotice.style.display = 'inline-flex';
       colorMatchText.textContent = `색채학 공식 적용: ${ruleDescriptions[currentColorRule]} / 종합 매칭도 최상`;
 
-      // 4. 아이템 상세 카드 목록 렌더링
       const categories = ['outer', 'top', 'bottom', 'shoes'];
       container.innerHTML = '';
 
@@ -1751,59 +1992,8 @@
     }
 
     /* ==========================================================
-       6. 옷장 관리 (등록, 삭제, 사진 업로드)
+       6. 옷장 목록 관리 (삭제, 필터, 다운로드)
        ========================================================== */
-    function previewUploadImage(input) {
-      const previewBox = document.getElementById('image-preview-box');
-      const previewImg = document.getElementById('image-preview');
-
-      if (input.files && input.files[0]) {
-        const reader = new FileReader();
-        reader.onload = function(e) {
-          uploadedImageBase64 = e.target.result;
-          previewImg.src = uploadedImageBase64;
-          previewBox.style.display = 'block';
-        };
-        reader.readAsDataURL(input.files[0]);
-      } else {
-        uploadedImageBase64 = '';
-        previewBox.style.display = 'none';
-      }
-    }
-
-    function handleAddCloth(e) {
-      e.preventDefault();
-      const cat = document.getElementById('cloth-category').value;
-      const name = document.getElementById('cloth-name').value.trim();
-      const season = document.getElementById('cloth-season').value;
-      const color = document.getElementById('cloth-color').value;
-      const style = document.getElementById('cloth-style').value;
-
-      if (!name) return;
-
-      const fallbackSvg = createClothingSvg(cat, COLOR_HEX[color] || '#334155');
-
-      const newItem = {
-        id: Date.now(),
-        category: cat,
-        name: name,
-        season: season,
-        color: color,
-        style: style,
-        image: uploadedImageBase64 || fallbackSvg
-      };
-
-      closetItems.unshift(newItem);
-      saveCloset();
-
-      // Reset
-      document.getElementById('cloth-name').value = '';
-      document.getElementById('cloth-image').value = '';
-      document.getElementById('image-preview-box').style.display = 'none';
-      uploadedImageBase64 = '';
-      alert(`[${name}] 아이템이 옷장에 등록되었습니다! 가상 피팅룸에 바로 착용됩니다.`);
-    }
-
     function deleteCloth(id) {
       closetItems = closetItems.filter(item => item.id !== id);
       saveCloset();
