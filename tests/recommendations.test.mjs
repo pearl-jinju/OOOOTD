@@ -3,12 +3,14 @@ import assert from 'node:assert/strict';
 import vm from 'node:vm';
 import {readFile} from 'node:fs/promises';
 const html=await readFile('index.html','utf8');
+const ruleBundle=await readFile('assets/outfit-rules.js','utf8');
 const catalog=JSON.parse(await readFile('catalog_300.json','utf8'));
 function context(){
  const nodes=new Map();
  const element=()=>({style:{},classList:{add(){},remove(){}},appendChild(){},removeAttribute(){},getAttribute(){return ''}});
  const document={getElementById(id){if(!nodes.has(id))nodes.set(id,element());return nodes.get(id)},createElement:element,querySelectorAll(){return []}};
  const c=vm.createContext({document,console,window:{addEventListener(){}},alert(){}});
+ vm.runInContext(ruleBundle,c);
  vm.runInContext(html.match(/<script>([\s\S]*?)<\/script>/)[1],c);c.window.applyPublicCatalog(catalog);return c;
 }
 test('new users have no sample clothing and recommendations use only owned items',()=>{

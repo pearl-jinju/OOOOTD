@@ -26,8 +26,10 @@ try{
  await a.locator('.tab-btn[onclick*="closetTab"]').click();
  await a.locator('#trial-import').click();
  await a.waitForFunction(()=>document.getElementById('closet-count').textContent==='50');
- assert.equal(await a.locator('#catalog-count').textContent(),'250');
- assert.equal(await b.locator('#catalog-count').textContent(),'300');
+ const publicCount=Number(await b.locator('#catalog-count').textContent());
+ assert(publicCount>=300);
+ assert.equal(Number(await a.locator('#catalog-count').textContent()),publicCount-50);
+ assert.equal(await a.locator('.occasion-card').count(),18);
  assert.equal(await a.locator('.item-source').count(),4);
  assert((await a.locator('.item-source').allTextContents()).every(t=>t.includes('내 옷!')));
  await a.getByText('내 신체 사이즈 · 선택 입력',{exact:true}).click();

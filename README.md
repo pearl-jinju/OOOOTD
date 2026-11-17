@@ -23,7 +23,7 @@ The My Clothes and Recommended Clothes tabs are separate. Explicit owned, owned-
 
 ## Weekly refresh
 
-Neon trigger `weekly-catalog`: `0 0 * * 1` UTC, Monday 09:00 Asia/Seoul. Collects 150 male and 150 female products using the merchant's NEW sort, real gender metadata and purchase URLs. The entire batch is validated before replacing the active catalog in a transaction. Failures retain the last successful batch and record a failed run. Prices are collection-time values; shopping checkout is not implemented.
+Neon trigger `weekly-catalog`: `0 0 * * 1` UTC, Monday 09:00 Asia/Seoul. Collects real adult clothing and footwear across discovered merchant categories using NEW and POPULAR sorts. Public gender metadata is preserved, including explicitly marked unisex products. Every one of 18 outfit types must have at least four candidates per gender/category before a full batch is accepted. New records accumulate rather than discarding the previous catalog; confirmed sold-out records become inactive. Failures retain the last successful batch and record a failed run. Prices are collection-time values; shopping checkout is not implemented.
 
 ## Development
 
@@ -42,3 +42,7 @@ Build outputs: `assets/cloud.js` (static client) and `.build/index.mjs` (Neon Fu
 Schema: `db/001_initial.sql`. Infrastructure: `neon.ts`. Project and branch IDs: `backend-config.json`.
 
 `tests/integration.mjs` tests real API user isolation, private images and sizes on a development branch; `tests/browser.mjs` uses a local server and headless Edge against that branch. AI photo analysis uses Neon AI Gateway when a vision model and credits are available; otherwise it explicitly returns an editable manual fallback rather than claiming a visual analysis succeeded.
+
+## Expanded outfit coverage
+
+18 purpose-specific outfit types use shared eligibility rules in shared/outfits.mjs. Ranking keeps up to 200 distinct combinations and prioritizes visibly different successive results. Missing public-category coverage triggers authenticated, rate-limited category collection; user closets are never automatically populated by collection. Public catalog responses are compressed and the table is paginated with type/search filters.

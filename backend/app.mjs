@@ -1,11 +1,13 @@
+import {gzipSync} from 'node:zlib';
+import {OCCASIONS as OUTFIT_TYPES} from '../shared/outfits.mjs';
 import {randomUUID,randomBytes,createHash} from 'node:crypto';
 import {parseTriggerDelivery} from '@neon/functions/triggers';
-import {attributes,refreshCatalog,checkPrices} from './catalog.mjs';
+import {attributes,refreshCatalog,checkPrices,expandCatalog} from './catalog.mjs';
 export const BUCKET='closet-images';
 const CATEGORIES=['outer','top','bottom','shoes'],GENDERS=['men','women'];
 const COLORS=['black','white','grey','navy','beige','khaki','blue','point'];
 const SEASONS=['winter','chilly','mild','warm','hot'];
-const OCCASIONS=['daily','library','date','work','exercise'];
+const OCCASIONS=OUTFIT_TYPES.map(occasion=>occasion.id);
 export function validateMetadata(input){
  const name=String(input.name||'').trim().slice(0,160);
  if(!name||!CATEGORIES.includes(input.category)||!GENDERS.includes(input.gender)||!COLORS.includes(input.color)||!SEASONS.includes(input.season)||!OCCASIONS.includes(input.occasion))throw Object.assign(Error('옷 정보를 확인해주세요.'),{status:400});
@@ -19,6 +21,7 @@ export function imageType(bytes){
 }
 export function createApp({pool,verify,storage,analyze,allowedOrigins=['https://ooootd.onrender.com','http://localhost:4173']}){
  const weatherCache=new Map();
+ let catalogCache=null;
  async function owned(userId,fn){
   const c=await pool.connect();
   try{
@@ -41,7 +44,7 @@ export function createApp({pool,verify,storage,analyze,allowedOrigins=['https://
    if(path==='/cron/catalog'&&request.method==='POST'){
     const parsed=await parseTriggerDelivery(request);
     if(!parsed.ok||parsed.invocation.type!=='schedule')return reply({error:'Unauthorized trigger'},401);
-    return reply(await refreshCatalog(pool));
+    const result=await refreshCatalog(pool);catalogCache=null;return reply(result);
    }
    if(path==='/weather'&&request.method==='GET'){
     const cities={Seoul:[37.5665,126.978],Busan:[35.1796,129.0756],Incheon:[37.4563,126.7052],Daegu:[35.8714,128.6014],Daejeon:[36.3504,127.3845],Gwangju:[35.1595,126.8526],Jeju:[33.4996,126.5312]};
@@ -57,9 +60,16 @@ export function createApp({pool,verify,storage,analyze,allowedOrigins=['https://
    }
    // This route contains only the public shopping catalog, never user clothes.
    if(path==='/catalog'&&request.method==='GET'){
+    if(catalogCache&&Date.now()-catalogCache.time<15000){
+     if(request.headers.get('accept-encoding')?.includes('gzip'))return new Response(catalogCache.gzip,{headers:{...headers,'Content-Type':'application/json','Content-Encoding':'gzip'}});
+     return new Response(catalogCache.json,{headers:{...headers,'Content-Type':'application/json'}});
+    }
     const {rows}=await pool.query('SELECT data FROM catalog_items WHERE active=true ORDER BY id');
-    const {rows:runs}=await pool.query("SELECT status,created_at,details FROM agent_runs WHERE kind='catalog_refresh' ORDER BY id DESC LIMIT 1");
-    return reply({items:rows.map(r=>r.data),lastRun:runs[0]||null});
+    const {rows:runs}=await pool.query("SELECT status,created_at,details FROM agent_runs WHERE kind IN ('catalog_refresh','catalog_expand') AND status='success' ORDER BY id DESC LIMIT 1");
+    const json=JSON.stringify({items:rows.map(r=>r.data),lastRun:runs[0]||null});
+    catalogCache={time:Date.now(),json,gzip:gzipSync(json)};
+    if(request.headers.get('accept-encoding')?.includes('gzip'))return new Response(catalogCache.gzip,{headers:{...headers,'Content-Type':'application/json','Content-Encoding':'gzip'}});
+    return new Response(json,{headers:{...headers,'Content-Type':'application/json'}});
    }
    if(path==='/session'&&request.method==='POST'){
     const token=randomBytes(32).toString('base64url');
@@ -72,7 +82,7 @@ export function createApp({pool,verify,storage,analyze,allowedOrigins=['https://
       userId=rows[0].user_id;
      }
     }
-    await pool.query('INSERT INTO device_sessions(token_hash,user_id) VALUES($1,$2)',[createHash('sha256').update(token).digest('hex'),userId]);
+    await pool.query('INSERT INTO device_sessions(token_hash,user_id) VALUES($1,$2) ON CONFLICT(user_id) DO UPDATE SET token_hash=excluded.token_hash',[createHash('sha256').update(token).digest('hex'),userId]);
     return reply({token,userId},201);
    }
    const token=request.headers.get('authorization')?.match(/^Bearer (.+)$/i)?.[1];
@@ -85,6 +95,10 @@ export function createApp({pool,verify,storage,analyze,allowedOrigins=['https://
     }
    }
    if(!userId)return reply({error:'로그인이 필요합니다.'},401);
+   if(path==='/catalog/expand'&&request.method==='POST'){
+    const {occasion}=await request.json();
+    const result=await expandCatalog(pool,occasion);catalogCache=null;return reply(result);
+   }
    if(path==='/session/transfer'&&request.method==='POST'){
     const claim=randomBytes(24).toString('base64url');
     await pool.query('INSERT INTO device_claims(claim_hash,user_id) VALUES($1,$2)',[createHash('sha256').update(claim).digest('hex'),userId]);
@@ -121,7 +135,7 @@ export function createApp({pool,verify,storage,analyze,allowedOrigins=['https://
      if(selected.length!==50)throw Error('Trial catalog incomplete');
      let added=0;
      for(const product of selected){
-      const item={name:product.name,gender:product.gender,category:product.category,color:product.color,season:product.season,occasion:product.occasion,image:product.image,sourceCatalogId:product.id};
+      const item={name:product.name,gender:product.gender,category:product.category,color:product.color,season:product.season,occasion:product.occasion,image:product.image,unisex:!!product.unisex,sourceCatalogId:product.id};
       const result=await c.query('INSERT INTO user_closet(user_id,item,image_key) VALUES($1,$2,NULL) ON CONFLICT DO NOTHING RETURNING id',[userId,item]);
       added+=result.rowCount;
      }

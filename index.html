@@ -751,6 +751,8 @@
 .private-form label{display:flex;flex-direction:column;gap:5px;font-size:.85rem}.private-form input,.private-form select{width:100%;padding:10px;border:1px solid var(--border);border-radius:8px;min-width:0;background:white}.wide{grid-column:1/-1}
 .private-actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:12px}.owned-badge{background:#dcfce7;color:#166534;border-radius:20px;padding:4px 10px;font-size:.8rem;font-weight:800}#cloud-message{margin-top:12px;min-height:1.5em}
 .outfit-action-btns{flex-wrap:wrap}.outfit-action-btns .btn-icon{flex:1;min-width:150px}.subtitle{word-break:keep-all}
+    #occasion-selector-container { display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px; }
+    @media(max-width:600px){ #occasion-selector-container { grid-template-columns:repeat(2,minmax(0,1fr)); } .occasion-card { padding:10px; } }
   </style>
 </head>
 <body>
@@ -761,7 +763,7 @@
       <div class="logo"><i class="fa-solid fa-shirt"></i> OOOOTD</div>
       <div class="subtitle">남성 / 여성 맞춤 & 쉬운 상황별 데일리 코디</div>
       <p class="desc">
-        성별(남성/여성)과 오늘 갈 곳(일상, 도서관, 데이트, 출근, 운동)을 선택하면 
+        성별(남성/여성)과 오늘 갈 곳(일상, 도서관, 데이트, 출근, 운동)을 선택하면
         내가 가진 옷만으로 날씨와 색감에 맞는 룩북을 추천합니다.
       </p>
     </header>
@@ -809,9 +811,9 @@
 
     <!-- 1. 오늘의 코디 추천 탭 -->
     <div id="recommendTab" class="tab-pane active">
-      
+
       <!-- 성별(남성/여성) 원터치 토글 바 -->
-      <div class="private-actions" style="margin-bottom:16px;"><button id="mode-owned" class="btn-icon" onclick="selectRecommendationMode('owned')">내 옷으로 코디</button><button id="mode-mixed" class="btn-icon" onclick="selectRecommendationMode('mixed')">내 옷 + 부족한 옷 추천</button><button id="mode-catalog" class="btn-icon" onclick="selectRecommendationMode('catalog')">추천의상으로 코디 보기</button></div><p id="recommendation-mode-note" style="font-size:.85rem;color:var(--text-muted);margin-bottom:12px;">내가 가진 옷만 사용합니다.</p><div class="gender-bar">
+      <div class="private-actions" style="margin-bottom:16px;"><button id="mode-owned" class="btn-icon" onclick="selectRecommendationMode('owned')">내 옷으로 코디</button><button id="mode-mixed" class="btn-icon" onclick="selectRecommendationMode('mixed')">내 옷 + 부족한 옷 추천</button><button id="mode-catalog" class="btn-icon" onclick="selectRecommendationMode('catalog')">추천의상으로 코디 보기</button></div><p id="recommendation-mode-note" style="font-size:.85rem;color:var(--text-muted);margin-bottom:12px;">내가 가진 옷만 사용합니다.</p><p id="catalog-expansion-status" role="status" style="font-size:.85rem;color:var(--text-muted);" hidden></p><div class="gender-bar">
         <div style="display: flex; align-items: center; gap: 10px;">
           <span style="font-size: 0.95rem; font-weight: 800; color: var(--text-main);">
             <i class="fa-solid fa-venus-mars" style="color: var(--accent);"></i> 성별 선택:
@@ -834,7 +836,7 @@
           <span><i class="fa-solid fa-compass" style="color: var(--accent);"></i> 오늘 어디 가시나요? (용도별 코디 선택)</span>
           <span style="font-size: 0.8rem; font-weight: 500;">상황에 맞춰 편하게 고르세요</span>
         </div>
-        
+
         <!-- 상황/용도 선택 버튼들 -->
         <div class="occasion-selector" id="occasion-selector-container">
           <!-- JS 동적 생성 -->
@@ -881,7 +883,7 @@
       <!-- 메인 코디 2열 레이아웃 (캡처 대상) -->
       <div id="capture-outfit-container">
         <div class="outfit-main-layout">
-          
+
           <!-- 좌측: 감성 플랫레이 룩북 보드 -->
           <div class="fitting-room-card">
             <div class="fitting-room-title">
@@ -1002,7 +1004,10 @@
         <h2>추천의상</h2>
         <p style="color:var(--text-muted);font-size:.88rem;margin:8px 0;">아직 보유하지 않은 공용 상품입니다. 내 옷으로 등록한 상품은 제외하며, 기본 코디에는 사용하지 않습니다.</p>
         <label>추천의상 필터 <select id="catalog-filter" class="city-select" onchange="filterCatalog(this.value)"><option value="all">전체</option><option value="men">남성</option><option value="women">여성</option><option value="outer">아우터</option><option value="top">상의</option><option value="bottom">하의</option><option value="shoes">신발</option></select></label>
-        <div style="overflow-x:auto;margin-top:12px;"><table class="closet-table"><thead><tr><th>사진</th><th>분류</th><th>성별</th><th>상품명</th><th>색상·계절</th></tr></thead><tbody id="catalog-table-body"></tbody></table></div>
+        <label>코디 종류 <select id="catalog-occasion" class="city-select" onchange="catalogVisibleLimit=60;renderPublicCatalog()"><option value="all">모든 종류</option></select></label>
+        <input id="catalog-search" class="city-select" type="search" placeholder="상품명 검색" aria-label="추천의상 상품명 검색" oninput="catalogVisibleLimit=60;renderPublicCatalog()">
+        <p id="catalog-page-info"></p>
+        <div style="overflow-x:auto;margin-top:12px;"><table class="closet-table"><thead><tr><th>사진</th><th>분류</th><th>성별</th><th>상품명</th><th>색상·계절</th></tr></thead><tbody id="catalog-table-body"></tbody></table></div><button id="catalog-load-more" class="btn-icon" onclick="catalogVisibleLimit+=60;renderPublicCatalog()">추천의상 더 보기</button>
       </section>
     </div>
 
@@ -1011,19 +1016,14 @@
     </footer>
   </div>
 
+  <script src="/assets/outfit-rules.js"></script>
   <script>
     /* ==========================================================
        실제 크롤링된 300종 의류 데이터베이스 (남성/여성 태깅 완료)
        ========================================================== */
     let CATALOG_ITEMS = [];
 
-    const OCCASIONS = [
-      { id: 'daily', name: '일상생활용', icon: 'fa-mug-saucer', desc: '친구 만나기, 가벼운 외출, 카페 갈 때 편안한 코디' },
-      { id: 'library', name: '도서관/마실용', icon: 'fa-book-open', desc: '독서실, 도서관, 편의점 마실 갈 때 포근하고 안 답답한 룩' },
-      { id: 'date', name: '데이트용', icon: 'fa-heart', desc: '깔끔하고 분위기 있는 단정한 매력의 남친/여친룩' },
-      { id: 'work', name: '출근/격식용', icon: 'fa-briefcase', desc: '오피스 출근, 미팅, 발표 때 신뢰감을 주는 단정한 스타일' },
-      { id: 'exercise', name: '운동/산책용', icon: 'fa-person-running', desc: '러닝, 가벼운 등산, 산책할 때 편한 활동성 룩' }
-    ];
+    const OCCASIONS = OOOOTD_RULES.OCCASIONS;
 
     const COLOR_HEX = {
       black: '#1e293b',
@@ -1079,6 +1079,7 @@
     let closetItems = [];
     let currentFilter = 'all';
     let currentCatalogFilter = 'all';
+    let catalogVisibleLimit = 60;
     let recommendationMode = 'owned';
     let requestedRecommendationMode = 'owned';
     let priceRequestId = 0;
@@ -1129,8 +1130,9 @@
     }
 
     function buildSimilarVariants(anchor) {
+      const similarSource = outfitPool();
       const choices = anchor.items.map(original => {
-        let pool = outfitPool().filter(item => item.gender === currentGender &&
+        let pool = similarSource.filter(item => OOOOTD_RULES.genderCompatible(item,currentGender) &&
           item.category === original.category && item.id !== original.id && isOccasionAppropriate(item));
         // Keep the original temperature suitability whenever a replacement exists.
         const seasonPool = pool.filter(item => item.season === original.season);
@@ -1150,7 +1152,7 @@
       return variants.filter(variant => variant.items.some((item, i) => item.id !== anchor.items[i].id))
         .map(variant => {
           const tempScore = variant.items.reduce((score, item) => score + (item.season === getTemperatureSeason(currentWeather.temp) ? 25 : 0), 0);
-          const occasionScore = variant.items.reduce((score, item) => score + (item.occasion === currentOccasion ? 25 : 0), 0);
+          const occasionScore = variant.items.reduce((score,item)=>score+OOOOTD_RULES.occasionScore(item,currentOccasion),0);
           const colorScore = calculateColorScore(variant.items, currentColorRule);
           return {...variant, tempScore, occasionScore, colorScore, totalScore: tempScore + occasionScore + colorScore};
         })
@@ -1187,9 +1189,10 @@
     }
 
     function updateSimilarControls() {
+      const source = outfitPool();
       const original = rankedCombos[currentRankIndex];
       document.getElementById('similar-combo-btn').disabled = !original || !original.items.some(base =>
-        outfitPool().some(item => item.gender === currentGender && item.category === base.category && item.id !== base.id && isOccasionAppropriate(item)));
+        source.some(item => OOOOTD_RULES.genderCompatible(item,currentGender) && item.category === base.category && item.id !== base.id && isOccasionAppropriate(item)));
       document.getElementById('restore-combo-btn').hidden = !displayedAlternative;
       const status = document.getElementById('similar-combo-status');
       status.hidden = !displayedAlternative;
@@ -1202,7 +1205,12 @@
 
 
     function initCloset() {
-      closetItems = []; renderOccasionCards(); updateClosetUI(); recalculateRankedCombos();
+      closetItems = [];
+      const catalogOccasion=document.getElementById('catalog-occasion');
+      if(catalogOccasion?.options?.length===1)OCCASIONS.forEach(occasion=>{
+        const option=document.createElement('option');option.value=occasion.id;option.textContent=occasion.name;catalogOccasion.appendChild(option);
+      });
+      renderOccasionCards(); updateClosetUI(); recalculateRankedCombos();
     }
     window.applyCloudCloset = (items, userId) => {
       closetItems = items.map(item => ({...item,isOwned:true}));
@@ -1264,7 +1272,7 @@
         return;
       }
       resetSimilarCombos();
-      currentRankIndex = (currentRankIndex + 1) % Math.min(rankedCombos.length, 5);
+      currentRankIndex = (currentRankIndex + 1) % rankedCombos.length;
       renderComboAtCurrentRank();
     }
 
@@ -1323,7 +1331,7 @@
       const recommended=availableRecommendedClothes();
       if(recommendationMode === 'catalog')return recommended;
       return ['outer','top','bottom','shoes'].flatMap(cat=>{
-        const owned=closetItems.filter(item=>item.category===cat&&item.gender===currentGender&&isOccasionAppropriate(item));
+        const owned=closetItems.filter(item=>item.category===cat&&OOOOTD_RULES.genderCompatible(item,currentGender)&&isOccasionAppropriate(item));
         return owned.length?owned:recommended.filter(item=>item.category===cat);
       });
     }
@@ -1335,19 +1343,14 @@
     }
 
     function isOccasionAppropriate(item, occasion = currentOccasion) {
-      if(occasion !== 'work')return true;
-      const name=item.name.toLowerCase();
-      if(/후드|맨투맨|스웨트|조거|트레이닝|반바지|쇼츠|카고|데님|청바지|슬리퍼|샌들|스니커|운동화|플리스|후리스|hood|sweat|jogger|training|shorts|cargo|denim|jeans|slipper|sandal|sneaker|fleece/.test(name))return false;
-      const formal={outer:/블레이저|수트|정장|테일러|코트|blazer|suit|tailor|coat/,top:/셔츠|블라우스|shirt|blouse/,bottom:/슬랙스|트라우저|정장|수트|스커트|slack|trouser|suit|skirt/,shoes:/로퍼|구두|더비|옥스포드|펌프스|메리.?제인|loafer|derby|oxford|pump|heel|dress shoe/};
-      if(item.category==='top'&&/티셔츠|티 셔츠|t-shirt|tee|오버셔츠|overshirt/.test(name))return false;
-      return formal[item.category]?.test(name)||(item.occasion==='work'&&garmentFamily(item)===-1);
+      return OOOOTD_RULES.appropriate(item, occasion);
     }
 
     function recalculateRankedCombos() {
       recommendationMode = requestedRecommendationMode;
       const needsSupplement = recommendationMode === 'owned' &&
         ['outer','top','bottom','shoes'].some(category => !closetItems.some(item =>
-          item.category === category && item.gender === currentGender && isOccasionAppropriate(item)));
+          item.category === category && OOOOTD_RULES.genderCompatible(item,currentGender) && isOccasionAppropriate(item)));
       if (needsSupplement) recommendationMode = 'mixed';
       document.getElementById('recommendation-mode-note').textContent = needsSupplement
         ? '내 옷만으로 완성할 수 없어 내 옷 + 부족한 옷 추천으로 자동 전환했어요.'
@@ -1366,54 +1369,47 @@
       const categories = ['outer', 'top', 'bottom', 'shoes'];
       const candidatesByCategory = {};
 
+      const outfitSource = outfitPool();
       categories.forEach(cat => {
         // 1. 성별 일치 우선 필터링
-        const pool = outfitPool().filter(item => item.category === cat && item.gender === currentGender && isOccasionAppropriate(item));
+        const pool = outfitSource.filter(item => item.category === cat && OOOOTD_RULES.genderCompatible(item,currentGender) && isOccasionAppropriate(item));
 
         // 2. 기온 시즌 필터링
         let seasonPool = pool.filter(item => item.season === targetSeason);
         candidatesByCategory[cat] = seasonPool.length > 0 ? seasonPool : pool;
       });
 
-      const combos = [];
-      const outers = candidatesByCategory['outer'].slice(0, 10);
-      const tops = candidatesByCategory['top'].slice(0, 10);
-      const bottoms = candidatesByCategory['bottom'].slice(0, 10);
-      const shoesList = candidatesByCategory['shoes'].slice(0, 10);
-
-      for (let o of outers) {
-        for (let t of tops) {
-          for (let b of bottoms) {
-            for (let s of shoesList) {
-              const comboItems = [o, t, b, s];
-              
-              let tempScore = 0;
-              comboItems.forEach(it => {
-                if (it && it.season === targetSeason) tempScore += 25;
-              });
-
-              let occasionScore = 0;
-              comboItems.forEach(it => {
-                if (it && it.occasion === currentOccasion) occasionScore += 25;
-              });
-
-              let colorScore = calculateColorScore(comboItems, currentColorRule);
-              const totalScore = tempScore + occasionScore + colorScore;
-
-              combos.push({
-                items: comboItems,
-                totalScore,
-                tempScore,
-                occasionScore,
-                colorScore
-              });
-            }
-          }
+      const pools = categories.map(cat => candidatesByCategory[cat]
+        .map(item => ({item,score:(item.season === targetSeason ? 25 : 0)+OOOOTD_RULES.occasionScore(item,currentOccasion)}))
+        .sort((a,b)=>b.score-a.score||a.item.id-b.item.id).slice(0,24));
+      let beam=[{items:[],baseScore:0}];
+      pools.forEach(pool=>{
+        beam=beam.flatMap(partial=>pool.map(option=>({
+          items:[...partial.items,option.item],baseScore:partial.baseScore+option.score
+        }))).sort((a,b)=>b.baseScore-a.baseScore).slice(0,4000);
+      });
+      const combos=beam.map(partial=>{
+        const tempScore=partial.items.reduce((sum,item)=>sum+(item.season===targetSeason?25:0),0);
+        const occasionScore=partial.items.reduce((sum,item)=>sum+OOOOTD_RULES.occasionScore(item,currentOccasion),0);
+        const colorScore=calculateColorScore(partial.items,currentColorRule);
+        return {items:partial.items,tempScore,occasionScore,colorScore,totalScore:tempScore+occasionScore+colorScore};
+      }).sort((a,b)=>b.totalScore-a.totalScore);
+      const diverse=[];
+      while(combos.length&&diverse.length<200){
+        let index=0;
+        if(diverse.length){
+          const previous=diverse[diverse.length-1];
+          const bestScore=combos[0].totalScore;
+          const candidate=combos.findIndex(combo=>combo.totalScore>=bestScore-35&&
+            combo.items.filter((item,i)=>item.id!==previous.items[i].id).length>=3);
+          if(candidate>=0)index=candidate;
         }
+        diverse.push(combos.splice(index,1)[0]);
       }
-
-      combos.sort((a, b) => b.totalScore - a.totalScore);
-      rankedCombos = combos;
+      rankedCombos = diverse;
+      if(recommendationMode!=='owned'&&pools.some(pool=>pool.length<4)&&window.ooootdCloudReady&&window.cloudEnsureCatalog){
+        window.cloudEnsureCatalog(currentOccasion).catch(()=>{});
+      }
       currentRankIndex = 0;
       renderComboAtCurrentRank();
     }
@@ -1462,7 +1458,7 @@
 
       // 2. 버튼 랭크 텍스트 업데이트
       const rankText = document.getElementById('combo-rank-text');
-      const maxRank = Math.min(rankedCombos.length, 5);
+      const maxRank = rankedCombos.length;
       rankText.textContent = `다음 최적 조합 (Rank ${currentRankIndex + 1}/${maxRank})`;
 
       // 3. 헤더 타이틀 및 설명
@@ -1495,7 +1491,7 @@
 
         if (chosen) {
           const dotColor = COLOR_HEX[chosen.color] || '#333';
-          const genderBadge = chosen.gender === 'women' 
+          const genderBadge = chosen.unisex ? '<span class="item-season-badge">남녀공용</span>' : chosen.gender === 'women'
             ? '<span class="item-season-badge" style="background:#fce7f3; color:#be185d; font-weight:700;">여성</span>'
             : '<span class="item-season-badge" style="background:#e0e7ff; color:#3730a3; font-weight:700;">남성</span>';
 
@@ -1569,30 +1565,30 @@
 
       const isWomen = currentGender === 'women';
       const addonMap = {
-        daily: { 
-          title: isWomen ? '미니멀 숄더백 or 코튼 스크런치' : '미니멀 나일론 크로스백 or 캡모자', 
-          desc: '일상에서 가볍게 들기 좋은 감각적인 데일리 백을 더해보세요.', 
-          kw: isWomen ? '여성 미니멀 숄더백' : '남성 미니멀 크로스백' 
+        daily: {
+          title: isWomen ? '미니멀 숄더백 or 코튼 스크런치' : '미니멀 나일론 크로스백 or 캡모자',
+          desc: '일상에서 가볍게 들기 좋은 감각적인 데일리 백을 더해보세요.',
+          kw: isWomen ? '여성 미니멀 숄더백' : '남성 미니멀 크로스백'
         },
-        library: { 
-          title: '도톰한 텀블러 에코백 & 블루라이트 안경', 
-          desc: '오랜 시간 집중해도 편안한 도서관/열람실 필수 아이템을 추천합니다.', 
-          kw: '캔버스 에코백' 
+        library: {
+          title: '도톰한 텀블러 에코백 & 블루라이트 안경',
+          desc: '오랜 시간 집중해도 편안한 도서관/열람실 필수 아이템을 추천합니다.',
+          kw: '캔버스 에코백'
         },
-        date: { 
-          title: isWomen ? '실버 하트 목걸이 or 니치 플로럴 향수' : '은은한 우디 니치 향수 or 실버 뱅글', 
-          desc: '데이트 룩의 매력을 두 배로 끌어올려 줄 은은한 포인트를 곁들여보세요.', 
-          kw: isWomen ? '여성 니치 향수' : '남자 니치 향수' 
+        date: {
+          title: isWomen ? '실버 하트 목걸이 or 니치 플로럴 향수' : '은은한 우디 니치 향수 or 실버 뱅글',
+          desc: '데이트 룩의 매력을 두 배로 끌어올려 줄 은은한 포인트를 곁들여보세요.',
+          kw: isWomen ? '여성 니치 향수' : '남자 니치 향수'
         },
-        work: { 
-          title: isWomen ? '포멀 토트백 or 슬림 레더 벨트' : '가죽 브리프케이스 or 클래식 벨트', 
-          desc: '출근 룩에 신뢰감과 깔끔한 실루엣을 완성해 주는 클래식 아이템입니다.', 
-          kw: isWomen ? '여성 포멀 토트백' : '가죽 브리프케이스' 
+        work: {
+          title: isWomen ? '포멀 토트백 or 슬림 레더 벨트' : '가죽 브리프케이스 or 클래식 벨트',
+          desc: '출근 룩에 신뢰감과 깔끔한 실루엣을 완성해 주는 클래식 아이템입니다.',
+          kw: isWomen ? '여성 포멀 토트백' : '가죽 브리프케이스'
         },
-        exercise: { 
-          title: '스마트 러닝 웨어러블 밴드 & 스포츠 캡', 
-          desc: '러닝과 야외 산책 시 땀을 막아주는 기능성 헤어밴드/캡모자입니다.', 
-          kw: '러닝 캡모자' 
+        exercise: {
+          title: '스마트 러닝 웨어러블 밴드 & 스포츠 캡',
+          desc: '러닝과 야외 산책 시 땀을 막아주는 기능성 헤어밴드/캡모자입니다.',
+          kw: '러닝 캡모자'
         }
       };
 
@@ -1685,15 +1681,22 @@
     }
 
     function filterCatalog(filter) {
-      currentCatalogFilter=filter; renderPublicCatalog();
+      currentCatalogFilter=filter; catalogVisibleLimit=60; renderPublicCatalog();
     }
     function renderPublicCatalog() {
       const ownedIds=new Set(closetItems.map(item=>item.sourceCatalogId).filter(Boolean));
       const available=CATALOG_ITEMS.filter(item=>!ownedIds.has(item.id));
       document.getElementById('catalog-count').textContent=available.length;
-      const filtered=available.filter(item=>currentCatalogFilter==='all'||item.gender===currentCatalogFilter||item.category===currentCatalogFilter);
+      const occasion=document.getElementById('catalog-occasion')?.value||'all';
+      const query=(document.getElementById('catalog-search')?.value||'').trim().toLowerCase();
+      const filtered=available.filter(item=>(currentCatalogFilter==='all'||(['men','women'].includes(currentCatalogFilter)?OOOOTD_RULES.genderCompatible(item,currentCatalogFilter):item.category===currentCatalogFilter))&&
+        (occasion==='all'||isOccasionAppropriate(item,occasion))&&(!query||item.name.toLowerCase().includes(query)));
+      const info=document.getElementById('catalog-page-info');
+      if(info)info.textContent=filtered.length+'개 중 '+Math.min(filtered.length,catalogVisibleLimit)+'개 표시';
+      const more=document.getElementById('catalog-load-more');
+      if(more)more.hidden=catalogVisibleLimit>=filtered.length;
       const body=document.getElementById('catalog-table-body');
-      body.innerHTML=filtered.length?filtered.map(item=>'<tr><td><img src="'+escapeHtml(item.image)+'" class="table-thumb" alt="'+escapeHtml(item.name)+'" loading="lazy"></td><td>'+CATEGORY_NAMES[item.category]+'</td><td>'+(item.gender==='men'?'남성':'여성')+'</td><td>'+escapeHtml(item.name)+'</td><td>'+COLOR_LABELS[item.color]+' · '+(SEASON_LABELS[item.season]||item.season)+'</td></tr>').join(''):'<tr><td colspan="5">해당 조건의 추천의상이 없습니다.</td></tr>';
+      body.innerHTML=filtered.length?filtered.slice(0,catalogVisibleLimit).map(item=>'<tr><td><img src="'+escapeHtml(item.image)+'" class="table-thumb" alt="'+escapeHtml(item.name)+'" loading="lazy"></td><td>'+CATEGORY_NAMES[item.category]+'</td><td>'+OOOOTD_RULES.genderLabel(item)+'</td><td>'+escapeHtml(item.name)+'</td><td>'+COLOR_LABELS[item.color]+' · '+(SEASON_LABELS[item.season]||item.season)+'</td></tr>').join(''):'<tr><td colspan="5">해당 조건의 추천의상이 없습니다.</td></tr>';
     }
 
     function updateClosetUI() {
@@ -1714,9 +1717,9 @@
 
       let filtered = closetItems;
       if (currentFilter === 'men') {
-        filtered = closetItems.filter(item => item.gender === 'men');
+        filtered = closetItems.filter(item => OOOOTD_RULES.genderCompatible(item,'men'));
       } else if (currentFilter === 'women') {
-        filtered = closetItems.filter(item => item.gender === 'women');
+        filtered = closetItems.filter(item => OOOOTD_RULES.genderCompatible(item,'women'));
       } else if (currentFilter !== 'all') {
         filtered = closetItems.filter(item => item.category === currentFilter);
       }
@@ -1726,18 +1729,12 @@
         return;
       }
 
-      const occNameMap = {
-        daily: '일상생활용',
-        library: '도서관/마실용',
-        date: '데이트용',
-        work: '출근/격식용',
-        exercise: '운동/산책용'
-      };
+      const occNameMap = Object.fromEntries(OCCASIONS.map(occasion=>[occasion.id,occasion.name]));
 
       filtered.forEach(item => {
         const tr = document.createElement('tr');
         const dotColor = COLOR_HEX[item.color] || '#333';
-        const genderBadge = item.gender === 'women'
+        const genderBadge = item.unisex ? '<span class="item-season-badge">남녀공용</span>' : item.gender === 'women'
           ? '<span class="item-season-badge" style="background:#fce7f3; color:#be185d; font-weight:700;">여성</span>'
           : '<span class="item-season-badge" style="background:#e0e7ff; color:#3730a3; font-weight:700;">남성</span>';
 

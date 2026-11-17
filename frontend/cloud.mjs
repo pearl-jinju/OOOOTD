@@ -1,6 +1,21 @@
 const config=await (await fetch('/cloud-config.json')).json();
 window.ooootdApiUrl=config.apiUrl;
 const $=id=>document.getElementById(id);
+const attemptedExpansion=new Set();
+const options=OOOOTD_RULES.OCCASIONS;
+$('upload-occasion').replaceChildren(...options.map(o=>Object.assign(document.createElement('option'),{value:o.id,textContent:o.name})));
+window.cloudEnsureCatalog=async occasion=>{
+ if(!session||attemptedExpansion.has(occasion))return;
+ attemptedExpansion.add(occasion);
+ const status=$('catalog-expansion-status');status.hidden=false;
+ status.textContent='이 종류에 맞는 상품이 부족해 추가 의상을 수집하고 있어요.';
+ try{
+  const result=await api('/catalog/expand',{method:'POST',body:{occasion}});
+  await loadCatalog();
+  status.textContent=result.throttled?'추가 수집이 진행 중이거나 최근에 완료됐어요. 현재 DB에서 추천합니다.':'종류에 맞는 상품을 추가했어요.';
+ }catch(e){status.textContent='추가 상품 수집을 완료하지 못했어요. 현재 확인된 의상으로 추천합니다.'}
+};
+
 const SESSION_KEY='ooootd_private_session_v1';
 let session=null,epoch=0;
 const say=(message,error=false)=>{$('cloud-message').textContent=message;$('cloud-message').style.color=error?'#b91c1c':'#475569'};

@@ -37,3 +37,11 @@ assert.equal((await req('/closet/'+upload.data.id,b.token,{method:'DELETE'})).st
 assert.equal((await req('/closet/'+upload.data.id,a.token,{method:'DELETE'})).status,200);
 assert.equal((await req('/cron/catalog',null,{method:'POST',headers:{'Content-Type':'application/json'},body:'{}'})).status,401);
 console.log('PASS: real DB two-user isolation, forged owner rejection, 50 owned items, private image upload/read, cross-user delete rejection, size persistence and isolation, protected weekly trigger');
+
+const transfer=(await req('/session/transfer',a.token,{method:'POST'})).data;
+const redeemed=await req('/session',null,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({claim:transfer.claim})});
+assert.equal(redeemed.status,201);
+assert.equal((await req('/closet',redeemed.data.token)).data.items.length,50);
+assert.equal((await req('/closet',a.token)).status,401);
+assert.equal((await req('/session',null,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({claim:transfer.claim})})).status,400);
+console.log('PASS: one-use browser transfer preserves clothes and rotates only the private session token');

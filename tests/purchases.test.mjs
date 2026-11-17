@@ -4,9 +4,11 @@ import vm from 'node:vm';
 import {readFile} from 'node:fs/promises';
 test('purchase totals exclude owned clothes and report unknown prices; URLs are merchant-only',async()=>{
  const html=await readFile('index.html','utf8'),nodes=new Map();
+ const ruleBundle=await readFile('assets/outfit-rules.js','utf8');
  const elem=()=>({style:{},classList:{add(){},remove(){}},appendChild(){},removeAttribute(){}});
  const document={getElementById(id){if(!nodes.has(id))nodes.set(id,elem());return nodes.get(id)},querySelectorAll(){return []},querySelector(){return null},createElement:elem};
  const ctx=vm.createContext({console,document,window:{addEventListener(){}}});
+ vm.runInContext(ruleBundle,ctx);
  vm.runInContext(html.match(/<script>([\s\S]*?)<\/script>/)[1],ctx);
  vm.runInContext("renderPurchaseSummary([{isOwned:true,price:999999},{isOwned:false,price:89000},{isOwned:false,price:59000},{isOwned:false}], 'cached')",ctx);
  assert(nodes.get('purchase-total').textContent.includes('148,000'));
