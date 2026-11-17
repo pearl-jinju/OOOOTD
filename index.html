@@ -1343,7 +1343,7 @@
     }
 
     function isOccasionAppropriate(item, occasion = currentOccasion) {
-      return OOOOTD_RULES.appropriate(item, occasion);
+      return OOOOTD_RULES.appropriate(item, occasion, currentGender);
     }
 
     function recalculateRankedCombos() {

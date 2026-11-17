@@ -23,13 +23,39 @@ const casual=/후드|맨투맨|스웨트|조거|트레이닝|반바지|쇼츠|�
 const text=item=>String(item.name||'')+' '+String(item.subcategory||'');
 export const genderCompatible=(item,gender)=>item.gender===gender||item.unisex===true;
 export const genderLabel=item=>item.unisex?'남녀공용':item.gender==='women'?'여성':'남성';
-export function appropriate(item,occasion){
+export function appropriate(item,occasion,gender=item.unisex?null:item.gender){
  const n=text(item),cat=item.category;
  if(!CATEGORIES.includes(cat))return false;
  if(['work','interview','wedding','meeting'].includes(occasion)){
-  if(casual.test(n))return false;
+  if(casual.test(n)||/tracks?[\s_-]*suits?|트랙[\s_-]*수트|트랙.?탑|track[\s_-]*(?:top|jacket)|하프.?집업|half[\s_-]*zip|쿼터.?집업|quarter[\s_-]*zip|저지|jersey|셔켓|shacket|shirt[\s_-]*jacket/i.test(n))return false;
+  if(occasion==='interview'){
+   const name=String(item.name||'');
+   const flashy=/패턴|프린트|그래픽|플라워|하와이|페이즐리|체크|체커|도트|타이다이|로고|시스루|레이스|오버핏|오버사이즈|크롭|pattern|print|graphic|floral|hawai|paisley|check|polka|tie[\s_-]*dye|logo|sheer|see[\s_-]*through|lace|oversiz|crop/i;
+   if(cat==='outer'){
+    if(!['black','navy','grey'].includes(item.color)||flashy.test(name)||/레더|가죽|나일론|트위드|헤링본|부클|루즈|드롭.?숄더|leather|nylon|tweed|herringbone|boucle|relaxed|loose|drop.?shoulder/i.test(name))return false;
+    return /블레이저|정장.?재킷|정장.?자켓|슈트.?재킷|수트.?재킷|테일러드.?재킷|테일러드.?자켓|\bblazers?\b|\bsuit[\s_-]+jackets?\b|\btailored[\s_-]+jackets?\b/i.test(name);
+   }
+   if(cat==='top'){
+    if(!['white','blue','grey','beige','black','navy'].includes(item.color)||flashy.test(name))return false;
+    if(/폴로|피케|카라.?티|니트|polo|pique|knit|반팔|반소매|민소매|쇼트.?슬리브|하프.?슬리브|오픈.?카라|오픈.?칼라|리조트|헨리|린넨|리넨|티셔츠|티 셔츠|short[\s_-]*sleeve|half[\s_-]*sleeve|sleeveless|\bs\/s\b|\bss\b|open[\s_-]*collar|resort|henley|linen|t[\s_-]*shirt|\btee\b/i.test(name))return false;
+    if(gender==='men'&&/블라우스|blouse/i.test(name))return false;
+    return /셔츠|블라우스|\bshirts?\b|\bblouses?\b/i.test(name)&&/무지|솔리드|베이직|드레스|옥스포드|포플린|브로드|긴팔|긴소매|롱.?슬리브|클래식|수피마|basic|solid|plain|dress|oxford|poplin|broadcloth|long[\s_-]*sleeve|classic/i.test(name);
+   }
+   if(cat==='bottom'){
+    if(!['black','navy','grey'].includes(item.color)||/부츠.?컷|플레어|벨보텀|boot[\s_-]*cut|flare|bell[\s_-]*bottom|밴딩|와이드|벌룬|플리츠.?와이드|조거|스웨트|트레이닝|오버|banding|wide|balloon|jogger|sweat|training|oversiz/i.test(name))return false;
+    if(gender==='men'&&/스커트|skirt/i.test(name))return false;
+    return /슬랙스|트라우저|정장|슈트.?팬츠|수트.?팬츠|펜슬.?스커트|\bslacks?\b|\btrousers?\b|suit[\s_-]*pants|pencil[\s_-]*skirt/i.test(name);
+   }
+   if(cat==='shoes'){
+    if(gender==='men'&&/펌프스|메리.?제인|발레|레페토|힐|플랫|pumps?|mary[\s_-]*jane|ballet|repetto|heel|flat|court[\s_-]*shoe/i.test(name))return false;
+    if(item.color!=='black'&&!(item.color==='beige'&&/브라운|brown/i.test(name)))return false;
+    if(/빈티지|주름|셔링|메쉬|메시|니트|청키|체인|스터드|플랫폼|스웨이드|뮬|vintage|wrinkl|shirr|mesh|knit|chunky|chain|studd|platform|suede|\bmule\b/i.test(name))return false;
+    return /로퍼|더비|옥스포드|플레인.?토|스트레이트.?팁|펌프스|페니|\bloafer|\bderby|\boxford|plain[\s_-]*toe|straight[\s_-]*tip|\bpumps?\b|court[\s_-]*shoe/i.test(name);
+   }
+   return false;
+  }
   if(occasion==='interview'&&item.color==='point')return false;
-  const formal={outer:/블레이저|수트|정장|테일러|코트|blazer|suit|tailor|coat/i,top:/셔츠|블라우스|shirt|blouse/i,bottom:/슬랙스|트라우저|정장|수트|스커트|slack|trouser|suit|skirt/i,shoes:/로퍼|구두|더비|옥스포드|펌프스|메리.?제인|loafer|derby|oxford|pump|heel|dress shoe/i};
+  const formal={outer:/블레이저|수트|정장|테일러|코트|blazer|\bsuits?\b|tailor|coat/i,top:/셔츠|블라우스|shirt|blouse/i,bottom:/슬랙스|트라우저|정장|수트|스커트|slack|trouser|\bsuits?\b|skirt/i,shoes:/로퍼|구두|더비|옥스포드|펌프스|메리.?제인|loafer|derby|oxford|pump|heel|dress shoe/i};
   if(cat==='top'&&/티셔츠|티 셔츠|t-shirt|tee|오버셔츠|overshirt/i.test(n))return false;
   return formal[cat].test(n);
  }
@@ -106,7 +132,7 @@ export function coverage(items){
  for(const gender of ['men','women']){
   result[gender]={};
   for(const o of OCCASIONS){
-   const counts=Object.fromEntries(CATEGORIES.map(cat=>[cat,items.filter(i=>genderCompatible(i,gender)&&i.category===cat&&appropriate(i,o.id)).length]));
+   const counts=Object.fromEntries(CATEGORIES.map(cat=>[cat,items.filter(i=>genderCompatible(i,gender)&&i.category===cat&&appropriate(i,o.id,gender)).length]));
    result[gender][o.id]={...counts,minimum:Math.min(...Object.values(counts)),combinations:Object.values(counts).reduce((a,b)=>a*b,1)};
   }
  }return result;

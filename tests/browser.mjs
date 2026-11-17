@@ -42,6 +42,13 @@ try{
  await a.evaluate(()=>selectOccasion('work'));
  const names=await a.locator('.item-name').allTextContents();
  assert(names.every(n=>!/후드|맨투맨|조거|트레이닝|hood|sweat|jogger/i.test(n)));
+ await a.evaluate(()=>selectOccasion('interview'));
+ await a.locator('.tab-btn[onclick*="recommendTab"]').click();
+ const interviewNames=await a.locator('.item-name').allTextContents();
+ assert(interviewNames.length===4);
+ assert(interviewNames.every(name=>!/tracksuit|short[ _-]*sleeve|henley|paisley|pattern/i.test(name)));
+ await a.waitForFunction(()=>[...document.querySelectorAll('#capture-outfit-container img')].every(img=>img.complete&&img.naturalWidth>0));
+ await a.locator('#capture-outfit-container').screenshot({path:'.build/qa-interview.png'});
  await a.evaluate(()=>selectOccasion('daily'));
  await a.locator('.tab-btn[onclick*="recommendTab"]').click();
  await a.locator('#similar-combo-btn').click();
