@@ -1069,12 +1069,14 @@
     let similarVariants = [];
     let similarVariantIndex = -1;
     let displayedAlternative = null;
+    let seenSimilarVariants = new Set();
 
     function resetSimilarCombos() {
       similarAnchor = null;
       similarVariants = [];
       similarVariantIndex = -1;
       displayedAlternative = null;
+      seenSimilarVariants.clear();
     }
 
     function garmentFamily(item) {
@@ -1110,11 +1112,11 @@
           item.category === original.category && item.id !== original.id);
         // Keep the original temperature suitability whenever a replacement exists.
         const seasonPool = pool.filter(item => item.season === original.season);
-        if (seasonPool.length) pool = seasonPool;
+        if (seasonPool.length >= 2) pool = seasonPool;
         if (!pool.length) return [{item: original, similarity: 0}];
         const sorted = pool.map(item => ({item, similarity: itemSimilarity(original, item)}))
           .sort((a, b) => b.similarity - a.similarity || a.item.id - b.item.id);
-        return sorted.filter(option => option.similarity >= sorted[0].similarity - 20).slice(0, 6);
+        return sorted.slice(0, 6);
       });
       let variants = [{items: [], similarity: 0}];
       choices.forEach(options => {
@@ -1141,8 +1143,19 @@
         similarVariants = buildSimilarVariants(original);
       }
       if (!similarVariants.length) return;
-      similarVariantIndex = (similarVariantIndex + 1) % similarVariants.length;
-      displayedAlternative = similarVariants[similarVariantIndex];
+      const previous = displayedAlternative || original;
+      if (seenSimilarVariants.size === similarVariants.length) seenSimilarVariants.clear();
+      let bestIndex = -1;
+      let mostChanges = -1;
+      similarVariants.forEach((variant, index) => {
+        if (seenSimilarVariants.has(index)) return;
+        const changes = variant.items.filter((item, i) => item.id !== previous.items[i].id).length;
+        // Prefer changing every available category on each click; similarity breaks ties.
+        if (changes > mostChanges) { mostChanges = changes; bestIndex = index; }
+      });
+      seenSimilarVariants.add(bestIndex);
+      similarVariantIndex = bestIndex;
+      displayedAlternative = similarVariants[bestIndex];
       renderComboAtCurrentRank();
     }
 
@@ -1161,7 +1174,7 @@
       if (displayedAlternative) {
         const changed = displayedAlternative.items.filter((item, i) => item.id !== similarAnchor.items[i].id).length;
         status.textContent = '원래 코디의 색감·옷 종류·계절을 우선해 ' + changed + '개 아이템을 바꿨어요. 비슷한 조합 ' +
-          (similarVariantIndex + 1) + '/' + similarVariants.length + (similarVariantIndex === 0 && similarVariants.length === 1 ? ' · 가능한 유사 조합은 1개예요.' : '');
+          seenSimilarVariants.size + '/' + similarVariants.length + (similarVariantIndex === 0 && similarVariants.length === 1 ? ' · 가능한 유사 조합은 1개예요.' : '');
       }
     }
 
