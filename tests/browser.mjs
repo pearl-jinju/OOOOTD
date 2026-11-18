@@ -44,7 +44,7 @@ try{
  assert(publicCount>=300);
  assert.equal(Number(await a.locator('#catalog-count').textContent()),publicCount);
  assert.equal(await a.locator('.occasion-card').count(),18);
- assert.equal(await a.locator('.item-source').count(),4);
+ assert.equal(await a.locator('.item-source').count(),await a.locator('.lookbook-item:not([hidden])').count());
  assert((await a.locator('.item-source').allTextContents()).some(t=>t.includes('내 옷!')));
  await a.getByText('내 신체 사이즈 · 선택 입력',{exact:true}).click();
  await a.locator('#size-height').fill('178');await a.locator('#size-top').fill('L');
@@ -71,7 +71,7 @@ try{
  await a.locator('#mode-catalog').click();
  assert((await a.locator('.item-source').allTextContents()).every(text=>text.includes('추천의상')));
  assert.equal(await a.locator('#purchase-summary').isVisible(),true);
- assert.equal(await a.locator('[data-price-for] a').count(),4);
+ assert.equal(await a.locator('[data-price-for] a').count(),await a.locator('.lookbook-item:visible').count());
  assert((await a.locator('#purchase-total').textContent()).includes('원'));
  await a.locator('#mode-owned').click();
  assert((await a.locator('.item-source').allTextContents()).some(text=>text.includes('내 옷!')));
@@ -81,6 +81,10 @@ try{
  assert((await a.locator('#weather-tip').textContent()).includes('최저 5°C / 최고 13°C'));
  assert((await a.locator('#lookbook-day-title').textContent()).includes('내일'));
  await a.screenshot({path:'.build/qa-desktop.png',fullPage:true});
+ await a.evaluate(()=>{currentWeather={temp:31};selectOccasion('daily');selectRecommendationMode('catalog')});
+ assert.equal(await a.locator('#lookbook-outer').isVisible(),false);
+ assert.equal(await a.locator('.lookbook-item:visible').count(),3);
+ assert.equal(await a.locator('[data-price-for] a').count(),3);
  await a.setViewportSize({width:390,height:844});
  await a.screenshot({path:'.build/qa-mobile.png',fullPage:true});
  assert.equal(errors.length,0,errors.join('\n'));

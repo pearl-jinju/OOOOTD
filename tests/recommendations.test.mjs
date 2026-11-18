@@ -39,7 +39,7 @@ test('formal rules reject hoodies, sweatshirts and sportswear including similar 
  {name:'가죽 스니커즈',category:'shoes',occasion:'work'},
  {name:'티셔츠',category:'top',occasion:'work'}
  ].every(item=>!isOccasionAppropriate(item,'work'))`,c),true);
- vm.runInContext(`currentOccasion='work';
+ vm.runInContext(`currentOccasion='work';currentWeather={temp:8};
  closetItems=[
  {id:1,category:'outer',name:'울 코트',gender:'men',color:'black',season:'mild',occasion:'work',isOwned:true},
  {id:2,category:'top',name:'면 드레스 셔츠',gender:'men',color:'white',season:'mild',occasion:'work',isOwned:true},
@@ -65,11 +65,40 @@ test('automatic supplement fills only missing parts and restores owned mode when
  selectRecommendationMode('owned');
  if(recommendationMode!=='mixed'||!rankedCombos.length)throw Error('no fallback');
  if(rankedCombos[0].items.filter(item=>item.isOwned).length!==3)throw Error('owned parts not preserved');
- if(rankedCombos[0].items[3].isOwned)throw Error('missing shoes not supplemented');
+ if(rankedCombos[0].items.find(item=>item.category==='shoes').isOwned)throw Error('missing shoes not supplemented');
  closetItems.push({...fixture[3],id:4,isOwned:true,sourceCatalogId:fixture[3].id});
  recalculateRankedCombos();
  if(recommendationMode!=='owned'||rankedCombos[0].items.some(item=>!item.isOwned))throw Error('owned mode not restored');
  selectRecommendationMode('catalog');
  if(recommendationMode!=='catalog')throw Error('explicit catalog mode overwritten');
+ `,c);
+});
+
+test('outfit layers adapt to weather, occasion and owned clothes',()=>{
+ const c=context();
+ vm.runInContext(`
+  const base=['top','bottom','shoes'].map((category,i)=>({id:100+i,category,name:'fixture '+category,gender:'men',color:'black',season:'hot',occasion:'daily',isOwned:true}));
+  const light={id:103,category:'outer',name:'summer linen blazer',gender:'men',color:'navy',season:'hot',occasion:'work'};
+  const coat={...light,id:104,name:'wool overcoat',season:'winter'};
+  currentOccasion='daily';currentWeather={temp:31};
+  closetItems=[...base,{...coat,isOwned:true}];CATALOG_ITEMS=[light,coat];
+  selectRecommendationMode('owned');
+  if(recommendationMode!=='owned'||!rankedCombos.length||rankedCombos.some(combo=>combo.items.length!==3))throw Error('hot look needs an outer');
+  if(!document.getElementById('lookbook-outer').hidden)throw Error('outer tile remained');
+  currentWeather={temp:18};recalculateRankedCombos();
+  if(recommendationMode!=='owned'||rankedCombos.some(combo=>combo.items.length!==3))throw Error('heavy outer appeared in mild weather');
+  closetItems.push({...light,isOwned:true});
+  recalculateRankedCombos();
+  if(!rankedCombos.some(combo=>combo.items.length===3)||!rankedCombos.some(combo=>combo.items.length===4))throw Error('optional layering not available');
+  closetItems=base;recalculateRankedCombos();
+  if(recommendationMode!=='owned'||rankedCombos.some(combo=>combo.items.length!==3))throw Error('optional outer was suggested for purchase');
+  currentWeather={temp:8};recalculateRankedCombos();
+  if(recommendationMode!=='mixed'||!rankedCombos[0]?.items.some(item=>item.category==='outer'))throw Error('cold look missed layer');
+  closetItems=[
+   ...base.map((item,i)=>({...item,name:['Solid Long Sleeve Dress Shirt','Suit Trousers','Plain Toe Derby'][i]})),
+   {...coat,isOwned:true}
+  ];
+  currentOccasion='interview';currentWeather={temp:31};recalculateRankedCombos();
+  if(!rankedCombos.length||rankedCombos.some(combo=>combo.items.find(item=>item.category==='outer')?.id!==light.id))throw Error('hot interview lacks suitable jacket');
  `,c);
 });

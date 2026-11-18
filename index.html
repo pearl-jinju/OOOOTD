@@ -1017,7 +1017,7 @@
     </footer>
   </div>
 
-  <script src="/assets/outfit-rules.js"></script>
+  <script src="/assets/outfit-rules.js?v=weather-layers"></script>
   <script>
     /* ==========================================================
        실제 크롤링된 300종 의류 데이터베이스 (남성/여성 태깅 완료)
@@ -1133,8 +1133,7 @@
     function buildSimilarVariants(anchor) {
       const similarSource = outfitPool();
       const choices = anchor.items.map(original => {
-        let pool = similarSource.filter(item => OOOOTD_RULES.genderCompatible(item,currentGender) &&
-          item.category === original.category && item.id !== original.id && isOccasionAppropriate(item));
+        let pool = similarSource.filter(item => item.category===original.category&&item.id!==original.id&&isEligibleOutfitItem(item));
         // Keep the original temperature suitability whenever a replacement exists.
         const seasonPool = pool.filter(item => item.season === original.season);
         if (seasonPool.length >= 2) pool = seasonPool;
@@ -1151,12 +1150,7 @@
         })));
       });
       return variants.filter(variant => variant.items.some((item, i) => item.id !== anchor.items[i].id))
-        .map(variant => {
-          const tempScore = variant.items.reduce((score, item) => score + (item.season === getTemperatureSeason(currentWeather.temp) ? 25 : 0), 0);
-          const occasionScore = variant.items.reduce((score,item)=>score+OOOOTD_RULES.occasionScore(item,currentOccasion),0);
-          const colorScore = calculateColorScore(variant.items, currentColorRule);
-          return {...variant, tempScore, occasionScore, colorScore, totalScore: tempScore + occasionScore + colorScore};
-        })
+        .map(variant=>({...variant,...scoreOutfit(variant.items,getOuterPolicy())}))
         .sort((a, b) => b.similarity - a.similarity || b.colorScore - a.colorScore);
     }
 
@@ -1198,7 +1192,7 @@
       const source = outfitPool();
       const original = rankedCombos[currentRankIndex];
       document.getElementById('similar-combo-btn').disabled = !original || !original.items.some(base =>
-        source.some(item => OOOOTD_RULES.genderCompatible(item,currentGender) && item.category === base.category && item.id !== base.id && isOccasionAppropriate(item)));
+        source.some(item=>item.category===base.category&&item.id!==base.id&&isEligibleOutfitItem(item)));
       document.getElementById('restore-combo-btn').hidden = !displayedAlternative;
       const status = document.getElementById('similar-combo-status');
       status.hidden = !displayedAlternative;
@@ -1303,10 +1297,7 @@
       if (uniqueColors.length <= 3) score += 35;
       else if (uniqueColors.length === 4) score += 10;
 
-      const outer = items[0];
-      const top = items[1];
-      const bottom = items[2];
-      const shoes = items[3];
+      const [outer,top,bottom,shoes]=OOOOTD_RULES.CATEGORIES.map(category=>items.find(item=>item.category===category));
 
       if (outer && shoes && outer.color === shoes.color) score += 20;
       if (top && bottom && top.color !== bottom.color) score += 15;
@@ -1332,13 +1323,46 @@
       const ownedIds = new Set(closetItems.map(item => item.sourceCatalogId).filter(Boolean));
       return CATALOG_ITEMS.filter(item => !ownedIds.has(item.id)).map(item => ({...item,isOwned:false}));
     }
+
+    const baseOutfitCategories = ['top','bottom','shoes'];
+    function getOuterPolicy(){
+      return OOOOTD_RULES.outerwearPolicy(currentWeather,currentOccasion);
+    }
+    function getRequiredCategories(){
+      return getOuterPolicy()==='required'?['outer',...baseOutfitCategories]:baseOutfitCategories;
+    }
+    function isEligibleOutfitItem(item){
+      return OOOOTD_RULES.genderCompatible(item,currentGender)&&isOccasionAppropriate(item)&&OOOOTD_RULES.suitableWeatherItem(item,currentWeather);
+    }
+    function changedGarments(items,previous){
+      return OOOOTD_RULES.CATEGORIES.filter(category=>
+        items.find(item=>item.category===category)?.id!==previous.find(item=>item.category===category)?.id
+      ).length;
+    }
+    function temperatureScore(item,targetSeason){
+      const seasons=['winter','chilly','mild','warm','hot'];
+      const itemSeason=seasons.indexOf(item.season);
+      return itemSeason<0?0:Math.max(0,25-10*Math.abs(itemSeason-seasons.indexOf(targetSeason)));
+    }
+    function scoreOutfit(items,outerPolicy){
+      const targetSeason=getTemperatureSeason(currentWeather.temp);
+      const tempScore=items.reduce((sum,item)=>sum+temperatureScore(item,targetSeason),0);
+      const occasionScore=items.reduce((sum,item)=>sum+OOOOTD_RULES.occasionScore(item,currentOccasion),0);
+      const colorScore=calculateColorScore(items,currentColorRule);
+      const layer=outerPolicy==='optional'&&items.some(item=>item.category==='outer');
+      const layerBonus=layer?(currentWeather.temp<=16?16:-22):0;
+      const totalScore=Math.round((tempScore+occasionScore)*3/items.length+colorScore+layerBonus);
+      return {items,tempScore,occasionScore,colorScore,totalScore};
+    }
     function outfitPool() {
       if(recommendationMode === 'owned')return closetItems;
       const recommended=availableRecommendedClothes();
       if(recommendationMode === 'catalog')return recommended;
-      return ['outer','top','bottom','shoes'].flatMap(cat=>{
-        const owned=closetItems.filter(item=>item.category===cat&&OOOOTD_RULES.genderCompatible(item,currentGender)&&isOccasionAppropriate(item));
-        return owned.length?owned:recommended.filter(item=>item.category===cat);
+      const required=getRequiredCategories();
+      const categories=getOuterPolicy()==='omit'?required:['outer',...baseOutfitCategories];
+      return categories.flatMap(cat=>{
+        const owned=closetItems.filter(item=>item.category===cat&&isEligibleOutfitItem(item));
+        return owned.length||!required.includes(cat)?owned:recommended.filter(item=>item.category===cat);
       });
     }
     function selectRecommendationMode(mode) {
@@ -1354,9 +1378,9 @@
 
     function recalculateRankedCombos() {
       recommendationMode = requestedRecommendationMode;
+      const outerPolicy=getOuterPolicy();
       const needsSupplement = recommendationMode === 'owned' &&
-        ['outer','top','bottom','shoes'].some(category => !closetItems.some(item =>
-          item.category === category && OOOOTD_RULES.genderCompatible(item,currentGender) && isOccasionAppropriate(item)));
+        getRequiredCategories().some(category => !closetItems.some(item => item.category===category&&isEligibleOutfitItem(item)));
       if (needsSupplement) recommendationMode = 'mixed';
       document.getElementById('recommendation-mode-note').textContent = needsSupplement
         ? '내 옷만으로 완성할 수 없어 내 옷 + 부족한 옷 추천으로 자동 전환했어요.'
@@ -1369,37 +1393,30 @@
         button.style.background = mode === recommendationMode ? '#eef2ff' : '';
       });
       resetSimilarCombos();
+
       const temp = currentWeather.temp;
       const targetSeason = getTemperatureSeason(temp);
+      const source = outfitPool();
+      const poolFor = category => source.filter(item => item.category===category && isEligibleOutfitItem(item))
+        .map(item => ({item,score:temperatureScore(item,targetSeason)+OOOOTD_RULES.occasionScore(item,currentOccasion)}))
+        .sort((a,b)=>b.score-a.score||a.item.id-b.item.id)
+        .slice(0,24);
 
-      const categories = ['outer', 'top', 'bottom', 'shoes'];
-      const candidatesByCategory = {};
-
-      const outfitSource = outfitPool();
-      categories.forEach(cat => {
-        // 1. 성별 일치 우선 필터링
-        const pool = outfitSource.filter(item => item.category === cat && OOOOTD_RULES.genderCompatible(item,currentGender) && isOccasionAppropriate(item));
-
-        // 2. 기온 시즌 필터링
-        let seasonPool = pool.filter(item => item.season === targetSeason);
-        candidatesByCategory[cat] = seasonPool.length > 0 ? seasonPool : pool;
-      });
-
-      const pools = categories.map(cat => candidatesByCategory[cat]
-        .map(item => ({item,score:(item.season === targetSeason ? 25 : 0)+OOOOTD_RULES.occasionScore(item,currentOccasion)}))
-        .sort((a,b)=>b.score-a.score||a.item.id-b.item.id).slice(0,24));
-      let beam=[{items:[],baseScore:0}];
-      pools.forEach(pool=>{
-        beam=beam.flatMap(partial=>pool.map(option=>({
-          items:[...partial.items,option.item],baseScore:partial.baseScore+option.score
-        }))).sort((a,b)=>b.baseScore-a.baseScore).slice(0,4000);
-      });
-      const combos=beam.map(partial=>{
-        const tempScore=partial.items.reduce((sum,item)=>sum+(item.season===targetSeason?25:0),0);
-        const occasionScore=partial.items.reduce((sum,item)=>sum+OOOOTD_RULES.occasionScore(item,currentOccasion),0);
-        const colorScore=calculateColorScore(partial.items,currentColorRule);
-        return {items:partial.items,tempScore,occasionScore,colorScore,totalScore:tempScore+occasionScore+colorScore};
-      }).sort((a,b)=>b.totalScore-a.totalScore);
+      const requiredPools=getRequiredCategories().map(poolFor);
+      const optionalOuter=outerPolicy==='optional'?poolFor('outer'):[];
+      const makeCombos=pools=>{
+        let beam=[{items:[],baseScore:0}];
+        for(const pool of pools){
+          beam=beam.flatMap(partial=>pool.map(option=>({
+            items:[...partial.items,option.item],baseScore:partial.baseScore+option.score
+          }))).sort((a,b)=>b.baseScore-a.baseScore).slice(0,4000);
+        }
+        return beam.map(partial=>scoreOutfit(partial.items,outerPolicy));
+      };
+      const combos=makeCombos(requiredPools);
+      const layered=optionalOuter.length?makeCombos([optionalOuter,...requiredPools]):[];
+      combos.push(...layered);
+      combos.sort((a,b)=>b.totalScore-a.totalScore);
       const diverse=[];
       while(combos.length&&diverse.length<200){
         let index=0;
@@ -1410,7 +1427,7 @@
           for (let candidate = 0; candidate < Math.min(combos.length, 80); candidate++) {
             const combo = combos[candidate];
             if (combo.totalScore < bestScore - 35) break;
-            if (combo.items.filter((item,i)=>item.id!==previous.items[i].id).length < 3) continue;
+            if (changedGarments(combo.items,previous.items) < 3) continue;
             const distance = OOOOTD_RULES.outfitTagDistance(combo.items, previous.items);
             if (distance > bestDistance) {
               bestDistance = distance;
@@ -1418,10 +1435,15 @@
             }
           }
         }
+        if(layered.length&&diverse.length===1){
+          const withLayer=diverse[0].items.some(item=>item.category==='outer');
+          const alternative=combos.findIndex(combo=>combo.items.some(item=>item.category==='outer')!==withLayer);
+          if(alternative>=0&&combos[alternative].totalScore>=combos[0].totalScore-45)index=alternative;
+        }
         diverse.push(combos.splice(index,1)[0]);
       }
       rankedCombos = diverse;
-      if(recommendationMode!=='owned'&&pools.some(pool=>pool.length<4)&&window.ooootdCloudReady&&window.cloudEnsureCatalog){
+      if(recommendationMode!=='owned'&&requiredPools.some(pool=>pool.length<4)&&window.ooootdCloudReady&&window.cloudEnsureCatalog){
         window.cloudEnsureCatalog(currentOccasion).catch(()=>{});
       }
       currentRankIndex = 0;
@@ -1439,11 +1461,12 @@
       if (!rankedCombos || rankedCombos.length === 0) {
         ['outer', 'top', 'bottom', 'shoes'].forEach(cat => {
           const img = document.getElementById(`board-img-${cat}`);
+          document.getElementById('lookbook-'+cat).hidden=true;
           if (img) { img.removeAttribute('src'); img.alt = '등록된 옷이 없습니다'; }
         });
         document.getElementById('outfit-items-container').innerHTML = '';
         document.getElementById('recommend-title').textContent = '추천할 옷이 부족합니다';
-        document.getElementById('recommend-desc').textContent = currentOccasion === 'work' ? (recommendationMode === 'owned' ? '내 옷장' : '추천의상 DB') + '에 격식에 맞는 아우터·상의·하의·신발이 충분하지 않습니다.' : '내 옷 사진을 등록해주세요. 선택한 성별의 아우터·상의·하의·신발이 각각 필요합니다.';
+        document.getElementById('recommend-desc').textContent = "선택한 날씨와 용도에 맞는 옷이 부족해요. 필요한 부위" + ': ' + getRequiredCategories().map(category=>CATEGORY_NAMES[category].split(' ')[0]).join(' ? ');
         document.getElementById('combo-rank-text').textContent = '추천 없음';
         document.getElementById('recommend-tier-badge').textContent = '아이템 부족';
         document.getElementById('color-match-text').textContent = '';
@@ -1459,12 +1482,19 @@
 
       // 1. 좌측 룩북 보드 이미지 교체
       const cats = ['outer', 'top', 'bottom', 'shoes'];
-      cats.forEach((cat, idx) => {
-        const it = comboItems[idx];
+      const hasOuter=comboItems.some(item=>item.category==='outer');
+      const topTile=document.getElementById('lookbook-top');
+      topTile.style.gridColumn=hasOuter?'':'1 / -1';
+      cats.forEach(cat => {
+        const it = comboItems.find(item=>item.category===cat);
+        document.getElementById('lookbook-'+cat).hidden=!it;
         const imgEl = document.getElementById(`board-img-${cat}`);
         if (imgEl && it) {
           imgEl.src = it.image;
           imgEl.alt = it.name;
+        }else if(imgEl){
+          imgEl.removeAttribute('src');
+          imgEl.alt='';
         }
       });
 
@@ -1485,6 +1515,7 @@
 
       titleEl.innerHTML = `<i class="fa-solid ${occInfo.icon}" style="color: #6366f1;"></i> [${genderName} · ${occInfo.name}] 추천 코디`;
       descEl.textContent = `${forecastDay === 'tomorrow' ? '내일 예상 평균 기온' : '현재 기온'} ${temp}°C · ${genderName} 전용 ${occInfo.desc}에 최적화된 조합입니다.`;
+      descEl.textContent+=' ? '+(hasOuter?"아우터 포함":"아우터 없이");
       badgeEl.textContent = `기온: ${temp}°C (${SEASON_LABELS[targetSeason]?.split(' ')[0]})`;
 
       const ruleDescriptions = {
@@ -1498,8 +1529,8 @@
 
       // 4. 아이템 상세 카드 목록 렌더링
       container.innerHTML = '';
-      cats.forEach((cat, idx) => {
-        const chosen = comboItems[idx];
+      comboItems.forEach(chosen => {
+        const cat=chosen.category;
         const card = document.createElement('div');
         card.className = 'item-card';
 

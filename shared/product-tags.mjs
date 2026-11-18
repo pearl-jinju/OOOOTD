@@ -103,8 +103,9 @@ function signature(item) {
 }
 
 export function outfitTagDistance(items, previous) {
+  const byCategory=new Map(previous.filter(item=>item.category).map(item=>[item.category,item]));
   return items.reduce((sum, item, index) => {
-    const before = previous[index];
+    const before = item.category?byCategory.get(item.category):previous[index];
     if (!before || before.id === item.id) return sum;
     const prior = signature(before);
     return sum + signature(item).filter((value, axis) => value && prior[axis] && value !== prior[axis]).length;

@@ -142,3 +142,28 @@ export function coverage(items){
   }
  }return result;
 }
+
+const everydayLayers=['daily','library','date','work','travel','cafe','shopping','party','concert'];
+const outdoorLayers=['exercise','running','hiking','beach'];
+const jacketDressCodes=['interview','meeting','wedding'];
+
+export function outerwearPolicy(weather,occasion){
+ const {temp,min,max,wind}=weather;
+ if(jacketDressCodes.includes(occasion))return 'required';
+ if(occasion==='home')return 'omit';
+ if(temp<=11||(temp<=14&&wind>=28&&!outdoorLayers.includes(occasion)))return 'required';
+ if(occasion==='rainy')return temp<=18?'required':temp<26?'optional':'omit';
+ if(outdoorLayers.includes(occasion))return temp<=16?'optional':'omit';
+ if(everydayLayers.includes(occasion)&&(temp<=21||(min<=17&&max-min>=8&&temp<26)))return 'optional';
+ return 'omit';
+}
+
+export function suitableWeatherItem(item,weather){
+ if(weather.temp<(item.category==='outer'?17:24)||item.category==='shoes')return true;
+ const name=String(item.name||'');
+ const heavy=/한겨울|헤비다운|롱패딩|패딩|구스다운|덕다운|무스탕|양털|플리스|후리스|기모(?![\/]|\s*(?:선택|유무))|(?:^|[\s_-])(?:puffer|parka|shearling|fleece|heavyweight)(?:$|[\s_-])/i;
+ if(heavy.test(name)||item.season==='winter')return false;
+ if(item.category!=='outer')return true;
+ if(/린넨|리넨|시어서커|홑겹|언라인드|여름|경량|\b(?:linen|seersucker|unlined|summer|lightweight)\b/i.test(name))return true;
+ return weather.temp<24||!/코트|(?:^|[\s_-])(?:overcoat|coat)(?:$|[\s_-])/i.test(name);
+}
