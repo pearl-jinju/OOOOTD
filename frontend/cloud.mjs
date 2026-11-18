@@ -1,3 +1,4 @@
+import {analyzeGarmentPhoto} from './photo-analysis.mjs';
 const config=await (await fetch('/cloud-config.json')).json();
 window.ooootdApiUrl=config.apiUrl;
 const $=id=>document.getElementById(id);
@@ -61,13 +62,16 @@ async function connect(){
 }
 $('new-user').onclick=async()=>{
  if(!confirm('새 사용자로 전환하면 현재 브라우저에서는 새 빈 옷장을 사용합니다. 계속할까요?'))return;
- try{await newSession();await loadCloset();await loadProfile();say('새 사용자의 빈 옷장으로 전환했어요.')}
+ try{await newSession();photoForm.reset();await loadCloset();await loadProfile();say('새 사용자의 빈 옷장으로 전환했어요.')}
  catch(e){say(e.message,true)}
 };
 const cameraInput=$('capture-image'),galleryInput=$('upload-image');
 const photoForm=$('upload-form');
 const photoStatus=$('selected-photo');
 const photoLimit=5*1024*1024;
+
+const analysisDetails=$('photo-details'),analysisSummary=$('photo-analysis');
+let photoRevision=0,photoJob=null,suggestedName='';
 $('take-photo').onclick=()=>cameraInput.click();
 $('choose-photo').onclick=()=>galleryInput.click();
 for(const [input,other] of [[cameraInput,galleryInput],[galleryInput,cameraInput]]){
@@ -75,9 +79,48 @@ for(const [input,other] of [[cameraInput,galleryInput],[galleryInput,cameraInput
   if(!input.files.length)return;
   other.value='';
   photoStatus.textContent=input.files[0].name;
+  analyzeSelection();
  });
 }
-photoForm.addEventListener('reset',()=>{photoStatus.textContent='사진을 찍거나 선택해 주세요.';});
+photoForm.addEventListener('reset',()=>{
+ photoRevision++;photoJob=null;suggestedName='';
+ photoStatus.textContent='사진을 찍거나 선택해 주세요.';
+ analysisSummary.textContent='';analysisDetails.open=false;analysisDetails.hidden=true;
+ $('upload-submit').disabled=false;
+});
+function analyzeSelection(){
+ const revision=++photoRevision,generation=epoch;
+ const current=()=>revision===photoRevision&&generation===epoch;
+ $('upload-submit').disabled=true;
+ analysisDetails.hidden=true;analysisDetails.open=false;
+ for(const key of ['category','color','season','occasion'])$('upload-'+key).selectedIndex=0;
+ analysisSummary.textContent='사진 속 옷을 분석 중이에요. 처음에는 분석 모델을 불러오는 데 시간이 걸릴 수 있어요.';
+ photoJob=(async()=>{
+  const file=await uploadPhoto();
+  if(!current())return null;
+  let modelUnavailable=false;
+  const result=await analyzeGarmentPhoto(file).catch(()=>{modelUnavailable=true;return null;});
+  if(!current())return null;
+  if(result){
+   const name=$('upload-name');
+   if(!name.value.trim()||name.value===suggestedName)name.value=result.name;
+   suggestedName=result.name;
+   for(const key of ['category','color','season','occasion'])$('upload-'+key).value=result[key];
+   analysisSummary.textContent=['category','color','season','occasion'].map(key=>{
+    const field=$('upload-'+key);
+    return field.selectedOptions[0]?.textContent;
+   }).filter(Boolean).join(' · ');
+   analysisDetails.hidden=false;
+  }else{
+   analysisSummary.textContent=modelUnavailable?"사진 분석 모델을 불러오지 못했어요. 다시 찍거나 자동 분류 항목을 직접 확인해 주세요.":'옷을 확실히 구분하기 어려워요. 옷 한 벌이 화면 가운데 오도록 다시 찍거나 분류를 확인해 주세요.';
+   analysisDetails.hidden=false;analysisDetails.open=true;
+  }
+  return file;
+ })().catch(error=>{
+  if(current())analysisSummary.textContent=error.message;
+  return null;
+ }).finally(()=>{if(current())$('upload-submit').disabled=false;});
+}
 async function uploadPhoto(){
  const file=cameraInput.files[0]||galleryInput.files[0];
  if(!file)throw Error('사진을 먼저 찍거나 선택해주세요.');
@@ -98,21 +141,20 @@ async function uploadPhoto(){
  }catch{}finally{URL.revokeObjectURL(url)}
  throw Error('이 사진을 열 수 없어요. 카메라로 다시 찍거나 JPG·PNG·WebP 사진을 선택해 주세요.');
 }
+
 photoForm.onsubmit=async e=>{
- e.preventDefault();$('upload-submit').disabled=true;
- const generation=epoch;
- try{const body=new FormData(e.target);body.set('image',await uploadPhoto());if(generation!==epoch)return;await api('/closet',{method:'POST',body});e.target.reset();await loadCloset();say('내 옷에 등록했어요.')}
- catch(e){say(e.message,true)}finally{$('upload-submit').disabled=false}
-};
-$('analyze-image').onclick=async()=>{
- const generation=epoch;
- $('analyze-image').disabled=true;say('사진을 분석하고 있어요.');
+ e.preventDefault();
+ const generation=epoch,revision=photoRevision;
+ $('upload-submit').disabled=true;
  try{
-  const form=new FormData();form.set('image',await uploadPhoto());if(generation!==epoch)return;form.set('name',$('upload-name').value);
-  const r=await api('/analyze',{method:'POST',body:form});
-  for(const key of ['name','category','color','season','occasion'])if(r[key])$('upload-'+key).value=r[key];
-  say(r.message);
- }catch(e){say(e.message,true)}finally{$('analyze-image').disabled=false}
+  const file=await (photoJob||uploadPhoto());
+  if(!file||generation!==epoch||revision!==photoRevision)return;
+  const body=new FormData(photoForm);body.set('image',file);
+  body.set('gender',currentGender);
+  await api('/closet',{method:'POST',body});
+  if(revision===photoRevision)photoForm.reset();
+  await loadCloset();say('내 옷에 등록했어요.');
+ }catch(e){say(e.message,true)}finally{if(revision===photoRevision)$('upload-submit').disabled=false;}
 };
 $('size-form').onsubmit=async e=>{
  e.preventDefault();$('size-save').disabled=true;

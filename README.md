@@ -41,7 +41,7 @@ Build outputs: `assets/cloud.js` (static client) and `.build/index.mjs` (Neon Fu
 
 Schema: `db/001_initial.sql`. Infrastructure: `neon.ts`. Project and branch IDs: `backend-config.json`.
 
-`tests/integration.mjs` tests real API user isolation, private images and sizes on a development branch; `tests/browser.mjs` uses a local server and headless Edge against that branch. AI photo analysis uses Neon AI Gateway when a vision model and credits are available; otherwise it explicitly returns an editable manual fallback rather than claiming a visual analysis succeeded.
+`tests/integration.mjs` tests real API user isolation, private images and sizes on a development branch; `tests/browser.mjs` uses a local server and headless Edge against that branch. Closet photos are analyzed in the browser using [Pasma Small-320](https://huggingface.co/Prikol5ist/pasma) (Apache-2.0) and ONNX Runtime Web. The model suggests a garment category and the app estimates its color and assigns season and occasion suggestions by type. The photo is uploaded to the private closet only on registration. The first analysis downloads the runtime and model.
 
 ## Expanded outfit coverage
 
