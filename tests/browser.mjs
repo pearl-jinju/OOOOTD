@@ -70,8 +70,12 @@ try{
  await a.locator('#restore-combo-btn').click();
  await a.locator('#lookbook-settings > summary').click();
  await a.locator('#mode-catalog').click();
- assert((await a.locator('.item-source').allTextContents()).every(text=>text.includes('추천의상')));
- await a.locator('#outfit-shopping > summary').click();
+ assert.equal(await a.locator('.lookbook-price:visible').count(),await a.locator('.lookbook-item:visible').count());
+ assert.equal(await a.locator('#outfit-shopping').count(),0);
+ assert(await a.locator('#lookbook-price-top').isVisible());
+ assert.equal(await a.locator('#lookbook-info-top').isVisible(),false);
+ await a.locator('#lookbook-top').hover();
+ assert(await a.locator('#lookbook-info-top a').isVisible());
  assert.equal(await a.locator('#purchase-summary').isVisible(),true);
  assert.equal(await a.locator('[data-price-for] a').count(),await a.locator('.lookbook-item:visible').count());
  assert((await a.locator('#purchase-total').textContent()).includes('원'));

@@ -1,0 +1,33 @@
+
+.lookbook-board-purchases .lookbook-item { overflow: hidden; }
+.lookbook-board-purchases .lookbook-item img { max-width: 100%; }
+.lookbook-board-purchases .lookbook-tag { z-index: 2; pointer-events: none; }
+.lookbook-product-toggle {
+  position: absolute; inset: 0; z-index: 1;
+  border: 0; border-radius: inherit; background: transparent; cursor: pointer;
+}
+.lookbook-product-toggle:focus-visible { outline: 2px solid var(--accent); outline-offset: -3px; }
+.lookbook-price {
+  position: absolute; right: 5px; bottom: 5px; z-index: 2;
+  background: #162033; color: #fff; border-radius: 6px;
+  padding: 2px 6px; font-size: .73rem; font-weight: 750;
+  white-space: nowrap; pointer-events: none;
+}
+.lookbook-product-info {
+  position: absolute; inset: 26px 4px 26px; z-index: 3;
+  align-content: center; overflow: auto; overscroll-behavior: contain;
+  padding: 8px; color: #172135; background: #fffffff7; border-radius: 7px;
+  box-shadow: 0 2px 10px #16203325;
+  font-size: .76rem; line-height: 1.4;
+}
+.lookbook-product-info .item-name { white-space: normal; overflow-wrap: anywhere; font-size: .83rem; margin: 0; }
+.lookbook-product-meta { margin-top: 4px; color: #52617a; }
+.lookbook-product-info [data-price-for] { margin-top: 5px; }
+.lookbook-product-info a { color: var(--accent-hover); text-underline-offset: 2px; font-weight: 750; }
+.lookbook-product-info .lookbook-price-date { font-size: .69rem; color: #52617a; }
+.lookbook-purchase-total { margin: 6px 2px 0; color: var(--text-muted); font-size: .76rem; }
+.lookbook-purchase-total strong { color: var(--primary); }
+@media (max-width: 520px) {
+  .lookbook-product-info { inset: 20px 3px 24px; padding: 5px; align-content: start; }
+  .lookbook-product-meta { display: none; }
+}

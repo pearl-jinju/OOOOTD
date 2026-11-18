@@ -741,6 +741,7 @@
   </style>
   <link rel="stylesheet" href="/assets/home.css?v=lookbook-first">
   <link rel="stylesheet" href="/assets/lookbook-workspace.css">
+  <link rel="stylesheet" href="/assets/lookbook-purchases.css">
 </head>
 <body>
 
@@ -872,62 +873,41 @@
             </div>
 
 
-            <div class="ai-tryon-board">
+            <div class="ai-tryon-board lookbook-board-purchases">
               <div class="lookbook-item" id="lookbook-outer">
                 <span class="lookbook-tag">아우터</span>
                 <img id="board-img-outer" src="" alt="아우터">
+                <button class="lookbook-product-toggle" id="lookbook-toggle-outer" type="button" aria-controls="lookbook-info-outer" aria-expanded="false" data-html2canvas-ignore="true" hidden></button>
+                <span class="lookbook-price" id="lookbook-price-outer" hidden></span>
+                <div class="lookbook-product-info" id="lookbook-info-outer" data-html2canvas-ignore="true" hidden></div>
               </div>
               <div class="lookbook-item" id="lookbook-top">
                 <span class="lookbook-tag">상의</span>
                 <img id="board-img-top" src="" alt="상의">
+                <button class="lookbook-product-toggle" id="lookbook-toggle-top" type="button" aria-controls="lookbook-info-top" aria-expanded="false" data-html2canvas-ignore="true" hidden></button>
+                <span class="lookbook-price" id="lookbook-price-top" hidden></span>
+                <div class="lookbook-product-info" id="lookbook-info-top" data-html2canvas-ignore="true" hidden></div>
               </div>
               <div class="lookbook-item" id="lookbook-bottom">
                 <span class="lookbook-tag">하의</span>
                 <img id="board-img-bottom" src="" alt="하의">
+                <button class="lookbook-product-toggle" id="lookbook-toggle-bottom" type="button" aria-controls="lookbook-info-bottom" aria-expanded="false" data-html2canvas-ignore="true" hidden></button>
+                <span class="lookbook-price" id="lookbook-price-bottom" hidden></span>
+                <div class="lookbook-product-info" id="lookbook-info-bottom" data-html2canvas-ignore="true" hidden></div>
               </div>
               <div class="lookbook-item" id="lookbook-shoes">
                 <span class="lookbook-tag">신발</span>
                 <img id="board-img-shoes" src="" alt="신발">
+                <button class="lookbook-product-toggle" id="lookbook-toggle-shoes" type="button" aria-controls="lookbook-info-shoes" aria-expanded="false" data-html2canvas-ignore="true" hidden></button>
+                <span class="lookbook-price" id="lookbook-price-shoes" hidden></span>
+                <div class="lookbook-product-info" id="lookbook-info-shoes" data-html2canvas-ignore="true" hidden></div>
               </div>
             </div>
 
             <p id="lookbook-reason" aria-live="polite"></p>
+            <p class="lookbook-purchase-total" id="purchase-summary" hidden><strong id="purchase-total"></strong> ? <span id="purchase-price-status" role="status"></span> ? 배송비·쿠폰 제외</p>
           </div>
           </div>
-          <details class="outfit-card outfit-shopping" id="outfit-shopping">
-            <summary>상품 상세·구매 정보 <span id="outfit-shopping-count"></span></summary>
-            <div class="outfit-header">
-              <div>
-                <div id="recommend-title" class="outfit-title">
-                  <i class="fa-solid fa-sparkles" style="color: #6366f1;"></i> 추천 코디 분석 중
-                </div>
-                <div id="recommend-desc" class="outfit-reason">기온과 옷장 상태를 분석 중입니다.</div>
-                <div id="color-match-notice" class="color-match-notice">
-                  <i class="fa-solid fa-circle-check"></i> <span id="color-match-text">색상 조화 최적화 적용됨</span>
-                </div>
-              </div>
-              <span class="badge" id="recommend-tier-badge">기온 맞춤형</span>
-            </div>
-
-            <!-- 코디 아이템 4종 그리드 -->
-            <div class="items-grid" id="outfit-items-container">
-              <!-- JS 동적 렌더링 -->
-            </div>
-
-<section id="purchase-summary" class="private-panel" style="margin-top:16px" hidden><strong id="purchase-total"></strong><p id="purchase-price-status" role="status"></p><p>배송비·조건부 쿠폰 할인은 제외한 상품 가격 합계입니다. 최종 결제 금액은 구매사이트에서 확인해주세요.</p></section>
-            <!-- 추가 구매 제안 박스 (링크 연결) -->
-            <div class="addon-box" id="addon-box" hidden>
-              <div class="addon-title">
-                <i class="fa-solid fa-lightbulb"></i> <span id="addon-title-text">이런 아이템을 추가해보세요!</span>
-              </div>
-              <div class="addon-desc" id="addon-desc-text">
-                스타일을 더 풍성하게 만들어 줄 추천 아이템을 확인해보세요.
-              </div>
-              <a id="addon-link" href="#" target="_blank" rel="noopener noreferrer" class="addon-link">
-                <span>아이템 검색 및 구매하기</span> <i class="fa-solid fa-arrow-up-right-from-square"></i>
-              </a>
-            </div>
-          </details>
         </div>
       </div>
     </div>
@@ -1005,7 +985,7 @@
           <ol>
             <li>선택한 도시와 날짜의 기온, 코디 용도를 확인해요.</li>
             <li>날씨와 상황에 맞는 옷을 추려 색상 조합을 비교해요. 더운 날이나 가벼운 외출에는 겉옷을 뺄 수 있어요.</li>
-            <li>추천한 이유를 룩북 아래에 보여줘요. 부족한 상품의 가격과 구매처는 상세를 펼쳐 확인할 수 있어요.</li>
+            <li>추천한 이유를 룩북 아래에 보여줘요. 상품 카드에 마우스를 올리거나 탭하면 구매처를 확인할 수 있어요.</li>
           </ol>
         </section>
       </div>
@@ -1347,11 +1327,6 @@
       };
       const options=document.querySelector('.lookbook-options');
       options.addEventListener('toggle',()=>{document.querySelector('.lookbook-option-content').hidden=!options.open;});
-      const shopping=document.getElementById('outfit-shopping');
-      shopping.addEventListener('toggle',()=>{
-        const items=(displayedAlternative||rankedCombos[currentRankIndex])?.items;
-        if(shopping.open&&items)refreshPurchaseInfo(items);
-      });
       if ('ResizeObserver' in window) {
         const observer=new ResizeObserver(()=>syncOccasionDial());
         observer.observe(rail);
@@ -1572,27 +1547,16 @@
           document.getElementById('lookbook-'+cat).hidden=true;
           if (img) { img.removeAttribute('src'); img.alt = '등록된 옷이 없습니다'; }
         });
-        document.getElementById('outfit-items-container').innerHTML = '';
-        document.getElementById('recommend-title').textContent = '추천할 옷이 부족합니다';
-        document.getElementById('lookbook-reason').textContent = document.getElementById('recommend-title').textContent;
-        document.getElementById('outfit-shopping-count').textContent='';
-        document.getElementById('outfit-shopping').hidden=true;
-        document.getElementById('recommend-desc').textContent = "선택한 날씨와 용도에 맞는 옷이 부족해요. 필요한 부위" + ': ' + getRequiredCategories().map(category=>CATEGORY_NAMES[category].split(' ')[0]).join(' ? ');
-        document.getElementById('combo-rank-text').textContent = '추천 없음';
-        document.getElementById('recommend-tier-badge').textContent = '아이템 부족';
-        document.getElementById('color-match-text').textContent = '';
+        document.getElementById('lookbook-reason').textContent="추천할 옷이 부족합니다.";
+        document.getElementById('combo-rank-text').textContent='';
         return;
       }
 
       const selected = displayedAlternative || rankedCombos[currentRankIndex] || rankedCombos[0];
       const comboItems = selected.items;
       const ownedCount=comboItems.filter(item=>item.isOwned).length;
-      document.getElementById('outfit-shopping').hidden=false;
-      document.getElementById('outfit-shopping-count').textContent=`(${comboItems.length})`;
       const temp = currentWeather.temp;
-      const targetSeason = getTemperatureSeason(temp);
       const occInfo = OCCASIONS.find(o => o.id === currentOccasion) || OCCASIONS[0];
-      const genderName = currentGender === 'men' ? '남성' : '여성';
 
       // 1. 좌측 룩북 보드 이미지 교체
       const cats = ['outer', 'top', 'bottom', 'shoes'];
@@ -1610,6 +1574,7 @@
       cats.forEach(cat => {
         const it = comboItems.find(item=>item.category===cat);
         document.getElementById('lookbook-'+cat).hidden=!it;
+        renderLookbookProduct(cat,it);
         const imgEl = document.getElementById(`board-img-${cat}`);
         if (imgEl && it) {
           imgEl.src = it.image;
@@ -1628,74 +1593,73 @@
       rankText.textContent = `${currentRankIndex + 1}/${maxRank}`;
 
       // 3. 헤더 타이틀 및 설명
-      const titleEl = document.getElementById('recommend-title');
-      const descEl = document.getElementById('recommend-desc');
-      const badgeEl = document.getElementById('recommend-tier-badge');
-      const colorNotice = document.getElementById('color-match-notice');
-      const colorMatchText = document.getElementById('color-match-text');
-      const container = document.getElementById('outfit-items-container');
-
-      titleEl.innerHTML = `<i class="fa-solid ${occInfo.icon}" style="color: #6366f1;"></i> [${genderName} · ${occInfo.name}] 추천 코디`;
-      descEl.textContent = `${forecastDay === 'tomorrow' ? '내일 예상 평균 기온' : '현재 기온'} ${temp}°C · ${genderName} 전용 ${occInfo.desc}에 최적화된 조합입니다.`;
-      descEl.textContent+=' · '+(hasOuter?"아우터 포함":"아우터 없이");
-      badgeEl.textContent = `기온: ${temp}°C (${SEASON_LABELS[targetSeason]?.split(' ')[0]})`;
-
-      const ruleDescriptions = {
-        rule_three: '3색 제한 정석 (안정된 컬러 밸런스)',
-        monochrome: '톤온톤 모노크롬 (절제된 세련미)',
-        earthy: '어스톤 & 뉴트럴 하모니 (자연스러운 편안함)',
-        contrast: '원포인트 컬러 대비 (감각적인 포인트)'
-      };
-      colorNotice.style.display = 'inline-flex';
-      colorMatchText.textContent = `색상 공식: ${ruleDescriptions[currentColorRule]} / 종합 매칭 점수: ${selected.totalScore}점`;
-
-      // 4. 아이템 상세 카드 목록 렌더링
-      container.innerHTML = '';
-      comboItems.forEach(chosen => {
-        const cat=chosen.category;
-        const card = document.createElement('div');
-        card.className = 'item-card';
-
-        if (chosen) {
-          const dotColor = COLOR_HEX[chosen.color] || '#333';
-          const genderBadge = chosen.unisex ? '<span class="item-season-badge">남녀공용</span>' : chosen.gender === 'women'
-            ? '<span class="item-season-badge" style="background:#fce7f3; color:#be185d; font-weight:700;">여성</span>'
-            : '<span class="item-season-badge" style="background:#e0e7ff; color:#3730a3; font-weight:700;">남성</span>';
-
-          card.innerHTML = `
-            <img src="${escapeHtml(chosen.image)}" class="item-img-preview" alt="${escapeHtml(chosen.name)}">
-            <div class="item-category">
-              <span>${CATEGORY_NAMES[cat]}</span>
-              <span class="item-season-badge">${SEASON_LABELS[chosen.season]?.split(' ')[0] || chosen.season}</span>
-            </div>
-            <div class="item-name" title="${escapeHtml(chosen.name)}">${escapeHtml(chosen.name)}</div>
-            <div class="item-tag-row">
-              ${genderBadge}
-              <span class="item-color-badge">
-                <span class="color-dot" style="background: ${dotColor};"></span> ${COLOR_LABELS[chosen.color] || chosen.color}
-              </span>
-              <span class="item-season-badge" style="background: #f1f5f9; color: #475569;">
-                ${occInfo.name}
-              </span>
-            </div>
-            <div class="item-source"><i class="fa-solid fa-circle-check"></i> ${chosen.isOwned ? '내 옷!' : '추천의상'}</div>
-            <div data-price-for="${chosen.id}">${chosen.isOwned ? '' : purchaseMarkup(chosen)}</div>
-          `;
-        }
-        container.appendChild(card);
-      });
-
-      updateShoppingAddon(occInfo, targetSeason, temp);
-      refreshPurchaseInfo(comboItems);
+      renderPurchaseSummary(comboItems,"수집 시점 가격");
     }
 
+
+    function lookbookPrice(item){
+      return Number.isSafeInteger(item.price)&&item.price>0?item.price.toLocaleString('ko-KR')+'원':'가격 확인 필요';
+    }
+    function setLookbookInfo(category,open){
+      document.getElementById('lookbook-info-'+category).hidden=!open;
+      document.getElementById('lookbook-toggle-'+category).setAttribute?.('aria-expanded',String(open));
+    }
+    function renderLookbookProduct(category,item){
+      const toggle=document.getElementById('lookbook-toggle-'+category);
+      const panel=document.getElementById('lookbook-info-'+category);
+      const price=document.getElementById('lookbook-price-'+category);
+      setLookbookInfo(category,false);
+      toggle.hidden=!item;
+      price.hidden=!item;
+      if(!item){panel.replaceChildren?.();price.textContent='';return;}
+      toggle.setAttribute?.('aria-label',item.name+' 정보 보기');
+      price.textContent=item.isOwned?'내 옷!':lookbookPrice(item);
+      price.className='lookbook-price item-source';
+      const metadata=[OOOOTD_RULES.genderLabel(item),COLOR_LABELS[item.color],SEASON_LABELS[item.season]].filter(Boolean).map(escapeHtml).join(' · ');
+      panel.innerHTML='<p class="item-name">'+escapeHtml(item.name)+'</p><p class="lookbook-product-meta">'+metadata+'</p>'+
+        (item.isOwned?'':'<div data-price-for="'+item.id+'">'+purchaseMarkup(item)+'</div>');
+    }
+    function initLookbookProducts(){
+      let openCategory=null,lastPriceRequest=-1;
+      const show=category=>{
+        if(openCategory&&openCategory!==category)setLookbookInfo(openCategory,false);
+        openCategory=category;
+        setLookbookInfo(category,true);
+        const items=(displayedAlternative||rankedCombos[currentRankIndex])?.items;
+        if(items?.some(item=>item.category===category&&!item.isOwned)&&lastPriceRequest!==priceRequestId){
+          lastPriceRequest=priceRequestId;
+          refreshPurchaseInfo(items);
+        }
+      };
+      const close=category=>{
+        if(openCategory!==category)return;
+        setLookbookInfo(category,false);
+        openCategory=null;
+      };
+      for(const category of OOOOTD_RULES.CATEGORIES){
+        const tile=document.getElementById('lookbook-'+category);
+        const toggle=document.getElementById('lookbook-toggle-'+category);
+        tile.addEventListener('pointerenter',event=>{if(event.pointerType==='mouse'&&!toggle.hidden)show(category);});
+        tile.addEventListener('pointerleave',event=>{if(event.pointerType==='mouse'&&!tile.contains(document.activeElement))close(category);});
+        toggle.addEventListener('click',()=>{
+          if(toggle.getAttribute('aria-expanded')==='true')close(category);
+          else show(category);
+        });
+        toggle.addEventListener('focus',()=>{if(toggle.matches(':focus-visible'))show(category);});
+        tile.addEventListener('focusout',event=>{if(!tile.contains(event.relatedTarget))close(category);});
+        tile.addEventListener('keydown',event=>{
+          if(event.key==='Escape'&&openCategory===category){event.preventDefault();toggle.focus();close(category);}
+        });
+      }
+      document.addEventListener('pointerdown',event=>{
+        if(openCategory&&!document.getElementById('lookbook-'+openCategory).contains(event.target))close(openCategory);
+      });
+    }
     function purchaseMarkup(item) {
-      const known=Number.isSafeInteger(item.price)&&item.price>0;
       const url=/^https:\/\/www\.musinsa\.com\/products\/\d+$/.test(item.sourceUrl||'')?item.sourceUrl:null;
-      return '<p style="font-weight:800;margin-top:10px;">'+(known?item.price.toLocaleString('ko-KR')+'원':'가격 확인 필요')+
-        (item.availability==='sold_out'?' · 품절':'')+'</p>'+
-        (item.priceCheckedAt?'<p style="font-size:.72rem;color:var(--text-muted)">가격 확인: '+new Date(item.priceCheckedAt).toLocaleString('ko-KR')+'</p>':'')+
-        (url?'<a class="addon-link" href="'+escapeHtml(url)+'" target="_blank" rel="noopener noreferrer">구매사이트 열기 ↗</a>':'');
+      return (item.availability==='sold_out'?'<p>'+ "품절" +'</p>':'')+
+        (item.priceCheckedAt?'<p class="lookbook-price-date">'+ "가격 확인" +' '+new Date(item.priceCheckedAt).toLocaleDateString('ko-KR')+'</p>':'')+
+        (url?'<a href="'+escapeHtml(url)+'" target="_blank" rel="noopener noreferrer">'+ "구매사이트 열기 ↗" +'</a>':'');
     }
     function renderPurchaseSummary(items,status) {
       const missing=items.filter(item=>!item.isOwned);
@@ -1710,7 +1674,6 @@
     async function refreshPurchaseInfo(items) {
       const missing=items.filter(item=>!item.isOwned),requestId=priceRequestId;
       if(!missing.length)return;
-      if(!document.getElementById('outfit-shopping').open){renderPurchaseSummary(items,'\uC218\uC9D1 \uC2DC\uC810 \uAC00\uACA9');return;}
       renderPurchaseSummary(items,'수집 시점 가격 · 최신 가격 확인 중...');
       if(!window.cloudPriceCheck){renderPurchaseSummary(items,'마지막 수집 가격입니다.');return}
       try{
@@ -1721,55 +1684,12 @@
         for(const item of updated.filter(item=>!item.isOwned)){
           const node=document.querySelector('[data-price-for="'+item.id+'"]');
           if(node)node.innerHTML=purchaseMarkup(item);
+          document.getElementById('lookbook-price-'+item.category).textContent=lookbookPrice(item);
         }
         renderPurchaseSummary(updated,result.items.every(item=>item.verification==='live')?'판매사이트 가격 확인 완료':'실시간 확인이 어려운 상품은 마지막 수집 가격을 표시합니다.');
       }catch(e){if(requestId===priceRequestId)renderPurchaseSummary(items,'실시간 확인 실패 · 마지막 수집 가격입니다.')}
     }
 
-    function updateShoppingAddon(occInfo, season, temp) {
-      const addonTitle = document.getElementById('addon-title-text');
-      const addonDesc = document.getElementById('addon-desc-text');
-      const addonLink = document.getElementById('addon-link');
-
-      const isWomen = currentGender === 'women';
-      const addonMap = {
-        daily: {
-          title: isWomen ? '미니멀 숄더백 or 코튼 스크런치' : '미니멀 나일론 크로스백 or 캡모자',
-          desc: '일상에서 가볍게 들기 좋은 감각적인 데일리 백을 더해보세요.',
-          kw: isWomen ? '여성 미니멀 숄더백' : '남성 미니멀 크로스백'
-        },
-        library: {
-          title: '도톰한 텀블러 에코백 & 블루라이트 안경',
-          desc: '오랜 시간 집중해도 편안한 도서관/열람실 필수 아이템을 추천합니다.',
-          kw: '캔버스 에코백'
-        },
-        date: {
-          title: isWomen ? '실버 하트 목걸이 or 니치 플로럴 향수' : '은은한 우디 니치 향수 or 실버 뱅글',
-          desc: '데이트 룩의 매력을 두 배로 끌어올려 줄 은은한 포인트를 곁들여보세요.',
-          kw: isWomen ? '여성 니치 향수' : '남자 니치 향수'
-        },
-        work: {
-          title: isWomen ? '포멀 토트백 or 슬림 레더 벨트' : '가죽 브리프케이스 or 클래식 벨트',
-          desc: '출근 룩에 신뢰감과 깔끔한 실루엣을 완성해 주는 클래식 아이템입니다.',
-          kw: isWomen ? '여성 포멀 토트백' : '가죽 브리프케이스'
-        },
-        exercise: {
-          title: '스마트 러닝 웨어러블 밴드 & 스포츠 캡',
-          desc: '러닝과 야외 산책 시 땀을 막아주는 기능성 헤어밴드/캡모자입니다.',
-          kw: '러닝 캡모자'
-        }
-      };
-
-      const addon = addonMap[occInfo.id] || addonMap['daily'];
-      addonTitle.textContent = addon.title;
-      addonDesc.textContent = addon.desc;
-      addonLink.href = `https://www.musinsa.com/search/musinsa/goods?q=${encodeURIComponent(addon.kw)}`;
-      addonLink.innerHTML = `<span>'${addon.kw}' 아이템 보러가기</span> <i class="fa-solid fa-arrow-up-right-from-square"></i>`;
-    }
-
-    /* ==========================================================
-       날씨 API
-       ========================================================== */
     function changeForecastDay(day) {
       forecastDay=day==='tomorrow'?'tomorrow':'today';
       document.getElementById('lookbook-day-title').textContent=forecastDay==='tomorrow'?"내일의 룩북":"오늘의 룩북";
@@ -1973,6 +1893,7 @@
 
     window.addEventListener('DOMContentLoaded', () => {
       initOccasionDial();
+      initLookbookProducts();
       initCloset();
       fetchLiveWeather();
     });
