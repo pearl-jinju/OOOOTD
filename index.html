@@ -678,7 +678,7 @@
 .private-actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:12px}.owned-badge{background:#dcfce7;color:#166534;border-radius:20px;padding:4px 10px;font-size:.8rem;font-weight:800}#cloud-message{margin-top:12px;min-height:1.5em}
 .outfit-action-btns{flex-wrap:wrap}.outfit-action-btns .btn-icon{flex:1;min-width:150px}.subtitle{word-break:keep-all}
   </style>
-  <link rel="stylesheet" href="/assets/home.css?v=lookbook-toolbar">
+  <link rel="stylesheet" href="/assets/home.css?v=lookbook-first">
 </head>
 <body>
 
@@ -834,7 +834,7 @@
         </div>
         <div class="outfit-controls" data-html2canvas-ignore="true">
             <div class="outfit-occasion-picker">
-              <div class="occasion-dial-caption" id="occasion-dial-caption">좌우로 밀어 코디 용도 바꾸기</div>
+              <div class="occasion-dial-caption" id="occasion-dial-caption">좌우로 밀거나 끌어 코디 용도 바꾸기</div>
               <div class="occasion-dial-track">
                 <div class="occasion-dial" id="occasion-dial" role="group" aria-labelledby="occasion-dial-caption"></div>
               </div>
@@ -1131,6 +1131,46 @@
        용도별 룩 선택 UI
        ========================================================== */
     let syncOccasionDial;
+
+    function enableMouseDrag(scroller, onDragEnd) {
+      let start, ignoreClick = false;
+      scroller.addEventListener('pointerdown', event => {
+        if (event.pointerType !== 'mouse' || event.button !== 0 || scroller.scrollWidth <= scroller.clientWidth) return;
+        ignoreClick = false;
+        start = {id: event.pointerId, x: event.clientX, left: scroller.scrollLeft};
+      });
+      scroller.addEventListener('pointermove', event => {
+        if (!start || event.pointerId !== start.id || !(event.buttons & 1)) return;
+        const delta = event.clientX - start.x;
+        if (!scroller.classList.contains('is-dragging')) {
+          if (Math.abs(delta) < 6) return;
+          scroller.setPointerCapture(event.pointerId);
+          scroller.classList.add('is-dragging');
+        }
+        scroller.scrollLeft = start.left - delta;
+        event.preventDefault();
+      });
+      const finish = event => {
+        if (!start || event.pointerId !== start.id) return;
+        start = undefined;
+        if (!scroller.classList.contains('is-dragging')) return;
+        scroller.classList.remove('is-dragging');
+        ignoreClick = true;
+        onDragEnd?.();
+      };
+      scroller.addEventListener('pointerup', finish);
+      scroller.addEventListener('pointercancel', finish);
+      scroller.addEventListener('lostpointercapture', finish);
+      scroller.addEventListener('pointerleave', event => {
+        if (!scroller.hasPointerCapture(event.pointerId)) start = undefined;
+      });
+      scroller.addEventListener('click', event => {
+        if (!ignoreClick || !event.detail) return;
+        ignoreClick = false;
+        event.preventDefault();
+        event.stopPropagation();
+      }, true);
+    }
     function initOccasionDial() {
       const rail = document.getElementById('occasion-dial');
       if (!rail) return;
@@ -1156,7 +1196,7 @@
       rail.replaceChildren(...buttons);
       const settle = () => {
         clearTimeout(settledTimer);
-        if (!rail.clientWidth) return;
+        if (!rail.clientWidth || rail.classList.contains('is-dragging')) return;
         const center = rail.scrollLeft + rail.clientWidth / 2;
         const closest = buttons.reduce((best, button, index) => {
           const distance = Math.abs(button.offsetLeft + button.offsetWidth / 2 - center);
@@ -1165,10 +1205,13 @@
         const occasion = OCCASIONS[closest.index].id;
         if (occasion !== currentOccasion) selectOccasion(occasion, false);
       };
-      rail.addEventListener('scroll', () => {
+      const scheduleSettle = () => {
         clearTimeout(settledTimer);
         settledTimer = setTimeout(settle, 150);
-      }, {passive:true});
+      };
+      rail.addEventListener('scroll', scheduleSettle, {passive:true});
+      enableMouseDrag(rail, scheduleSettle);
+      enableMouseDrag(document.querySelector('.outfit-control-buttons'));
       rail.addEventListener('scrollend', settle);
       syncOccasionDial = (recenter = true, animate = false) => {
         const index = OCCASIONS.findIndex(occasion => occasion.id === currentOccasion);
@@ -1181,16 +1224,16 @@
         });
       };
       if ('ResizeObserver' in window) {
-        const card=document.querySelector('.fitting-room-card');
         const capture=document.getElementById('capture-outfit-container');
+        const toolbar=capture.querySelector('.outfit-controls');
         const observer=new ResizeObserver(entries=>{
           for(const entry of entries){
-            if(entry.target===card)capture.style.setProperty('--lookbook-height',card.offsetHeight+'px');
+            if(entry.target===toolbar)capture.style.setProperty('--outfit-toolbar-height',toolbar.offsetHeight+'px');
             else syncOccasionDial();
           }
         });
-        observer.observe(card);
         observer.observe(rail);
+        observer.observe(toolbar);
       }
       syncOccasionDial();
     }
@@ -1456,7 +1499,7 @@
 
       titleEl.innerHTML = `<i class="fa-solid ${occInfo.icon}" style="color: #6366f1;"></i> [${genderName} · ${occInfo.name}] 추천 코디`;
       descEl.textContent = `${forecastDay === 'tomorrow' ? '내일 예상 평균 기온' : '현재 기온'} ${temp}°C · ${genderName} 전용 ${occInfo.desc}에 최적화된 조합입니다.`;
-      descEl.textContent+=' ? '+(hasOuter?"아우터 포함":"아우터 없이");
+      descEl.textContent+=' · '+(hasOuter?"아우터 포함":"아우터 없이");
       badgeEl.textContent = `기온: ${temp}°C (${SEASON_LABELS[targetSeason]?.split(' ')[0]})`;
 
       const ruleDescriptions = {
