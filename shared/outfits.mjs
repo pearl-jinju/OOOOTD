@@ -30,6 +30,9 @@ export function appropriate(item,occasion,gender=item.unisex?null:item.gender){
  if(!CATEGORIES.includes(cat))return false;
  if(['work','interview','wedding','meeting'].includes(occasion)){
   if(casual.test(n)||/tracks?[\s_-]*suits?|트랙[\s_-]*수트|트랙.?탑|track[\s_-]*(?:top|jacket)|하프.?집업|half[\s_-]*zip|쿼터.?집업|quarter[\s_-]*zip|저지|jersey|셔켓|shacket|shirt[\s_-]*jacket/i.test(n))return false;
+  if(cat==='top'){
+    if(/반팔|반소매|민소매|쇼트.?슬리브|하프.?슬리브|오픈.?카라|오픈.?칼라|캠프.?카라|하와이|리조트|페이즐리|플라워|꽃무늬|그래픽|프린트|타이다이|\b(?:short[ -]*sleeve|half[ -]*sleeve|sleeveless|open[ -]*collar|camp[ -]*collar|hawaiian|resort|paisley|floral|graphic|printed|tie[ -]*dye|polo|henley)\b/i.test(n))return false;
+  }
   if(occasion==='interview'){
    const name=String(item.name||'');
    const flashy=/패턴|프린트|그래픽|플라워|하와이|페이즐리|체크|체커|도트|타이다이|로고|시스루|레이스|오버핏|오버사이즈|크롭|pattern|print|graphic|floral|hawai|paisley|check|polka|tie[\s_-]*dye|logo|sheer|see[\s_-]*through|lace|oversiz|crop/i;

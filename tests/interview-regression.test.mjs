@@ -33,3 +33,13 @@ test('visual review excludes polos, flared pants and casual tweed from default i
  {name:'심플 레페토 디자인 옥스포드 구두',category:'shoes',color:'black',unisex:true}
  ])assert.equal(appropriate(item,'interview','men'),false,item.name);
 });
+
+test('formal occasions reject resort and short-sleeve shirts even with stale catalog labels',()=>{
+  for(const occasion of ['work','interview','wedding','meeting']){
+    for(const name of ['(M) SHORT SLEEVE SHIRT (TORTORA)','Paisley Pattern Long Sleeve Dress Shirt','하와이안 반소매 셔츠','Camp Collar Shirt']){
+      assert.equal(appropriate({name,category:'top',color:'black',occasion,occasions:[occasion]},occasion),false,name);
+    }
+    assert.equal(appropriate({name:'Solid Long Sleeve Dress Shirt',category:'top',color:'white'},occasion),true);
+  }
+  assert.equal(appropriate({name:'(M) SHORT SLEEVE SHIRT (TORTORA)',category:'top'},'daily'),true);
+});
