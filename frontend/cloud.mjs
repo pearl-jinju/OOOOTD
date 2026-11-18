@@ -64,17 +64,51 @@ $('new-user').onclick=async()=>{
  try{await newSession();await loadCloset();await loadProfile();say('새 사용자의 빈 옷장으로 전환했어요.')}
  catch(e){say(e.message,true)}
 };
-$('upload-form').onsubmit=async e=>{
+const cameraInput=$('capture-image'),galleryInput=$('upload-image');
+const photoForm=$('upload-form');
+const photoStatus=$('selected-photo');
+const photoLimit=5*1024*1024;
+$('take-photo').onclick=()=>cameraInput.click();
+$('choose-photo').onclick=()=>galleryInput.click();
+for(const [input,other] of [[cameraInput,galleryInput],[galleryInput,cameraInput]]){
+ input.addEventListener('change',()=>{
+  if(!input.files.length)return;
+  other.value='';
+  photoStatus.textContent=input.files[0].name;
+ });
+}
+photoForm.addEventListener('reset',()=>{photoStatus.textContent='사진을 찍거나 선택해 주세요.';});
+async function uploadPhoto(){
+ const file=cameraInput.files[0]||galleryInput.files[0];
+ if(!file)throw Error('사진을 먼저 찍거나 선택해주세요.');
+ if(['image/jpeg','image/png','image/webp'].includes(file.type)&&file.size<=photoLimit)return file;
+ const url=URL.createObjectURL(file);
+ try{
+  const image=new Image();
+  image.src=url;
+  await image.decode();
+  const scale=Math.min(1,2048/Math.max(image.naturalWidth,image.naturalHeight));
+  const canvas=document.createElement('canvas');
+  canvas.width=Math.max(1,Math.round(image.naturalWidth*scale));
+  canvas.height=Math.max(1,Math.round(image.naturalHeight*scale));
+  const context=canvas.getContext('2d',{alpha:false});
+  context.drawImage(image,0,0,canvas.width,canvas.height);
+  const blob=await new Promise(resolve=>canvas.toBlob(resolve,'image/jpeg',0.82));
+  if(blob&&blob.size<=photoLimit)return new File([blob],'closet-photo.jpg',{type:'image/jpeg'});
+ }catch{}finally{URL.revokeObjectURL(url)}
+ throw Error('이 사진을 열 수 없어요. 카메라로 다시 찍거나 JPG·PNG·WebP 사진을 선택해 주세요.');
+}
+photoForm.onsubmit=async e=>{
  e.preventDefault();$('upload-submit').disabled=true;
- try{await api('/closet',{method:'POST',body:new FormData(e.target)});e.target.reset();await loadCloset();say('내 옷에 등록했어요.')}
+ const generation=epoch;
+ try{const body=new FormData(e.target);body.set('image',await uploadPhoto());if(generation!==epoch)return;await api('/closet',{method:'POST',body});e.target.reset();await loadCloset();say('내 옷에 등록했어요.')}
  catch(e){say(e.message,true)}finally{$('upload-submit').disabled=false}
 };
 $('analyze-image').onclick=async()=>{
- const file=$('upload-image').files[0];
- if(!file){say('사진을 먼저 선택해주세요.',true);return}
+ const generation=epoch;
  $('analyze-image').disabled=true;say('사진을 분석하고 있어요.');
  try{
-  const form=new FormData();form.set('image',file);form.set('name',$('upload-name').value);
+  const form=new FormData();form.set('image',await uploadPhoto());if(generation!==epoch)return;form.set('name',$('upload-name').value);
   const r=await api('/analyze',{method:'POST',body:form});
   for(const key of ['name','category','color','season','occasion'])if(r[key])$('upload-'+key).value=r[key];
   say(r.message);

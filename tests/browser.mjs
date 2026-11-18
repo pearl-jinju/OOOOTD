@@ -28,7 +28,11 @@ try{
  await a.locator('#upload-form').evaluate(form=>{form.closest('details').open=true});
  await a.locator('#upload-name').fill('Test Cotton Shirt');
  await a.locator('#upload-category').selectOption('top');
- await a.locator('#upload-image').setInputFiles({name:'test.png',mimeType:'image/png',buffer:Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+aU1sAAAAASUVORK5CYII=','base64')});
+ assert.equal(await a.locator('#capture-image').getAttribute('capture'),'environment');
+ const picker=a.waitForEvent('filechooser');
+ await a.locator('#take-photo').click();
+ assert.equal(await (await picker).element().getAttribute('id'),'capture-image');
+ await a.locator('#capture-image').setInputFiles({name:'test.png',mimeType:'image/png',buffer:Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+aU1sAAAAASUVORK5CYII=','base64')});
  await a.locator('#upload-submit').click();
  await a.waitForFunction(()=>document.getElementById('closet-count').textContent==='1');
  const publicCount=Number(await b.locator('#catalog-count').textContent());
