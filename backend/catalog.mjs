@@ -91,6 +91,10 @@ export async function collectCatalog({occasion,minimum=2000}={}){
  Object.defineProperty(items,'soldOutIds',{value:[...soldOut].filter(id=>!records.has(id)),enumerable:false});
  return items;
 }
+export function withCatalogTags(item){
+ const tagged=withProductTags(item);
+ return tagged===item && Array.isArray(tagged.occasions) ? tagged : {...tagged,occasions:tagsFor(tagged)};
+}
 async function saveBatch(pool,items,kind,extra={}){
  const c=await pool.connect();
  try{
@@ -99,7 +103,7 @@ async function saveBatch(pool,items,kind,extra={}){
   const byId=new Map(existing.map(row=>[String(row.id),row.data]));
   const tagged=items.map(item=>{
    const previous=byId.get(String(item.id));
-   return withProductTags(previous?.name===item.name
+   return withCatalogTags(previous?.name===item.name && previous.category===item.category
     ? {...item,productTags:previous.productTags,productTagVersion:previous.productTagVersion}
     : item);
   });
@@ -109,7 +113,10 @@ async function saveBatch(pool,items,kind,extra={}){
   if(items.soldOutIds?.length)await c.query('UPDATE catalog_items SET active=false WHERE id=ANY($1::bigint[])',[items.soldOutIds]);
   if(kind==='catalog_refresh'){
    const {rows:untagged}=await c.query("SELECT data FROM catalog_items WHERE active=true AND data->>'productTagVersion' IS DISTINCT FROM $1",[String(PRODUCT_TAG_VERSION)]);
-   if(untagged.length)await c.query('UPDATE catalog_items AS item SET data=item.data || (patch.value - \'id\') FROM jsonb_array_elements($1::jsonb) AS patch(value) WHERE item.id=(patch.value->>\'id\')::bigint',[JSON.stringify(untagged.map(({data})=>({id:data.id,productTags:withProductTags(data).productTags,productTagVersion:PRODUCT_TAG_VERSION})))]);
+   if(untagged.length)await c.query('UPDATE catalog_items AS item SET data=item.data || (patch.value - \'id\') FROM jsonb_array_elements($1::jsonb) AS patch(value) WHERE item.id=(patch.value->>\'id\')::bigint',[JSON.stringify(untagged.map(({data})=>{
+    const {id,productTags,productTagVersion,occasions}=withCatalogTags(data);
+    return {id,productTags,productTagVersion,occasions};
+   }))]);
   }
   const {rows}=await c.query('SELECT count(*)::int AS count FROM catalog_items WHERE active=true');
   const details={count:rows[0].count,collected:items.length,men:items.filter(i=>i.gender==='men'&&!i.unisex).length,women:items.filter(i=>i.gender==='women'&&!i.unisex).length,unisex:items.filter(i=>i.unisex).length,sort:'NEW+POPULAR',...extra};

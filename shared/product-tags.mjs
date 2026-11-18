@@ -1,4 +1,4 @@
-export const PRODUCT_TAG_VERSION = 1;
+export const PRODUCT_TAG_VERSION = 2;
 
 const rules = {
   tone: {
@@ -18,8 +18,8 @@ const rules = {
   },
   length: {
     cropped: /크롭|\bcropped?\b/i,
-    short: /반팔|민소매|쇼츠|반바지|\b(?:short[ -]sleeve|sleeveless|shorts)\b/i,
-    long: /롱기장|맥시|긴팔|\b(?:maxi|long[ -]sleeve|long[ -]length)\b/i
+    short: /반소매|반팔|민소매|쇼츠|반바지|쇼트[ -]?슬리브|하프[ -]?슬리브|\b(?:short[ -]*sleeve|half[ -]*sleeve|sleeveless|shorts)\b/i,
+    long: /롱[ -]?기장|맥시(?!마이저)|긴팔|긴소매|롱[ -]?슬리브(?!리스)|\b(?:maxi|long[ -]*sleeve|long[ -]*length)\b/i
   },
   pattern: {
     solid: /무지|솔리드|\b(?:solid|plain)\b/i,
@@ -40,10 +40,12 @@ const rules = {
     linen: /린넨|리넨|\blinen\b/i,
     wool: /울 ?혼방|울 ?\d+%|울[ -]|모직|\bwool\b/i,
     denim: /데님|\bdenim\b/i,
+    fauxLeather: /(?:비건|인조|페이크|합성|에코)\s*(?:레더|가죽)|\b(?:faux|synthetic|vegan|imitation)[ -]*leather\b/i,
     leather: /가죽|레더|\bleather\b/i,
     fleece: /플리스|후리스|\bfleece\b/i,
     nylon: /나일론|\bnylon\b/i,
     corduroy: /코듀로이|골덴|\bcorduroy\b/i,
+    fauxSuede: /(?:비건|인조|페이크|합성)\s*스웨이드|\b(?:faux|synthetic|vegan|imitation)[ -]*suede\b/i,
     suede: /스웨이드|\bsuede\b/i
   },
   weight: {
@@ -59,15 +61,22 @@ const rules = {
 };
 
 export function productTags(item) {
-  const title = String(item.name || '');
+  const title = String(item.name || '').normalize('NFKC').replace(/_/g, ' ');
   const toneSource = /멀티.?컬러|색상.?선택|\d+\s*(?:컬러|colou?rs?)|[/|]/i.test(title) ? '' : title;
   const tags = {};
   for (const [axis, variants] of Object.entries(rules)) {
+    if (item.category === 'shoes' && ['fit','length','pattern','weight'].includes(axis)) continue;
     const source = axis === 'tone' ? toneSource : title;
     const matched = Object.keys(variants).filter(tag => variants[tag].test(source));
     if (matched.length) tags[axis] = matched;
   }
   if (tags.tone?.length > 1) delete tags.tone;
+  if (tags.material?.includes('fauxLeather')) tags.material = tags.material.filter(tag => tag !== 'leather');
+  if (tags.material?.includes('fauxSuede')) tags.material = tags.material.filter(tag => tag !== 'suede');
+  if (tags.weight?.includes('lined') && /(?:논|비|노|무|no)\s*기모|기모\s*(?:선택|유무|없음|[xX](?=\s|$))|안감\s*(?:없음|선택)|\b(?:unlined|non[ -]*fleece|no[ -]*lining)\b/i.test(title)) {
+    tags.weight = tags.weight.filter(tag => tag !== 'lined');
+    if (!tags.weight.length) delete tags.weight;
+  }
   return tags;
 }
 
