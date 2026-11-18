@@ -41,9 +41,17 @@ export function genderLabel(item){
  const audience=item.isOwned?item:withCatalogAudience(item);
  return audience.unisex?'남녀공용':audience.gender==='women'?'여성':'남성';
 }
+const shirtLayer=/셔츠\s*형|셔츠\s*(?:재킷|자켓|점퍼)|셔켓|오버\s*셔츠|(?:^|[\s[(])(?:over[\s-]*shirts?|shackets?|shirts?[\s-]*(?:jackets?|coats?))\b/i;
+const ordinaryShirt=/셔츠|블라우스|(?:^|[\s[(])(?:shirts?|blouses?|t[\s-]*shirts?|tees?)\b/i;
+const clearOuterwear=/재킷|자켓|코트|블레이저|점퍼|패딩|바람막이|카디건|가디건|집업|(?:^|[\s[(])(?:jackets?|coats?|blazers?|parkas?|cardigans?|windbreakers?|puffers?)\b/i;
+function isShirtInOuterSlot(item){
+ if(item.category!=='outer'||item.isOwned)return false;
+ const name=String(item.name||'');
+ return shirtLayer.test(name)||(ordinaryShirt.test(name)&&!clearOuterwear.test(name));
+}
 export function appropriate(item,occasion,gender=item.unisex?null:item.gender){
  const n=text(item),cat=item.category;
- if(!CATEGORIES.includes(cat))return false;
+ if(!CATEGORIES.includes(cat)||isShirtInOuterSlot(item))return false;
  if(['work','interview','wedding','meeting'].includes(occasion)){
   if(casual.test(n)||/tracks?[\s_-]*suits?|트랙[\s_-]*수트|트랙.?탑|track[\s_-]*(?:top|jacket)|하프.?집업|half[\s_-]*zip|쿼터.?집업|quarter[\s_-]*zip|저지|jersey|셔켓|shacket|shirt[\s_-]*jacket/i.test(n))return false;
   if(cat==='top'){

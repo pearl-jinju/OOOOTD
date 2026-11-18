@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import vm from 'node:vm';
 import {readFile} from 'node:fs/promises';
 const html=await readFile('index.html','utf8');
-const ruleBundle=await readFile('assets/outfit-rules-gender.js','utf8');
+const ruleBundle=await readFile('assets/outfit-rules-layers.js','utf8');
 const catalog=JSON.parse(await readFile('catalog_300.json','utf8'));
 function context(){
  const nodes=new Map();

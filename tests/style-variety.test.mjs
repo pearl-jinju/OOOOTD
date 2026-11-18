@@ -11,7 +11,7 @@ function engine(){
  vm.runInContext(awaitRules,c);vm.runInContext(html.match(/<script>([\s\S]*?)<\/script>/)[1],c);
  c.window.applyPublicCatalog(fixture);return c;
 }
-const awaitRules=await readFile('assets/outfit-rules-gender.js','utf8'),html=await readFile('index.html','utf8');
+const awaitRules=await readFile('assets/outfit-rules-layers.js','utf8'),html=await readFile('index.html','utf8');
 test('18 styles have real matching products for both genders in every category',()=>{
  assert.equal(OCCASIONS.length,18);
  const report=coverage(fixture);

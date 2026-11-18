@@ -4,7 +4,7 @@ import vm from 'node:vm';
 import {readFile} from 'node:fs/promises';
 test('purchase totals exclude owned clothes and report unknown prices; URLs are merchant-only',async()=>{
  const html=await readFile('index.html','utf8'),nodes=new Map();
- const ruleBundle=await readFile('assets/outfit-rules-gender.js','utf8');
+ const ruleBundle=await readFile('assets/outfit-rules-layers.js','utf8');
  const elem=()=>({style:{},classList:{add(){},remove(){}},appendChild(){},removeAttribute(){}});
  const document={getElementById(id){if(!nodes.has(id))nodes.set(id,elem());return nodes.get(id)},querySelectorAll(){return []},querySelector(){return null},createElement:elem};
  const ctx=vm.createContext({console,document,window:{addEventListener(){}}});
