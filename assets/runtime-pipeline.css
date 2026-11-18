@@ -1,0 +1,25 @@
+.runtime-pipeline {
+  color: #5146b4;
+  background: #fafaff;
+  border: 1px solid #e6e2f5;
+  border-radius: 12px;
+  padding: 8px 12px 12px;
+}
+.runtime-canvas svg { display: block; width: 100%; height: auto; }
+.runtime-links path { stroke: #aea8d0; stroke-width: 1.6; }
+.runtime-links .active { stroke: #5146b4; stroke-width: 2.5; }
+.runtime-node rect { fill: #fff; stroke: #dcd7ee; stroke-width: 1; }
+.runtime-node text { fill: #26213e; font-weight: 750; font-size: 16px; }
+.runtime-node .runtime-subtitle { fill: #615b7f; font-weight: 500; font-size: 13px; }
+.runtime-node.active rect { fill: #eeebff; stroke: #7669c6; stroke-width: 1.6; }
+.runtime-toolbar { display: flex; gap: 6px; align-items: center; }
+.runtime-toolbar button {
+  min-width: 42px; min-height: 40px; border: 1px solid #ddd6f1;
+  color: #463b97; background: #fff; border-radius: 8px; cursor: pointer;
+  padding: 4px 10px; font-weight: 700;
+}
+.runtime-toolbar button:disabled { opacity: .45; cursor: default; }
+.runtime-toolbar #runtime-play { background: #5146b4; border-color: #5146b4; color: #fff; }
+#runtime-progress { margin-inline-start: 4px; color: #615b7f; font-size: .8rem; }
+.about-system .runtime-caption { margin: 8px 0 0; min-height: 2.8em; }
+@media (max-width: 600px) { .runtime-pipeline { padding: 6px 8px 9px; } }

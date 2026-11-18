@@ -742,6 +742,7 @@
   <link rel="stylesheet" href="/assets/home.css?v=lookbook-first">
   <link rel="stylesheet" href="/assets/lookbook-workspace.css">
   <link rel="stylesheet" href="/assets/lookbook-purchases.css">
+  <link rel="stylesheet" href="/assets/runtime-pipeline.css">
 </head>
 <body>
 
@@ -991,14 +992,50 @@
       </div>
 
 
-      <section class="about-system" aria-labelledby="about-system-title">
+      <section class="about-system" id="how" aria-labelledby="about-system-title">
         <h3 id="about-system-title">운영 중에는 이렇게 연결돼요</h3>
-        <ol class="about-diagram about-runtime">
-          <li><strong>Render 웹사이트</strong><span>HTML·CSS·JavaScript 제공</span></li>
-          <li><strong>사용자 브라우저</strong><span>사진 분석·룩북 조합</span></li>
-          <li><strong>Neon API</strong><span>날씨·상품·내 옷장 요청 처리</span></li>
-          <li><strong>Neon 저장소</strong><span>Postgres 데이터·비공개 옷 사진</span></li>
-        </ol>
+
+        <div class="runtime-pipeline">
+          <div class="runtime-canvas">
+            <svg id="runtime-svg" viewBox="0 0 932 205" role="img" aria-labelledby="runtime-svg-title runtime-svg-desc">
+              <title id="runtime-svg-title">OOOOTD 운영 파이프라인</title>
+              <desc id="runtime-svg-desc">Render가 화면을 브라우저에 전달합니다. 브라우저의 요청을 Neon API가 받아 저장소를 조회한 뒤, 브라우저가 받은 데이터로 코디를 만듭니다.</desc>
+              <defs><marker id="runtime-arrow" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="7" markerHeight="7" orient="auto"><path d="M1 1l5 3-5 3" fill="none" stroke="currentColor" stroke-width="1.25"/></marker></defs>
+              <g class="runtime-links" fill="none" marker-end="url(#runtime-arrow)">
+                <path d="M205 85H245"/><path d="M440 85H480"/><path d="M675 85H715"/>
+                <path d="M578 129V162Q578 175 565 175H355Q342 175 342 162V132" stroke-dasharray="5 5"/>
+              </g>
+              <g class="runtime-node" transform="translate(13 42)">
+                <rect width="192" height="86" rx="11"/>
+                <g transform="translate(15 17)" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 4h18v16H3z M3 9h18 M7 6.5h1 M11 6.5h1"/></g>
+                <text x="48" y="33">Render</text><text class="runtime-subtitle" x="15" y="63">화면 제공</text>
+              </g>
+              <g class="runtime-node" transform="translate(248 42)">
+                <rect width="192" height="86" rx="11"/>
+                <g transform="translate(15 17)" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 5h18v12H3z M9 21h6 M12 17v4"/></g>
+                <text x="48" y="33">브라우저</text><text class="runtime-subtitle" x="15" y="63">사진 분석·코디 조합</text>
+              </g>
+              <g class="runtime-node" transform="translate(483 42)">
+                <rect width="192" height="86" rx="11"/>
+                <g transform="translate(15 17)" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16v6H4z M4 14h16v6H4z M8 7h1 M8 17h1"/></g>
+                <text x="48" y="33">Neon API</text><text class="runtime-subtitle" x="15" y="63">요청 처리</text>
+              </g>
+              <g class="runtime-node" transform="translate(718 42)">
+                <rect width="192" height="86" rx="11"/>
+                <g transform="translate(15 17)" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6c0-4 16-4 16 0s-16 4-16 0zm0 0v12c0 4 16 4 16 0V6 M4 12c0 4 16 4 16 0"/></g>
+                <text x="48" y="33">Neon 저장소</text><text class="runtime-subtitle" x="15" y="63">상품·개인 옷장</text>
+              </g>
+              <circle id="runtime-packet" r="5" fill="currentColor" hidden/>
+            </svg>
+          </div>
+          <div class="runtime-toolbar" aria-label="운영 파이프라인 단계">
+            <button type="button" id="runtime-prev" aria-label="이전 단계">‹</button>
+            <button type="button" id="runtime-play">재생</button>
+            <button type="button" id="runtime-next" aria-label="다음 단계">›</button>
+            <span id="runtime-progress"></span>
+          </div>
+          <p class="runtime-caption" id="runtime-caption" aria-live="polite">Render가 웹 화면을 브라우저에 전달해요.</p>
+        </div>
         <p class="about-flow-note">API는 Open-Meteo에서 날씨를 읽고, 매주 월요일 오전 9시에 공개 상품 카탈로그를 갱신해요.</p>
       </section>
 
@@ -1899,5 +1936,6 @@
     });
   </script>
   <script type="module" src="/assets/cloud.js?v=photo-colors"></script>
+  <script type="module" src="/assets/runtime-pipeline.js"></script>
 </body>
 </html>
