@@ -64,11 +64,6 @@ $('new-user').onclick=async()=>{
  try{await newSession();await loadCloset();await loadProfile();say('새 사용자의 빈 옷장으로 전환했어요.')}
  catch(e){say(e.message,true)}
 };
-$('trial-import').onclick=async()=>{
- $('trial-import').disabled=true;say('남성 옷 50개를 내 옷으로 등록하고 있어요.');
- try{const r=await api('/closet/trial',{method:'POST',body:{}});await loadCloset();say(r.added?'남성 옷 '+r.added+'개를 내 옷장에 넣었어요.':'이미 내 옷장에 등록된 실험용 옷이에요.')}
- catch(e){say(e.message,true)}finally{$('trial-import').disabled=false}
-};
 $('upload-form').onsubmit=async e=>{
  e.preventDefault();$('upload-submit').disabled=true;
  try{await api('/closet',{method:'POST',body:new FormData(e.target)});e.target.reset();await loadCloset();say('내 옷에 등록했어요.')}

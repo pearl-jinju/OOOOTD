@@ -106,7 +106,7 @@ export function createApp({pool,verify,storage,analyze,allowedOrigins=['https://
     return reply({claim});
    }
    if(path==='/closet'&&request.method==='GET'){
-    const rows=await owned(userId,async c=>(await c.query('SELECT id,item,image_key FROM user_closet WHERE user_id=$1 ORDER BY id',[userId])).rows);
+    const rows=await owned(userId,async c=>(await c.query('SELECT id,item,image_key FROM user_closet WHERE user_id=$1 AND (image_key IS NOT NULL OR NOT (item ? \'sourceCatalogId\')) ORDER BY id',[userId])).rows);
     const items=await Promise.all(rows.map(async row=>({...row.item,id:Number(row.id),isOwned:true,image:row.image_key?await storage.url(row.image_key):row.item.image})));
     return reply({items});
    }
@@ -116,7 +116,7 @@ export function createApp({pool,verify,storage,analyze,allowedOrigins=['https://
     if(!file||typeof file.arrayBuffer!=='function'||file.size>5*1024*1024)return reply({error:'5MB 이하 이미지가 필요합니다.'},400);
     const item=validateMetadata(Object.fromEntries(form));
     const bytes=new Uint8Array(await file.arrayBuffer()),[type,ext]=imageType(bytes);
-    const count=await owned(userId,async c=>Number((await c.query('SELECT count(*) FROM user_closet WHERE user_id=$1',[userId])).rows[0].count));
+    const count=await owned(userId,async c=>Number((await c.query('SELECT count(*) FROM user_closet WHERE user_id=$1 AND (image_key IS NOT NULL OR NOT (item ? \'sourceCatalogId\'))',[userId])).rows[0].count));
     if(count>=1000)return reply({error:'개인 옷장은 1,000개까지 등록할 수 있습니다.'},400);
     const key='users/'+encodeURIComponent(userId)+'/'+randomUUID()+'.'+ext;
     await storage.put(key,bytes,type);
@@ -124,25 +124,6 @@ export function createApp({pool,verify,storage,analyze,allowedOrigins=['https://
      const row=await owned(userId,async c=>(await c.query('INSERT INTO user_closet(user_id,item,image_key) VALUES($1,$2,$3) RETURNING id',[userId,item,key])).rows[0]);
      return reply({id:Number(row.id)},201);
     }catch(e){await storage.remove(key).catch(()=>{});throw e}
-   }
-   if(path==='/closet/trial'&&request.method==='POST'){
-    const counts={outer:12,top:16,bottom:14,shoes:8};
-    const rows=await owned(userId,async c=>{
-     const selected=[];
-     for(const [category,count]of Object.entries(counts)){
-      const result=await c.query("SELECT data FROM catalog_items WHERE active=true AND data->>'gender'='men' AND data->>'category'=$1 ORDER BY id LIMIT $2",[category,count]);
-      selected.push(...result.rows.map(row=>row.data));
-     }
-     if(selected.length!==50)throw Error('Trial catalog incomplete');
-     let added=0;
-     for(const product of selected){
-      const item={name:product.name,gender:product.gender,category:product.category,color:product.color,season:product.season,occasion:product.occasion,image:product.image,unisex:!!product.unisex,sourceCatalogId:product.id};
-      const result=await c.query('INSERT INTO user_closet(user_id,item,image_key) VALUES($1,$2,NULL) ON CONFLICT DO NOTHING RETURNING id',[userId,item]);
-      added+=result.rowCount;
-     }
-     return added;
-    });
-    return reply({added:rows});
    }
    if(path==='/profile'&&request.method==='GET'){
     const rows=await owned(userId,async c=>(await c.query('SELECT sizes FROM user_profiles WHERE user_id=$1',[userId])).rows);

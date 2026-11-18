@@ -17,7 +17,7 @@ This release uses a browser-specific identity without requiring email. Clearing 
 
 The default recommendation uses owned clothes only. Formal looks exclude hoodies, sweatshirts, joggers and sports shoes, including similar-look replacements. Insufficient suitable clothes produce an explicit empty state. Tomorrow uses the forecast's daily minimum/maximum mean in Asia/Seoul; the min/max and rain probability remain visible.
 
-A private endpoint imports 50 male reference products as owned trial clothes for its authenticated caller, idempotently. User image uploads are private. Short-lived signed reads are returned only after ownership checks.
+User image uploads are private. Short-lived signed reads are returned only after ownership checks.
 
 The My Clothes and Recommended Clothes tabs are separate. Explicit owned, owned-plus-missing and unowned catalog outfit modes are available. Shopping cards use actual product prices and merchant links, sum only unowned items, and label cached-price fallbacks and excluded shipping/coupons. Body sizes are saved for future fit recommendations and do not affect the present ranking.
 

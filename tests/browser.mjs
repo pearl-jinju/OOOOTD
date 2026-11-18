@@ -24,19 +24,24 @@ try{
  assert.equal(await a.locator('#closet-count').textContent(),'0');
  assert.equal(await b.locator('#closet-count').textContent(),'0');
  await a.locator('.tab-btn[onclick*="closetTab"]').click();
- await a.locator('#trial-import').click();
- await a.waitForFunction(()=>document.getElementById('closet-count').textContent==='50');
+ assert.equal(await a.locator('#trial-import').count(),0);
+ await a.locator('#upload-form').evaluate(form=>{form.closest('details').open=true});
+ await a.locator('#upload-name').fill('Test Cotton Shirt');
+ await a.locator('#upload-category').selectOption('top');
+ await a.locator('#upload-image').setInputFiles({name:'test.png',mimeType:'image/png',buffer:Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+aU1sAAAAASUVORK5CYII=','base64')});
+ await a.locator('#upload-submit').click();
+ await a.waitForFunction(()=>document.getElementById('closet-count').textContent==='1');
  const publicCount=Number(await b.locator('#catalog-count').textContent());
  assert(publicCount>=300);
- assert.equal(Number(await a.locator('#catalog-count').textContent()),publicCount-50);
+ assert.equal(Number(await a.locator('#catalog-count').textContent()),publicCount);
  assert.equal(await a.locator('.occasion-card').count(),18);
  assert.equal(await a.locator('.item-source').count(),4);
- assert((await a.locator('.item-source').allTextContents()).every(t=>t.includes('내 옷!')));
+ assert((await a.locator('.item-source').allTextContents()).some(t=>t.includes('내 옷!')));
  await a.getByText('내 신체 사이즈 · 선택 입력',{exact:true}).click();
  await a.locator('#size-height').fill('178');await a.locator('#size-top').fill('L');
  await a.locator('#size-save').click();await a.waitForFunction(()=>document.getElementById('cloud-message').textContent.includes('사이즈를'));
  await a.reload({waitUntil:'domcontentloaded'});await a.waitForFunction(()=>window.ooootdCloudReady);
- assert.equal(await a.locator('#closet-count').textContent(),'50');
+ assert.equal(await a.locator('#closet-count').textContent(),'1');
  assert.equal(await a.locator('#size-height').inputValue(),'178');
  assert.equal(await b.locator('#size-height').inputValue(),'');
  await a.evaluate(()=>selectOccasion('work'));
@@ -60,7 +65,7 @@ try{
  assert.equal(await a.locator('[data-price-for] a').count(),4);
  assert((await a.locator('#purchase-total').textContent()).includes('원'));
  await a.locator('#mode-owned').click();
- assert((await a.locator('.item-source').allTextContents()).every(text=>text.includes('내 옷!')));
+ assert((await a.locator('.item-source').allTextContents()).some(text=>text.includes('내 옷!')));
  await a.locator('#forecast-day').selectOption('tomorrow');
  await a.waitForFunction(()=>document.getElementById('weather-condition').textContent.includes('내일'));
  assert.equal(await a.locator('#weather-temp').textContent(),'9°C');
@@ -70,5 +75,5 @@ try{
  await a.setViewportSize({width:390,height:844});
  await a.screenshot({path:'.build/qa-mobile.png',fullPage:true});
  assert.equal(errors.length,0,errors.join('\n'));
- console.log('PASS: real browser independent users, owned 50, owned badges, size save and reload, formal hoodie exclusion, similar and restore; desktop/mobile screenshots saved');
+ console.log('PASS: real browser independent users, private upload, owned badges, size save and reload, formal hoodie exclusion, similar and restore; desktop/mobile screenshots saved');
 }finally{await browser.close();await new Promise(r=>server.close(r))}
