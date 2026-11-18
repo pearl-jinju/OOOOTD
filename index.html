@@ -754,7 +754,7 @@
     #occasion-selector-container { display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px; }
     @media(max-width:600px){ #occasion-selector-container { grid-template-columns:repeat(2,minmax(0,1fr)); } .occasion-card { padding:10px; } }
   </style>
-  <link rel="stylesheet" href="/assets/home.css?v=compact">
+  <link rel="stylesheet" href="/assets/home.css?v=lookbook-dial">
 </head>
 <body>
 
@@ -894,6 +894,13 @@
               </div>
             </div>
 
+
+            <div class="mobile-occasion-dial" data-html2canvas-ignore="true">
+              <div class="occasion-dial-caption" id="occasion-dial-caption">좌우로 밀어 코디 용도 바꾸기</div>
+              <div class="occasion-dial-track">
+                <div class="occasion-dial" id="occasion-dial" role="group" aria-labelledby="occasion-dial-caption"></div>
+              </div>
+            </div>
             <div class="ai-tryon-board">
               <div class="lookbook-item" id="lookbook-outer">
                 <span class="lookbook-tag">아우터</span>
@@ -913,7 +920,7 @@
               </div>
             </div>
 
-            <div style="font-size: 0.78rem; color: var(--text-muted); margin-top: 12px; text-align: center;">
+            <div class="lookbook-footnote" style="font-size: 0.78rem; color: var(--text-muted); margin-top: 12px; text-align: center;">
               * 선택하신 성별과 날씨에 최적화된 실물 코디 세트입니다
             </div>
           </div>
@@ -1239,8 +1246,62 @@
       });
     }
 
-    function selectOccasion(occId) {
+
+    let syncOccasionDial;
+    function initOccasionDial() {
+      const rail = document.getElementById('occasion-dial');
+      if (!rail) return;
+      const mobile = window.matchMedia('(max-width: 820px)');
+      const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
+      let settledTimer;
+      const buttons = OCCASIONS.map((occasion, index) => {
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.textContent = occasion.name;
+        button.addEventListener('click', () => selectOccasion(occasion.id));
+        button.addEventListener('keydown', event => {
+          const step = event.key === 'ArrowRight' ? 1 : event.key === 'ArrowLeft' ? -1 : 0;
+          if (!step) return;
+          const next = Math.max(0, Math.min(buttons.length - 1, index + step));
+          event.preventDefault();
+          buttons[next].focus({preventScroll:true});
+          selectOccasion(OCCASIONS[next].id);
+        });
+        return button;
+      });
+      rail.replaceChildren(...buttons);
+      const settle = () => {
+        clearTimeout(settledTimer);
+        if (!mobile.matches || !rail.clientWidth) return;
+        const center = rail.scrollLeft + rail.clientWidth / 2;
+        const closest = buttons.reduce((best, button, index) => {
+          const distance = Math.abs(button.offsetLeft + button.offsetWidth / 2 - center);
+          return distance < best.distance ? {index,distance} : best;
+        }, {index:0,distance:Infinity});
+        const occasion = OCCASIONS[closest.index].id;
+        if (occasion !== currentOccasion) selectOccasion(occasion, false);
+      };
+      rail.addEventListener('scroll', () => {
+        clearTimeout(settledTimer);
+        settledTimer = setTimeout(settle, 150);
+      }, {passive:true});
+      rail.addEventListener('scrollend', settle);
+      syncOccasionDial = (recenter = true, animate = false) => {
+        const index = OCCASIONS.findIndex(occasion => occasion.id === currentOccasion);
+        buttons.forEach((button, i) => button.setAttribute('aria-pressed', String(i === index)));
+        if (!recenter || !mobile.matches || !rail.clientWidth || index < 0) return;
+        const button = buttons[index];
+        rail.scrollTo({
+          left: button.offsetLeft + (button.offsetWidth - rail.clientWidth) / 2,
+          behavior: animate && !reducedMotion.matches ? 'smooth' : 'instant'
+        });
+      };
+      mobile.addEventListener('change', () => syncOccasionDial());
+      syncOccasionDial();
+    }
+    function selectOccasion(occId, recenterDial = true) {
       currentOccasion = occId;
+      syncOccasionDial?.(recenterDial, true);
       renderOccasionCards();
       recalculateRankedCombos();
     }
@@ -1820,6 +1881,7 @@
 
       btn.classList.add('active');
       document.getElementById(tabId).classList.add('active');
+      if(tabId==='recommendTab')syncOccasionDial?.();
     }
 
     function escapeHtml(text) {
@@ -1834,6 +1896,7 @@
     }
 
     window.addEventListener('DOMContentLoaded', () => {
+      initOccasionDial();
       initCloset();
       fetchLiveWeather();
     });
