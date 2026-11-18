@@ -7,16 +7,9 @@
   width: 108px; margin: 0; text-align: center;
   pointer-events: none;
 }
-.otto-greeting img, .otto-sitting, .otto-closet, .otto-empty img {
+.otto-greeting img, .otto-sitting {
   display: block; width: 100%; height: auto; object-fit: contain;
 }
-.closet-mascot-panel { position: relative; }
-.closet-mascot-panel #private-title,
-.closet-mascot-panel #auth-user,
-.closet-mascot-panel #auth-user + p { padding-inline-end: 72px; }
-.closet-mascot-panel .otto-closet { position: absolute; top: 9px; right: 11px; width: 68px; pointer-events: none; }
-.otto-empty { margin: 7px 0 0; }
-.otto-empty img { width: 105px; margin-inline: auto; }
 .site-about.otto-seat {
   position: relative;
   margin-top: 94px;
