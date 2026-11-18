@@ -679,6 +679,7 @@
 .outfit-action-btns{flex-wrap:wrap}.outfit-action-btns .btn-icon{flex:1;min-width:150px}.subtitle{word-break:keep-all}
   </style>
   <link rel="stylesheet" href="/assets/home.css?v=lookbook-first">
+  <link rel="stylesheet" href="/assets/lookbook-workspace.css">
 </head>
 <body>
 
@@ -740,6 +741,9 @@
     <div id="recommendTab" class="tab-pane active">
 
       <!-- 성별(남성/여성) 원터치 토글 바 -->
+      <details class="lookbook-settings" id="lookbook-settings">
+        <summary>추천 설정 <span id="lookbook-settings-state"></span></summary>
+        <div class="lookbook-settings-body">
       <div class="private-actions" style="margin-bottom:16px;"><button id="mode-owned" class="btn-icon" onclick="selectRecommendationMode('owned')">내 옷으로 코디</button><button id="mode-mixed" class="btn-icon" onclick="selectRecommendationMode('mixed')">내 옷 + 부족한 옷 추천</button><button id="mode-catalog" class="btn-icon" onclick="selectRecommendationMode('catalog')">추천의상으로 코디 보기</button></div><p id="recommendation-mode-note" style="font-size:.85rem;color:var(--text-muted);margin-bottom:12px;">내가 가진 옷만 사용합니다.</p><p id="catalog-expansion-status" role="status" style="font-size:.85rem;color:var(--text-muted);" hidden></p><div class="gender-bar">
         <div style="display: flex; align-items: center; gap: 10px;">
           <span style="font-size: 0.95rem; font-weight: 800; color: var(--text-main);">
@@ -754,17 +758,52 @@
             </button>
           </div>
         </div>
-        <span style="font-size: 0.8rem; color: var(--text-muted);">* 선택하신 성별 전용 핏과 아이템으로 필터링됩니다</span>
       </div>
 
-      <!-- 쉬운 상황/용도별 선택 패널 -->
+        </div>
+      </details>
       <div id="capture-outfit-container">
         <div class="outfit-main-layout">
-
-          <!-- 좌측: 감성 플랫레이 룩북 보드 -->
+          <div class="lookbook-workspace">
+          <div class="outfit-controls" data-html2canvas-ignore="true">
+            <div class="outfit-occasion-picker">
+              <div class="occasion-dial-caption" id="occasion-dial-caption">좌우로 밀거나 끌어 코디 용도 바꾸기</div>
+              <div class="occasion-dial-track">
+                <div class="occasion-dial" id="occasion-dial" role="group" aria-labelledby="occasion-dial-caption"></div>
+              </div>
+            </div>
+            <div class="lookbook-actions" role="group" aria-label="코디 조작">
+              <button class="btn-icon" id="next-combo-btn" onclick="nextBestCombo()">다음 코디 <span id="combo-rank-text"></span></button>
+              <button class="btn-icon" id="similar-combo-btn" onclick="showSimilarCombo()" disabled>유사 코디</button>
+              <button class="btn-icon" id="restore-combo-btn" onclick="restoreOriginalCombo()" hidden>되돌리기</button>
+              <details class="lookbook-options"><summary class="btn-icon" aria-controls="lookbook-option-content">옵션</summary></details>
+            </div>
+            <div class="lookbook-option-content" id="lookbook-option-content" hidden>
+              <div class="outfit-control-buttons" role="group" aria-label="색상 조화">
+            <div class="color-chips">
+              <button class="color-chip active" onclick="selectColorRule('rule_three', this)">
+                3색 제한 정석
+              </button>
+              <button class="color-chip" onclick="selectColorRule('monochrome', this)">
+                <span class="color-dot" style="background: #0f172a;"></span> 톤온톤/모노톤
+              </button>
+              <button class="color-chip" onclick="selectColorRule('earthy', this)">
+                <span class="color-dot" style="background: #92400e;"></span> 어스톤/자연스러운 색
+              </button>
+              <button class="color-chip" onclick="selectColorRule('contrast', this)">
+                <span class="color-dot" style="background: #2563eb;"></span> 원포인트 강조
+              </button>
+            </div>
+                <button class="btn-icon" onclick="downloadOotdCard()" title="OOTD 카드 이미지로 저장">
+              <i class="fa-solid fa-camera"></i> 룩북 카드 저장
+            </button>
+              </div>
+            </div>
+            <p id="similar-combo-status" role="status" aria-live="polite" style="font-size:0.85rem;color:var(--text-muted);margin:12px 0;" hidden></p>
+          </div>
           <div class="fitting-room-card">
             <div class="fitting-room-title">
-              <span><i class="fa-solid fa-images" style="color: var(--accent);"></i> <span id="lookbook-day-title">오늘의 완성 룩북 세트</span> <span id="lookbook-ownership" class="owned-badge">내 옷!</span></span>
+              <span><i class="fa-solid fa-images" style="color: var(--accent);"></i> <span id="lookbook-day-title">오늘의 룩북</span> <span id="lookbook-ownership" class="owned-badge">내 옷!</span></span>
               <div>
                 <span id="gender-indicator-badge" class="badge" style="background:#4338ca; color:#fff; margin-right:4px;">남성</span>
                 <span id="occasion-indicator-badge" class="badge">일상생활용</span>
@@ -791,13 +830,11 @@
               </div>
             </div>
 
-            <div class="lookbook-footnote" style="font-size: 0.78rem; color: var(--text-muted); margin-top: 12px; text-align: center;">
-              * 선택하신 성별과 날씨에 최적화된 실물 코디 세트입니다
-            </div>
+            <p id="lookbook-reason" aria-live="polite"></p>
           </div>
-
-          <!-- 우측: 코디 디테일 및 아이템 목록 -->
-          <div class="outfit-card">
+          </div>
+          <details class="outfit-card outfit-shopping" id="outfit-shopping">
+            <summary>상품 상세·구매 정보 <span id="outfit-shopping-count"></span></summary>
             <div class="outfit-header">
               <div>
                 <div id="recommend-title" class="outfit-title">
@@ -829,45 +866,7 @@
                 <span>아이템 검색 및 구매하기</span> <i class="fa-solid fa-arrow-up-right-from-square"></i>
               </a>
             </div>
-          </div>
-
-        </div>
-        <div class="outfit-controls" data-html2canvas-ignore="true">
-            <div class="outfit-occasion-picker">
-              <div class="occasion-dial-caption" id="occasion-dial-caption">좌우로 밀거나 끌어 코디 용도 바꾸기</div>
-              <div class="occasion-dial-track">
-                <div class="occasion-dial" id="occasion-dial" role="group" aria-labelledby="occasion-dial-caption"></div>
-              </div>
-            </div>
-          <div class="outfit-control-buttons" role="group" aria-label="코디 변경과 색상 조화">
-          <div class="outfit-action-btns">
-            <button class="btn-icon" id="next-combo-btn" onclick="nextBestCombo()" title="색채학 점수 순위별 다음 최적 조합 보기">
-              <i class="fa-solid fa-arrow-down-short-wide" style="color: var(--accent);"></i> <span id="combo-rank-text">다음 최적 조합 (Rank 1/3)</span>
-            </button>
-            <button class="btn-icon" id="similar-combo-btn" onclick="showSimilarCombo()" disabled title="지금 코디와 색감·종류·계절이 비슷한 다른 옷으로 변경">
-              <i class="fa-solid fa-shuffle" style="color: var(--accent);"></i> 같은 코디로 다른 옷 보기
-            </button>
-            <button class="btn-icon" id="restore-combo-btn" onclick="restoreOriginalCombo()" hidden>원래 코디로 돌아가기</button>
-            <button class="btn-icon" onclick="downloadOotdCard()" title="OOTD 카드 이미지로 저장">
-              <i class="fa-solid fa-camera"></i> 룩북 카드 저장
-            </button>
-          </div>
-            <div class="color-chips">
-              <button class="color-chip active" onclick="selectColorRule('rule_three', this)">
-                3색 제한 정석
-              </button>
-              <button class="color-chip" onclick="selectColorRule('monochrome', this)">
-                <span class="color-dot" style="background: #0f172a;"></span> 톤온톤/모노톤
-              </button>
-              <button class="color-chip" onclick="selectColorRule('earthy', this)">
-                <span class="color-dot" style="background: #92400e;"></span> 어스톤/자연스러운 색
-              </button>
-              <button class="color-chip" onclick="selectColorRule('contrast', this)">
-                <span class="color-dot" style="background: #2563eb;"></span> 원포인트 강조
-              </button>
-            </div>
-          </div>
-          <p id="similar-combo-status" role="status" aria-live="polite" style="font-size:0.85rem;color:var(--text-muted);margin:12px 0;" hidden></p>
+          </details>
         </div>
       </div>
     </div>
@@ -1223,17 +1222,16 @@
           behavior: animate && !reducedMotion.matches ? 'smooth' : 'instant'
         });
       };
+      const options=document.querySelector('.lookbook-options');
+      options.addEventListener('toggle',()=>{document.querySelector('.lookbook-option-content').hidden=!options.open;});
+      const shopping=document.getElementById('outfit-shopping');
+      shopping.addEventListener('toggle',()=>{
+        const items=(displayedAlternative||rankedCombos[currentRankIndex])?.items;
+        if(shopping.open&&items)refreshPurchaseInfo(items);
+      });
       if ('ResizeObserver' in window) {
-        const capture=document.getElementById('capture-outfit-container');
-        const toolbar=capture.querySelector('.outfit-controls');
-        const observer=new ResizeObserver(entries=>{
-          for(const entry of entries){
-            if(entry.target===toolbar)capture.style.setProperty('--outfit-toolbar-height',toolbar.offsetHeight+'px');
-            else syncOccasionDial();
-          }
-        });
+        const observer=new ResizeObserver(()=>syncOccasionDial());
         observer.observe(rail);
-        observer.observe(toolbar);
       }
       syncOccasionDial();
     }
@@ -1366,6 +1364,8 @@
       const needsSupplement = recommendationMode === 'owned' &&
         getRequiredCategories().some(category => !closetItems.some(item => item.category===category&&isEligibleOutfitItem(item)));
       if (needsSupplement) recommendationMode = 'mixed';
+      const modeLabels={"owned":"내 옷","mixed":"내 옷 + 추천의상","catalog":"추천의상"};
+      document.getElementById('lookbook-settings-state').textContent=(currentGender==='men'?"남성":"여성")+' · '+modeLabels[recommendationMode];
       document.getElementById('recommendation-mode-note').textContent = needsSupplement
         ? '내 옷만으로 완성할 수 없어 내 옷 + 부족한 옷 추천으로 자동 전환했어요.'
         : recommendationMode === 'owned' ? '내가 가진 옷만 사용합니다.'
@@ -1442,6 +1442,7 @@
       document.getElementById('purchase-summary').hidden = true;
       document.getElementById('lookbook-ownership').textContent = recommendationMode === 'owned' ? '내 옷!' : recommendationMode === 'mixed' ? '내 옷 + 추천의상' : '추천의상';
       updateSimilarControls();
+      document.getElementById('next-combo-btn').disabled=rankedCombos.length<2;
       if (!rankedCombos || rankedCombos.length === 0) {
         ['outer', 'top', 'bottom', 'shoes'].forEach(cat => {
           const img = document.getElementById(`board-img-${cat}`);
@@ -1450,6 +1451,9 @@
         });
         document.getElementById('outfit-items-container').innerHTML = '';
         document.getElementById('recommend-title').textContent = '추천할 옷이 부족합니다';
+        document.getElementById('lookbook-reason').textContent = document.getElementById('recommend-title').textContent;
+        document.getElementById('outfit-shopping-count').textContent='';
+        document.getElementById('outfit-shopping').hidden=true;
         document.getElementById('recommend-desc').textContent = "선택한 날씨와 용도에 맞는 옷이 부족해요. 필요한 부위" + ': ' + getRequiredCategories().map(category=>CATEGORY_NAMES[category].split(' ')[0]).join(' ? ');
         document.getElementById('combo-rank-text').textContent = '추천 없음';
         document.getElementById('recommend-tier-badge').textContent = '아이템 부족';
@@ -1459,6 +1463,9 @@
 
       const selected = displayedAlternative || rankedCombos[currentRankIndex] || rankedCombos[0];
       const comboItems = selected.items;
+      const ownedCount=comboItems.filter(item=>item.isOwned).length;
+      document.getElementById('outfit-shopping').hidden=false;
+      document.getElementById('outfit-shopping-count').textContent=`(${comboItems.length})`;
       const temp = currentWeather.temp;
       const targetSeason = getTemperatureSeason(temp);
       const occInfo = OCCASIONS.find(o => o.id === currentOccasion) || OCCASIONS[0];
@@ -1467,6 +1474,14 @@
       // 1. 좌측 룩북 보드 이미지 교체
       const cats = ['outer', 'top', 'bottom', 'shoes'];
       const hasOuter=comboItems.some(item=>item.category==='outer');
+      let layerReason="겉옷 없이 가볍게";
+      if(currentOccasion==='home')layerReason="실내 코디 · 겉옷 없음";
+      else if(hasOuter){
+        if(['interview','meeting','wedding'].includes(currentOccasion))layerReason="격식에 맞는 겉옷 포함";
+        else if(currentOccasion==='rainy')layerReason="비에 대비해 겉옷 포함";
+        else layerReason=getOuterPolicy()==='required'?"보온을 위해 겉옷 포함":"겉옷을 더한 조합";
+      }
+      document.getElementById('lookbook-reason').textContent = [currentWeather.isFallback?"기온 확인 중":currentWeather.temp+'\u00b0C',layerReason,ownedCount?"내 옷"+' '+ownedCount+'\uAC1C':'',comboItems.length>ownedCount?"추천의상"+' '+(comboItems.length-ownedCount)+'\uAC1C':''].filter(Boolean).join(' \u00b7 ');
       const topTile=document.getElementById('lookbook-top');
       topTile.style.gridColumn=hasOuter?'':'1 / -1';
       cats.forEach(cat => {
@@ -1487,7 +1502,7 @@
       // 2. 버튼 랭크 텍스트 업데이트
       const rankText = document.getElementById('combo-rank-text');
       const maxRank = rankedCombos.length;
-      rankText.textContent = `다음 최적 조합 (Rank ${currentRankIndex + 1}/${maxRank})`;
+      rankText.textContent = `${currentRankIndex + 1}/${maxRank}`;
 
       // 3. 헤더 타이틀 및 설명
       const titleEl = document.getElementById('recommend-title');
@@ -1572,6 +1587,7 @@
     async function refreshPurchaseInfo(items) {
       const missing=items.filter(item=>!item.isOwned),requestId=priceRequestId;
       if(!missing.length)return;
+      if(!document.getElementById('outfit-shopping').open){renderPurchaseSummary(items,'\uC218\uC9D1 \uC2DC\uC810 \uAC00\uACA9');return;}
       renderPurchaseSummary(items,'수집 시점 가격 · 최신 가격 확인 중...');
       if(!window.cloudPriceCheck){renderPurchaseSummary(items,'마지막 수집 가격입니다.');return}
       try{
@@ -1633,7 +1649,7 @@
        ========================================================== */
     function changeForecastDay(day) {
       forecastDay=day==='tomorrow'?'tomorrow':'today';
-      document.getElementById('lookbook-day-title').textContent=forecastDay==='tomorrow'?'내일의 완성 룩북 세트':'오늘의 완성 룩북 세트';
+      document.getElementById('lookbook-day-title').textContent=forecastDay==='tomorrow'?"내일의 룩북":"오늘의 룩북";
       fetchLiveWeather();
     }
     async function fetchLiveWeather() {
@@ -1790,7 +1806,7 @@
     }
 
     function downloadOotdCard() {
-      const container = document.getElementById('capture-outfit-container');
+      const container = document.querySelector('.fitting-room-card');
       const btn = document.querySelector('[onclick="downloadOotdCard()"]');
       const originalText = btn.innerHTML;
       btn.innerHTML = '<span class="spinner"></span> 캡처 중...';
