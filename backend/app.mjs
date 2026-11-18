@@ -1,3 +1,4 @@
+import {CLOTHING_COLORS} from '../shared/colors.mjs';
 import {gzipSync} from 'node:zlib';
 import {OCCASIONS as OUTFIT_TYPES} from '../shared/outfits.mjs';
 import {randomUUID,randomBytes,createHash} from 'node:crypto';
@@ -5,7 +6,7 @@ import {parseTriggerDelivery} from '@neon/functions/triggers';
 import {attributes,refreshCatalog,checkPrices,expandCatalog,withCatalogTags} from './catalog.mjs';
 export const BUCKET='closet-images';
 const CATEGORIES=['outer','top','bottom','shoes'],GENDERS=['men','women'];
-const COLORS=['black','white','grey','navy','beige','khaki','blue','point'];
+const COLORS=Object.keys(CLOTHING_COLORS);
 const SEASONS=['winter','chilly','mild','warm','hot'];
 const OCCASIONS=OUTFIT_TYPES.map(occasion=>occasion.id);
 export function validateMetadata(input){

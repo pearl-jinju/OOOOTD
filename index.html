@@ -754,19 +754,21 @@
     #occasion-selector-container { display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px; }
     @media(max-width:600px){ #occasion-selector-container { grid-template-columns:repeat(2,minmax(0,1fr)); } .occasion-card { padding:10px; } }
   </style>
+  <link rel="stylesheet" href="/assets/home.css?v=compact">
 </head>
 <body>
 
   <div class="container">
     <!-- 서비스 소개 헤더 -->
-    <header>
-      <div class="logo"><i class="fa-solid fa-shirt"></i> OOOOTD</div>
-      <p style="margin: -2px 0 14px; font-size: 0.95rem; color: #64748b;">One Of Outfis Of The Day</p>
-      <div class="subtitle">남성 / 여성 맞춤 & 쉬운 상황별 데일리 코디</div>
-      <p class="desc">
-        성별(남성/여성)과 오늘 갈 곳(일상, 도서관, 데이트, 출근, 운동)을 선택하면
-        내가 가진 옷만으로 날씨와 색감에 맞는 룩북을 추천합니다.
-      </p>
+    <header class="home-heading">
+      <div class="home-brand">
+        <span class="home-brand-icon"><i class="fa-solid fa-shirt" aria-hidden="true"></i></span>
+        <div>
+          <h1 class="logo">OOOOTD</h1>
+          <p class="home-tagline">One Of Outfis Of The Day</p>
+        </div>
+      </div>
+      <p class="desc">오늘 뭐 입지? 날씨와 내 옷장에 맞춰 코디를 골라보세요.</p>
     </header>
 
 
@@ -784,7 +786,7 @@
       </div>
 
       <div class="weather-actions"><select id="forecast-day" class="city-select" aria-label="코디 날짜" onchange="changeForecastDay(this.value)"><option value="today">오늘의 코디</option><option value="tomorrow">내일의 코디</option></select>
-        <select id="city-select" class="city-select" onchange="changeCity(this.value)">
+        <select id="city-select" class="city-select" aria-label="날씨 지역" onchange="changeCity(this.value)">
           <option value="Seoul" selected>서울</option>
           <option value="Busan">부산</option>
           <option value="Incheon">인천</option>
@@ -793,8 +795,8 @@
           <option value="Gwangju">광주</option>
           <option value="Jeju">제주</option>
         </select>
-        <button class="btn-icon" onclick="fetchLiveWeather()" title="날씨 새로고침">
-          <i class="fa-solid fa-rotate-right"></i> 새로고침
+        <button class="btn-icon" onclick="fetchLiveWeather()" aria-label="새로고침" title="날씨 새로고침">
+          <i class="fa-solid fa-rotate-right" aria-hidden="true"></i> <span class="weather-refresh-label">새로고침</span>
         </button>
       </div>
     </div>
@@ -821,10 +823,10 @@
           </span>
           <div class="gender-chips">
             <button class="gender-chip active" id="gender-btn-men" onclick="selectGender('men', this)">
-              <i class="fa-solid fa-mars"></i> 남성 코디 (Men)
+              <i class="fa-solid fa-mars"></i> 남성 코디
             </button>
             <button class="gender-chip" id="gender-btn-women" onclick="selectGender('women', this)">
-              <i class="fa-solid fa-venus"></i> 여성 코디 (Women)
+              <i class="fa-solid fa-venus"></i> 여성 코디
             </button>
           </div>
         </div>
@@ -833,10 +835,7 @@
 
       <!-- 쉬운 상황/용도별 선택 패널 -->
       <div class="curation-panel">
-        <div class="curation-section-title">
-          <span><i class="fa-solid fa-compass" style="color: var(--accent);"></i> 오늘 어디 가시나요? (용도별 코디 선택)</span>
-          <span style="font-size: 0.8rem; font-weight: 500;">상황에 맞춰 편하게 고르세요</span>
-        </div>
+        <div class="curation-section-title"><h2>어디에 입고 가나요?</h2></div>
 
         <!-- 상황/용도 선택 버튼들 -->
         <div class="occasion-selector" id="occasion-selector-container">
@@ -959,7 +958,7 @@
     </div>
 
     <!-- 2. 내 옷장 관리 탭 (크롤링 300종 실물 옷장) -->
-    <div id="closetTab" class="tab-pane"><section class="private-panel" aria-labelledby="private-title"><h2 id="private-title">내 옷장 <span class="owned-badge">내 옷!</span></h2><p id="auth-user">개인 옷장에 연결 중입니다.</p><p>이 브라우저의 개인 인증키로 내 옷만 불러옵니다. 브라우저 데이터를 지우거나 새 사용자로 전환하면 기존 옷장 연결을 잃을 수 있어요.</p><div id="member-panel" hidden><div class="private-actions"><button class="btn-icon" id="new-user" type="button">새 사용자로 전환</button></div><details><summary>내 옷 사진 등록</summary><form id="upload-form" class="private-form"><div class="wide"><div class="private-actions"><button id="take-photo" class="btn-icon" type="button">카메라로 찍기</button><button id="choose-photo" class="btn-icon" type="button">기존 사진 선택</button></div><input id="capture-image" type="file" accept="image/*" capture="environment" hidden><input id="upload-image" type="file" accept="image/*" hidden><p id="selected-photo" role="status">사진을 찍거나 선택해 주세요.</p></div><label>옷 이름<input id="upload-name" name="name" maxlength="160" required placeholder="예: 검정 라운드 니트"></label><p class="wide" id="photo-analysis" role="status"></p><details class="wide" id="photo-details" hidden><summary>자동 분류 수정</summary><div class="private-form"><label>분류<select id="upload-category" name="category" required><option value="" selected disabled>분류 선택</option><option value="outer">아우터</option><option value="top">상의</option><option value="bottom">하의</option><option value="shoes">신발</option></select></label><label>색상<select id="upload-color" name="color"><option value="black">검정</option><option value="white">흰색</option><option value="grey">회색</option><option value="navy">네이비</option><option value="beige">베이지·브라운</option><option value="khaki">카키</option><option value="blue">파랑</option><option value="point">포인트 색</option></select></label><label>계절<select id="upload-season" name="season"><option value="mild">봄·가을</option><option value="winter">한겨울</option><option value="chilly">쌀쌀한 날</option><option value="warm">따뜻한 날</option><option value="hot">여름</option></select></label><label>용도<select id="upload-occasion" name="occasion"><option value="daily">일상</option><option value="library">도서관·마실</option><option value="date">데이트</option><option value="work">출근·격식</option><option value="exercise">운동</option></select></label></div></details><div class="wide private-actions"><button id="upload-submit" class="btn-icon" type="submit">내 옷으로 등록</button></div></form></details><details><summary>내 신체 사이즈 · 선택 입력</summary><p>나만 볼 수 있도록 저장합니다. 추후 사이즈 추천용이며 지금은 코디 점수에 반영하지 않아요.</p><form id="size-form" class="private-form"><label>키 (cm)<input id="size-height" name="height" type="number" min="80" max="230" step="0.1" placeholder="175"></label><label>몸무게 (kg)<input id="size-weight" name="weight" type="number" min="20" max="300" step="0.1" placeholder="70"></label><label>상의 사이즈<input id="size-top" name="top" maxlength="30" placeholder="예: L / 100"></label><label>하의 사이즈<input id="size-bottom" name="bottom" maxlength="30" placeholder="예: 32인치 / M"></label><label>발 사이즈 (mm)<input id="size-shoe" name="shoe" type="number" min="180" max="350" step="1" placeholder="270"></label><label>선호 핏<select id="size-fit" name="fit"><option value="">선택 안 함</option><option value="slim">슬림</option><option value="regular">레귤러</option><option value="relaxed">여유 있게</option></select></label><button id="size-save" class="btn-icon" type="submit">내 사이즈 저장</button></form></details></div><p id="cloud-message" role="status" aria-live="polite"></p><p id="catalog-updated"></p></section>
+    <div id="closetTab" class="tab-pane"><section class="private-panel" aria-labelledby="private-title"><h2 id="private-title">내 옷장 <span class="owned-badge">내 옷!</span></h2><p id="auth-user">개인 옷장에 연결 중입니다.</p><p>이 브라우저의 개인 인증키로 내 옷만 불러옵니다. 브라우저 데이터를 지우거나 새 사용자로 전환하면 기존 옷장 연결을 잃을 수 있어요.</p><div id="member-panel" hidden><div class="private-actions"><button class="btn-icon" id="new-user" type="button">새 사용자로 전환</button></div><details><summary>내 옷 사진 등록</summary><form id="upload-form" class="private-form"><div class="wide"><div class="private-actions"><button id="take-photo" class="btn-icon" type="button">카메라로 찍기</button><button id="choose-photo" class="btn-icon" type="button">기존 사진 선택</button></div><input id="capture-image" type="file" accept="image/*" capture="environment" hidden><input id="upload-image" type="file" accept="image/*" hidden><p id="selected-photo" role="status">사진을 찍거나 선택해 주세요.</p></div><label>옷 이름<input id="upload-name" name="name" maxlength="160" required placeholder="예: 검정 라운드 니트"></label><p class="wide" id="photo-analysis" role="status"></p><details class="wide" id="photo-details" hidden><summary>자동 분류 수정</summary><div class="private-form"><label>분류<select id="upload-category" name="category" required><option value="" selected disabled>분류 선택</option><option value="outer">아우터</option><option value="top">상의</option><option value="bottom">하의</option><option value="shoes">신발</option></select></label><label>색상<select id="upload-color" name="color"><option value="black">검정</option><option value="white">흰색</option><option value="grey">회색</option><option value="navy">네이비</option><option value="beige">베이지</option><option value="khaki">카키</option><option value="blue">파랑</option><option value="sky">하늘색</option><option value="green">초록</option><option value="yellow">노랑</option><option value="orange">주황</option><option value="red">빨강</option><option value="pink">분홍</option><option value="purple">보라</option><option value="brown">갈색</option><option value="teal">청록</option><option value="burgundy">버건디</option><option value="point">포인트 색</option></select></label><label>계절<select id="upload-season" name="season"><option value="mild">봄·가을</option><option value="winter">한겨울</option><option value="chilly">쌀쌀한 날</option><option value="warm">따뜻한 날</option><option value="hot">여름</option></select></label><label>용도<select id="upload-occasion" name="occasion"><option value="daily">일상</option><option value="library">도서관·마실</option><option value="date">데이트</option><option value="work">출근·격식</option><option value="exercise">운동</option></select></label></div></details><div class="wide private-actions"><button id="upload-submit" class="btn-icon" type="submit">내 옷으로 등록</button></div></form></details><details><summary>내 신체 사이즈 · 선택 입력</summary><p>나만 볼 수 있도록 저장합니다. 추후 사이즈 추천용이며 지금은 코디 점수에 반영하지 않아요.</p><form id="size-form" class="private-form"><label>키 (cm)<input id="size-height" name="height" type="number" min="80" max="230" step="0.1" placeholder="175"></label><label>몸무게 (kg)<input id="size-weight" name="weight" type="number" min="20" max="300" step="0.1" placeholder="70"></label><label>상의 사이즈<input id="size-top" name="top" maxlength="30" placeholder="예: L / 100"></label><label>하의 사이즈<input id="size-bottom" name="bottom" maxlength="30" placeholder="예: 32인치 / M"></label><label>발 사이즈 (mm)<input id="size-shoe" name="shoe" type="number" min="180" max="350" step="1" placeholder="270"></label><label>선호 핏<select id="size-fit" name="fit"><option value="">선택 안 함</option><option value="slim">슬림</option><option value="regular">레귤러</option><option value="relaxed">여유 있게</option></select></label><button id="size-save" class="btn-icon" type="submit">내 사이즈 저장</button></form></details></div><p id="cloud-message" role="status" aria-live="polite"></p><p id="catalog-updated"></p></section>
       <div class="closet-list-card">
         <div class="closet-header">
           <div>
@@ -1017,7 +1016,7 @@
     </footer>
   </div>
 
-  <script src="/assets/outfit-rules.js?v=weather-layers"></script>
+  <script src="/assets/outfit-rules.js?v=photo-colors"></script>
   <script>
     /* ==========================================================
        실제 크롤링된 300종 의류 데이터베이스 (남성/여성 태깅 완료)
@@ -1026,27 +1025,8 @@
 
     const OCCASIONS = OOOOTD_RULES.OCCASIONS;
 
-    const COLOR_HEX = {
-      black: '#1e293b',
-      white: '#f8fafc',
-      grey: '#64748b',
-      navy: '#1e3a8a',
-      beige: '#d97706',
-      khaki: '#4d7c0f',
-      blue: '#2563eb',
-      point: '#dc2626'
-    };
-
-    const COLOR_LABELS = {
-      black: '블랙',
-      white: '화이트',
-      grey: '그레이',
-      navy: '네이비',
-      beige: '베이지/브라운',
-      khaki: '카키',
-      blue: '블루/데님',
-      point: '포인트컬러'
-    };
+    const COLOR_HEX=Object.fromEntries(Object.entries(OOOOTD_RULES.CLOTHING_COLORS).map(([key,color])=>[key,color[1]]));
+    const COLOR_LABELS=Object.fromEntries(Object.entries(OOOOTD_RULES.CLOTHING_COLORS).map(([key,color])=>[key,color[0]]));
 
     const SEASON_LABELS = {
       winter: '겨울/한파 (4°C 이하)',
@@ -1240,9 +1220,15 @@
       container.innerHTML = '';
 
       OCCASIONS.forEach(occ => {
-        const card = document.createElement('div');
+        const card = document.createElement('button');
+        card.type='button';
+        card.setAttribute?.('aria-pressed',String(occ.id===currentOccasion));
         card.className = `occasion-card ${occ.id === currentOccasion ? 'active' : ''}`;
-        card.onclick = () => selectOccasion(occ.id);
+        card.onclick = () => {
+          const hadFocus=document.activeElement===card;
+          selectOccasion(occ.id);
+          if(hadFocus)container.querySelector?.('.occasion-card.active')?.focus({preventScroll:true});
+        };
         card.innerHTML = `
           <div class="occasion-card-title">
             <i class="fa-solid ${occ.icon}" style="color: var(--accent);"></i> ${occ.name}
@@ -1306,10 +1292,10 @@
         const monoList = ['black', 'white', 'grey'];
         score += colors.filter(c => monoList.includes(c)).length * 12;
       } else if (rule === 'earthy') {
-        const earthList = ['beige', 'khaki', 'navy', 'white'];
+        const earthList = ['beige', 'brown', 'khaki', 'navy', 'white'];
         score += colors.filter(c => earthList.includes(c)).length * 12;
       } else if (rule === 'contrast') {
-        const hasPoint = colors.includes('point') || colors.includes('blue');
+        const hasPoint = colors.some(color=>['point','blue','sky','teal','yellow','orange','red','pink','purple','green','burgundy'].includes(color));
         const neutrals = colors.filter(c => ['black', 'white', 'grey'].includes(c)).length;
         if (hasPoint && neutrals >= 2) score += 45;
       } else if (rule === 'rule_three') {
@@ -1852,6 +1838,6 @@
       fetchLiveWeather();
     });
   </script>
-  <script type="module" src="/assets/cloud.js?v=photo-analysis"></script>
+  <script type="module" src="/assets/cloud.js?v=photo-colors"></script>
 </body>
 </html>

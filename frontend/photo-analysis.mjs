@@ -1,3 +1,4 @@
+import {CLOTHING_COLORS} from '../shared/colors.mjs';
 
 const runtimeUrl='https://cdn.jsdelivr.net/npm/onnxruntime-web@1.23.2/dist/';
 const modelUrl='https://huggingface.co/Prikol5ist/pasma/resolve/5346fc6adf7c345fef3ff0ac84abfc11a210b959/models/pasma_small_320_fp32.onnx';
@@ -13,7 +14,6 @@ const garments=[
  ['운동화','shoes','mild','daily'],['샌들','shoes','hot','daily'],
  null,null,null
 ];
-const colors={black:'검정',white:'흰색',grey:'회색',navy:'네이비',beige:'베이지',khaki:'카키',blue:'파랑',point:'포인트 색'};
 let modelPromise;
 
 function loadModel(){
@@ -29,39 +29,71 @@ function loadModel(){
  return modelPromise;
 }
 
-function pixelColor(r,g,b){
- const max=Math.max(r,g,b),min=Math.min(r,g,b),spread=max-min;
- if(max<48)return 'black';
- if(spread<25||spread/max<0.16)return max>=213?'white':'grey';
- let hue=max===r?(g-b)/spread:max===g?2+(b-r)/spread:4+(r-g)/spread;
- hue=(hue*60+360)%360;
- if(hue>=175&&hue<=255)return max<115?'navy':'blue';
- if(hue>=60&&hue<175)return 'khaki';
- if((hue<60||hue>=350)&&(max<170||spread/max<0.55))return 'beige';
- return 'point';
+
+function pixelColor(r,g,b,whiteThreshold){
+ const high=Math.max(r,g,b),low=Math.min(r,g,b),spread=high-low;
+ const light=0.2126*r+0.7152*g+0.0722*b;
+ if(high<54)return 'black';
+ const saturation=spread/high;
+ if(spread<22||saturation<0.15)return light>=whiteThreshold?'white':'grey';
+ const hue=((high===r?(g-b)/spread:high===g?2+(b-r)/spread:4+(r-g)/spread)*60+360)%360;
+ if(hue<13||hue>=345){
+  if(high<145&&light<105&&saturation>0.32)return 'burgundy';
+  if(saturation<0.50&&light>137)return 'pink';
+  return 'red';
+ }
+ if(hue>=37&&hue<67&&high>=220&&saturation>=0.16&&g>=r*0.88)return 'yellow';
+ if(hue<44){
+  if(saturation<0.42&&light>=126)return 'beige';
+  return light<126?'brown':'orange';
+ }
+ if(hue<67){
+  if(saturation<0.38&&light>=139)return 'beige';
+  return light<125?'khaki':'yellow';
+ }
+ if(hue<157)return (hue<100&&light<166&&saturation<0.63)?'khaki':'green';
+ if(hue<193)return light>161&&saturation<0.35?'sky':'teal';
+ if(hue<257){
+  if(high<100||(high<132&&light<95&&saturation<0.64))return 'navy';
+  if(light>145&&saturation<0.58)return 'sky';
+  return 'blue';
+ }
+ if(hue<306)return 'purple';
+ if(light<107)return 'burgundy';
+ return 'pink';
 }
 
-function garmentColor(data,width,height){
- const corners=[[0.05,0.05],[0.95,0.05],[0.05,0.95],[0.95,0.95]].map(([x,y])=>{
-  const n=(Math.floor(y*height)*width+Math.floor(x*width))*4;
-  return [data[n],data[n+1],data[n+2]];
- });
- const background=corners.find(([r,g,b])=>corners.filter(c=>Math.hypot(r-c[0],g-c[1],b-c[2])<38).length>=3);
+export function garmentColor(data,width,height){
+ const pixel=(x,y)=>{
+  const i=(Math.floor(y*height)*width+Math.floor(x*width))*4;
+  return [data[i],data[i+1],data[i+2]];
+ };
+ const distance=(a,b)=>Math.hypot(a[0]-b[0],a[1]-b[1],a[2]-b[2]);
+ const corners=[pixel(.06,.06),pixel(.94,.06),pixel(.06,.94),pixel(.94,.94)];
+ const background=corners.find(color=>corners.filter(other=>distance(color,other)<33).length>=3);
+ const neutralBackground=background&&Math.max(...background)-Math.min(...background)<=24;
+ const reference=neutralBackground?background.reduce((a,b)=>a+b,0)/3:232;
+ const whiteThreshold=reference>=176?Math.max(170,Math.min(204,reference*0.86)):204;
  const foreground={},center={};
- for(let y=Math.floor(height*0.22);y<height*0.8;y+=2){
-  for(let x=Math.floor(width*0.28);x<width*0.72;x+=2){
-   const n=(y*width+x)*4,r=data[n],g=data[n+1],b=data[n+2];
-   const color=pixelColor(r,g,b);
+ let foregroundCount=0,centerCount=0;
+ for(let y=Math.floor(height*.2);y<height*.81;y+=2){
+  for(let x=Math.floor(width*.26);x<width*.74;x+=2){
+   const i=(y*width+x)*4;
+   const rgb=[data[i],data[i+1],data[i+2]];
+   const color=pixelColor(...rgb,whiteThreshold);
    center[color]=(center[color]||0)+1;
-   if(!background||Math.hypot(r-background[0],g-background[1],b-background[2])>=40){
+   centerCount++;
+   if(!background||distance(rgb,background)>=32){
     foreground[color]=(foreground[color]||0)+1;
+    foregroundCount++;
    }
   }
  }
- const enough=Object.values(foreground).reduce((a,b)=>a+b,0)>=width*height*0.012;
- return Object.entries(enough?foreground:center).sort((a,b)=>b[1]-a[1])[0]?.[0]||'grey';
+ const votes=foregroundCount>=centerCount*.17?foreground:center;
+ const [first,second]=Object.entries(votes).sort((a,b)=>b[1]-a[1]);
+ if(first?.[0]==='grey'&&second?.[0]==='white'&&second[1]/(first[1]+second[1])>=.34)return 'white';
+ return first?.[0]||'grey';
 }
-
 export async function analyzeGarmentPhoto(file){
  const canvas=document.createElement('canvas');
  canvas.width=canvas.height=size;
@@ -91,6 +123,6 @@ export async function analyzeGarmentPhoto(file){
   if(!garment||scores[type]<0.35)return null;
   const [label,category,season,occasion]=garment;
   const color=garmentColor(ctx.getImageData(x,y,w,h).data,w,h);
-  return {name:colors[color]+' '+label,category,color,season,occasion};
+  return {name:CLOTHING_COLORS[color][0]+' '+label,category,color,season,occasion};
  }finally{URL.revokeObjectURL(url);}
 }

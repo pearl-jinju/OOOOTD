@@ -1,3 +1,4 @@
+export {CLOTHING_COLORS} from './colors.mjs';
 export {outfitTagDistance} from './product-tags.mjs';
 
 export const OCCASIONS=[
@@ -41,7 +42,7 @@ export function appropriate(item,occasion,gender=item.unisex?null:item.gender){
     return /블레이저|정장.?재킷|정장.?자켓|슈트.?재킷|수트.?재킷|테일러드.?재킷|테일러드.?자켓|\bblazers?\b|\bsuit[\s_-]+jackets?\b|\btailored[\s_-]+jackets?\b/i.test(name);
    }
    if(cat==='top'){
-    if(!['white','blue','grey','beige','black','navy'].includes(item.color)||flashy.test(name))return false;
+    if(!['white','blue','sky','grey','beige','black','navy'].includes(item.color)||flashy.test(name))return false;
     if(/폴로|피케|카라.?티|니트|polo|pique|knit|반팔|반소매|민소매|쇼트.?슬리브|하프.?슬리브|오픈.?카라|오픈.?칼라|리조트|헨리|린넨|리넨|티셔츠|티 셔츠|short[\s_-]*sleeve|half[\s_-]*sleeve|sleeveless|\bs\/s\b|\bss\b|open[\s_-]*collar|resort|henley|linen|t[\s_-]*shirt|\btee\b/i.test(name))return false;
     if(gender==='men'&&/블라우스|blouse/i.test(name))return false;
     return /셔츠|블라우스|\bshirts?\b|\bblouses?\b/i.test(name)&&/무지|솔리드|베이직|드레스|옥스포드|포플린|브로드|긴팔|긴소매|롱.?슬리브|클래식|수피마|basic|solid|plain|dress|oxford|poplin|broadcloth|long[\s_-]*sleeve|classic/i.test(name);
@@ -53,7 +54,7 @@ export function appropriate(item,occasion,gender=item.unisex?null:item.gender){
    }
    if(cat==='shoes'){
     if(gender==='men'&&/펌프스|메리.?제인|발레|레페토|힐|플랫|pumps?|mary[\s_-]*jane|ballet|repetto|heel|flat|court[\s_-]*shoe/i.test(name))return false;
-    if(item.color!=='black'&&!(item.color==='beige'&&/브라운|brown/i.test(name)))return false;
+    if(item.color!=='black'&&!(['beige','brown'].includes(item.color)&&/브라운|brown/i.test(name)))return false;
     if(/빈티지|주름|셔링|메쉬|메시|니트|청키|체인|스터드|플랫폼|스웨이드|뮬|vintage|wrinkl|shirr|mesh|knit|chunky|chain|studd|platform|suede|\bmule\b/i.test(name))return false;
     return /로퍼|더비|옥스포드|플레인.?토|스트레이트.?팁|펌프스|페니|\bloafer|\bderby|\boxford|plain[\s_-]*toe|straight[\s_-]*tip|\bpumps?\b|court[\s_-]*shoe/i.test(name);
    }

@@ -1,0 +1,50 @@
+
+body { background: #f6f7fb; }
+.container { max-width: 1000px; }
+.home-heading {
+  text-align: left;
+  padding: 22px 24px;
+  margin-bottom: 14px;
+  background: #fff;
+  border: 1px solid #e2e5f0;
+  border-radius: 16px;
+  box-shadow: none;
+}
+.home-brand { display: flex; gap: 13px; align-items: center; }
+.home-brand-icon {
+  display: grid;
+  place-items: center;
+  flex: 0 0 44px;
+  height: 44px;
+  border-radius: 12px;
+  background: #eeecff;
+  color: #5146b4;
+  font-size: 1.1rem;
+}
+.home-heading .logo { color: #28234c; font-size: 1.65rem; margin: 0; line-height: 1.15; letter-spacing: -.025em; }
+.home-tagline { margin: 3px 0 0; color: #665f80; font-size: .74rem; }
+.home-heading .desc { margin: 12px 0 0; font-size: .93rem; }
+.weather-bar { margin-bottom: 14px; box-shadow: none; }
+.weather-temp { font-variant-numeric: tabular-nums; }
+.tabs { margin-bottom: 16px; }
+.tab-btn { min-height: 44px; }
+.curation-panel, .gender-bar { border-color: #e2e5f0; box-shadow: none; }
+.occasion-card { border-width: 1px; background: #fafbfe; }
+.occasion-card.active { box-shadow: none; }
+.btn-icon:focus-visible, .tab-btn:focus-visible, .city-select:focus-visible, .gender-chip:focus-visible, .color-chip:focus-visible, .occasion-card:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+@media (max-width: 600px) {
+  body { padding: 12px; }
+  .home-heading { padding: 16px; }
+  .weather-bar { gap: 10px; padding: 12px; }
+  .weather-actions { width: 100%; }
+  .weather-actions select { flex: 1; min-width: 0; }
+  .tabs { gap: 4px; }
+  .tab-btn { flex: 1; min-width: 0; padding-inline: 3px; font-size: .8rem; }
+  .tab-btn i { display: none; }
+  .gender-bar { padding: 10px 12px; }
+  .gender-chip { padding: 6px 9px; white-space: nowrap; }
+  .curation-panel { padding: 13px; }
+}
+
+.curation-section-title h2 { font-size: 1.1rem; letter-spacing: -.025em; }
+@media (max-width: 600px) { .weather-refresh-label { display: none; } }
