@@ -75,13 +75,32 @@ function runStage() {
   },reduceMotion.matches?1550:1750);
 }
 
-previous.addEventListener('click',()=>{index=Math.max(0,index-1);pause();});
-next.addEventListener('click',()=>{index=Math.min(stages.length-1,index+1);pause();});
-replay.addEventListener('click',()=>{
-  if(playing){pause();return;}
+function play() {
   if(index===stages.length-1)index=0;
   playing=true;
   runStage();
+}
+
+let observer;
+previous.addEventListener('click',()=>{observer?.disconnect();index=Math.max(0,index-1);pause();});
+next.addEventListener('click',()=>{observer?.disconnect();index=Math.min(stages.length-1,index+1);pause();});
+replay.addEventListener('click',()=>{
+  observer?.disconnect();
+  if(playing)pause();
+  else play();
 });
-mobile.addEventListener('change',layout);
+mobile.addEventListener('change',()=>{
+  const wasPlaying=playing;
+  layout();
+  if(wasPlaying){playing=true;runStage();}
+});
 layout();
+
+if('IntersectionObserver' in window){
+  observer=new IntersectionObserver(entries=>{
+    if(!entries.some(entry=>entry.isIntersecting&&entry.intersectionRatio>=0.3)||reduceMotion.matches)return;
+    observer.disconnect();
+    play();
+  },{threshold:0.3});
+  observer.observe(diagram);
+}
