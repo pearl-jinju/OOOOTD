@@ -1,3 +1,5 @@
+export {outfitTagDistance} from './product-tags.mjs';
+
 export const OCCASIONS=[
 {id:'daily',name:'일상생활',icon:'fa-mug-saucer',desc:'편안하게 입는 데일리 코디'},
 {id:'library',name:'도서관·마실',icon:'fa-book-open',desc:'오래 앉아 있어도 편한 캐주얼'},

@@ -1,3 +1,4 @@
+import {withProductTags} from '../shared/product-tags.mjs';
 import {gzipSync} from 'node:zlib';
 import {OCCASIONS as OUTFIT_TYPES} from '../shared/outfits.mjs';
 import {randomUUID,randomBytes,createHash} from 'node:crypto';
@@ -66,7 +67,7 @@ export function createApp({pool,verify,storage,analyze,allowedOrigins=['https://
     }
     const {rows}=await pool.query('SELECT data FROM catalog_items WHERE active=true ORDER BY id');
     const {rows:runs}=await pool.query("SELECT status,created_at,details FROM agent_runs WHERE kind IN ('catalog_refresh','catalog_expand') AND status='success' ORDER BY id DESC LIMIT 1");
-    const json=JSON.stringify({items:rows.map(r=>r.data),lastRun:runs[0]||null});
+    const json=JSON.stringify({items:rows.map(r=>withProductTags(r.data)),lastRun:runs[0]||null});
     catalogCache={time:Date.now(),json,gzip:gzipSync(json)};
     if(request.headers.get('accept-encoding')?.includes('gzip'))return new Response(catalogCache.gzip,{headers:{...headers,'Content-Type':'application/json','Content-Encoding':'gzip'}});
     return new Response(json,{headers:{...headers,'Content-Type':'application/json'}});

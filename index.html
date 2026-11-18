@@ -1172,11 +1172,16 @@
       if (seenSimilarVariants.size === similarVariants.length) seenSimilarVariants.clear();
       let bestIndex = -1;
       let mostChanges = -1;
+      let mostTagChanges = -1;
       similarVariants.forEach((variant, index) => {
         if (seenSimilarVariants.has(index)) return;
         const changes = variant.items.filter((item, i) => item.id !== previous.items[i].id).length;
-        // Prefer changing every available category on each click; similarity breaks ties.
-        if (changes > mostChanges) { mostChanges = changes; bestIndex = index; }
+        const tagChanges = OOOOTD_RULES.outfitTagDistance(variant.items, previous.items);
+        if (changes > mostChanges || (changes === mostChanges && tagChanges > mostTagChanges)) {
+          mostChanges = changes;
+          mostTagChanges = tagChanges;
+          bestIndex = index;
+        }
       });
       seenSimilarVariants.add(bestIndex);
       similarVariantIndex = bestIndex;
@@ -1401,9 +1406,17 @@
         if(diverse.length){
           const previous=diverse[diverse.length-1];
           const bestScore=combos[0].totalScore;
-          const candidate=combos.findIndex(combo=>combo.totalScore>=bestScore-35&&
-            combo.items.filter((item,i)=>item.id!==previous.items[i].id).length>=3);
-          if(candidate>=0)index=candidate;
+          let bestDistance = -1;
+          for (let candidate = 0; candidate < Math.min(combos.length, 80); candidate++) {
+            const combo = combos[candidate];
+            if (combo.totalScore < bestScore - 35) break;
+            if (combo.items.filter((item,i)=>item.id!==previous.items[i].id).length < 3) continue;
+            const distance = OOOOTD_RULES.outfitTagDistance(combo.items, previous.items);
+            if (distance > bestDistance) {
+              bestDistance = distance;
+              index = candidate;
+            }
+          }
         }
         diverse.push(combos.splice(index,1)[0]);
       }

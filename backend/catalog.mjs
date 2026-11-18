@@ -1,4 +1,5 @@
 import {OCCASIONS,CATEGORIES,appropriate,tagsFor,coverage} from '../shared/outfits.mjs';
+import {withProductTags, PRODUCT_TAG_VERSION} from '../shared/product-tags.mjs';
 const ROOTS={outer:['002'],top:['001'],bottom:['003','100'],shoes:['103']};
 export function walk(node,out=[]){
  if(Array.isArray(node))for(const v of node)walk(v,out);
@@ -94,10 +95,22 @@ async function saveBatch(pool,items,kind,extra={}){
  const c=await pool.connect();
  try{
   await c.query('BEGIN');await c.query('SELECT pg_advisory_xact_lock(7100300)');
+  const {rows:existing}=await c.query("SELECT id,data FROM catalog_items WHERE id=ANY($1::bigint[]) AND data->>'productTagVersion'=$2",[items.map(item=>item.id),String(PRODUCT_TAG_VERSION)]);
+  const byId=new Map(existing.map(row=>[String(row.id),row.data]));
+  const tagged=items.map(item=>{
+   const previous=byId.get(String(item.id));
+   return withProductTags(previous?.name===item.name
+    ? {...item,productTags:previous.productTags,productTagVersion:previous.productTagVersion}
+    : item);
+  });
   await c.query(`INSERT INTO catalog_items(id,data,active,updated_at)
    SELECT (value->>'id')::bigint,value,true,now() FROM jsonb_array_elements($1::jsonb)
-   ON CONFLICT(id) DO UPDATE SET data=excluded.data,active=true,updated_at=now()`,[JSON.stringify(items)]);
+   ON CONFLICT(id) DO UPDATE SET data=excluded.data,active=true,updated_at=now()`,[JSON.stringify(tagged)]);
   if(items.soldOutIds?.length)await c.query('UPDATE catalog_items SET active=false WHERE id=ANY($1::bigint[])',[items.soldOutIds]);
+  if(kind==='catalog_refresh'){
+   const {rows:untagged}=await c.query("SELECT data FROM catalog_items WHERE active=true AND data->>'productTagVersion' IS DISTINCT FROM $1",[String(PRODUCT_TAG_VERSION)]);
+   if(untagged.length)await c.query('UPDATE catalog_items AS item SET data=item.data || (patch.value - \'id\') FROM jsonb_array_elements($1::jsonb) AS patch(value) WHERE item.id=(patch.value->>\'id\')::bigint',[JSON.stringify(untagged.map(({data})=>({id:data.id,productTags:withProductTags(data).productTags,productTagVersion:PRODUCT_TAG_VERSION})))]);
+  }
   const {rows}=await c.query('SELECT count(*)::int AS count FROM catalog_items WHERE active=true');
   const details={count:rows[0].count,collected:items.length,men:items.filter(i=>i.gender==='men'&&!i.unisex).length,women:items.filter(i=>i.gender==='women'&&!i.unisex).length,unisex:items.filter(i=>i.unisex).length,sort:'NEW+POPULAR',...extra};
   await c.query('INSERT INTO agent_runs(kind,status,details) VALUES($1,\'success\',$2)',[kind,JSON.stringify(details)]);
@@ -136,7 +149,8 @@ export async function checkPrices(pool,ids){
    const price=Number(offer?.price??offer?.lowPrice);
    if(!Number.isSafeInteger(price)||price<=0)throw Error('Live price unavailable');
    const updated={...previous,price,priceCheckedAt:new Date().toISOString(),availability:String(offer.availability||'').includes('OutOfStock')?'sold_out':'in_stock'};
-   await pool.query('UPDATE catalog_items SET data=$2,updated_at=now() WHERE id=$1',[row.id,updated]);
+   const {priceCheckedAt,availability}=updated;
+   await pool.query('UPDATE catalog_items SET data=data || $2::jsonb,updated_at=now() WHERE id=$1',[row.id,JSON.stringify({price,priceCheckedAt,availability})]);
    return {...updated,verification:'live'};
   }catch{return {...previous,verification:'cached',priceWarning:'실시간 확인 실패 · 마지막 수집 가격입니다.'}}
  }));
