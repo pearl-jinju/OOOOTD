@@ -677,6 +677,67 @@
 .private-form label{display:flex;flex-direction:column;gap:5px;font-size:.85rem}.private-form input,.private-form select{width:100%;padding:10px;border:1px solid var(--border);border-radius:8px;min-width:0;background:white}.wide{grid-column:1/-1}
 .private-actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:12px}.owned-badge{background:#dcfce7;color:#166534;border-radius:20px;padding:4px 10px;font-size:.8rem;font-weight:800}#cloud-message{margin-top:12px;min-height:1.5em}
 .outfit-action-btns{flex-wrap:wrap}.outfit-action-btns .btn-icon{flex:1;min-width:150px}.subtitle{word-break:keep-all}
+
+    .site-about {
+      margin-top: 36px;
+      padding: clamp(16px, 3vw, 26px);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      background: #fff;
+    }
+    .site-about h2 { font-size: 1.3rem; letter-spacing: -.025em; }
+    .site-about .about-lead { margin-top: 6px; color: var(--text-muted); }
+    .about-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px 24px; margin-top: 18px; }
+    .about-grid h3 { font-size: .97rem; margin-bottom: 5px; }
+    .about-grid ul, .about-grid ol { padding-inline-start: 1.25em; color: var(--text-muted); font-size: .87rem; }
+    .about-grid li + li { margin-top: 4px; }
+    .about-system { margin-top: 15px; padding-top: 11px; border-top: 1px solid var(--border); font-size: .86rem; }
+    .about-system p { color: var(--text-muted); margin-top: 8px; }
+    .about-system a { color: var(--accent-hover); text-underline-offset: 3px; }
+    @media (max-width: 640px) {
+      .site-about { margin-top: 24px; }
+      .about-grid { grid-template-columns: minmax(0, 1fr); }
+    }
+
+    .about-system h3 { font-size: 1rem; margin-bottom: 9px; }
+    .about-system h4 { font-size: .81rem; color: var(--accent-hover); margin: 0 0 8px; }
+    .about-diagram { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0,1fr); gap: 18px; list-style: none; }
+    .about-diagram li, .about-build {
+      position: relative;
+      min-width: 0;
+      padding: 9px 10px;
+      border: 1px solid #e2e5f0;
+      border-radius: 9px;
+      background: #fafaff;
+    }
+    .about-diagram strong, .about-build strong { display: block; font-size: .82rem; color: var(--primary); }
+    .about-diagram span, .about-build span { display: block; color: var(--text-muted); font-size: .74rem; line-height: 1.4; overflow-wrap: anywhere; }
+    .about-diagram li + li::before {
+      content: "\2192";
+      position: absolute;
+      left: -17px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--accent);
+      font-weight: 700;
+    }
+    .about-build { width: fit-content; min-width: 135px; margin-bottom: 17px; background: var(--tag-bg); }
+    .about-build::after { content: "\2193"; position: absolute; left: 10px; bottom: -16px; color: var(--accent); }
+    .about-deploy-lanes { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 16px; }
+    .about-deploy-lanes > div { border-inline-start: 2px solid var(--tag-bg); padding-inline-start: 10px; }
+    .about-flow-note { font-size: .8rem; }
+    @media (min-width: 761px) {
+      .about-build { margin-inline: auto; }
+      .about-build::after { left: 50%; transform: translateX(-50%); }
+      .about-deploy-lanes { position: relative; }
+      .about-deploy-lanes::before { content: ""; position: absolute; inset: -8px 25% auto; height: 7px; border: solid #aea6dc; border-width: 1px 1px 0; }
+    }
+    @media (max-width: 760px) { .about-deploy-lanes { grid-template-columns: minmax(0,1fr); } }
+    @media (max-width: 520px) {
+      .about-diagram { grid-auto-flow: row; grid-auto-columns: auto; gap: 12px; }
+      .about-diagram li { padding-block: 6px; }
+      .about-diagram li + li::before { content: "\2193"; left: 11px; top: -13px; transform: none; line-height: 12px; }
+    }
   </style>
   <link rel="stylesheet" href="/assets/home.css?v=lookbook-first">
   <link rel="stylesheet" href="/assets/lookbook-workspace.css">
@@ -924,6 +985,69 @@
         <div style="overflow-x:auto;margin-top:12px;"><table class="closet-table"><thead><tr><th>사진</th><th>분류</th><th>성별</th><th>상품명</th><th>색상·계절</th></tr></thead><tbody id="catalog-table-body"></tbody></table></div><button id="catalog-load-more" class="btn-icon" onclick="catalogVisibleLimit+=60;renderPublicCatalog()">추천의상 더 보기</button>
       </section>
     </div>
+
+
+    <section class="site-about" id="about-ooootd" aria-labelledby="about-title">
+      <h2 id="about-title">OOOOTD 소개</h2>
+      <p class="about-lead">오늘 뭐 입을지 고민될 때, 날씨와 갈 곳에 맞춰 내가 가진 옷으로 코디를 고를 수 있어요. 필요한 옷이 부족하면 그 품목만 추천해 줘요.</p>
+
+      <div class="about-grid">
+        <section aria-labelledby="about-features">
+          <h3 id="about-features">무엇을 할 수 있나요?</h3>
+          <ul>
+            <li>오늘·내일 날씨와 일상, 출근, 면접 등 상황에 맞는 룩북 만들기</li>
+            <li>휴대폰으로 옷을 찍어 내 옷장에 등록하고, 색상과 옷 종류 자동으로 채우기</li>
+            <li>용도 다이얼로 코디를 바꾸고, 유사 코디를 비교하거나 룩북을 이미지로 저장하기</li>
+          </ul>
+        </section>
+        <section aria-labelledby="about-how">
+          <h3 id="about-how">추천은 어떻게 만들어지나요?</h3>
+          <ol>
+            <li>선택한 도시와 날짜의 기온, 코디 용도를 확인해요.</li>
+            <li>날씨와 상황에 맞는 옷을 추려 색상 조합을 비교해요. 더운 날이나 가벼운 외출에는 겉옷을 뺄 수 있어요.</li>
+            <li>추천한 이유를 룩북 아래에 보여줘요. 부족한 상품의 가격과 구매처는 상세를 펼쳐 확인할 수 있어요.</li>
+          </ol>
+        </section>
+      </div>
+
+
+      <section class="about-system" aria-labelledby="about-system-title">
+        <h3 id="about-system-title">운영 중에는 이렇게 연결돼요</h3>
+        <ol class="about-diagram about-runtime">
+          <li><strong>Render 웹사이트</strong><span>HTML·CSS·JavaScript 제공</span></li>
+          <li><strong>사용자 브라우저</strong><span>사진 분석·룩북 조합</span></li>
+          <li><strong>Neon API</strong><span>날씨·상품·내 옷장 요청 처리</span></li>
+          <li><strong>Neon 저장소</strong><span>Postgres 데이터·비공개 옷 사진</span></li>
+        </ol>
+        <p class="about-flow-note">API는 Open-Meteo에서 날씨를 읽고, 매주 월요일 오전 9시에 공개 상품 카탈로그를 갱신해요.</p>
+      </section>
+
+      <section class="about-system" aria-labelledby="about-deploy-title">
+        <h3 id="about-deploy-title">코드가 운영 사이트에 올라가는 과정</h3>
+        <div class="about-build">
+          <strong>로컬 코드</strong><span>빌드와 테스트</span>
+        </div>
+        <div class="about-deploy-lanes">
+          <div>
+            <h4>화면·추천 변경</h4>
+            <ol class="about-diagram">
+              <li><strong>화면 소스</strong><span>index.html · frontend · shared</span></li>
+              <li><strong>GitHub main</strong><span>웹 파일과 추천 번들 반영</span></li>
+              <li><strong>Render 운영</strong><span>자동 배포</span></li>
+            </ol>
+          </div>
+          <div>
+            <h4>API·저장 규칙 변경</h4>
+            <ol class="about-diagram">
+              <li><strong>서버 소스</strong><span>backend · shared → API 번들</span></li>
+              <li><strong>Neon 개발</strong><span>업로드와 데이터 분리 검증</span></li>
+              <li><strong>Neon 운영</strong><span>검증한 서버 버전 별도 배포</span></li>
+            </ol>
+          </div>
+        </div>
+        <p class="about-flow-note"><a href="/pbl/">공개 상품 검색 예시와 결과 캡처 보기</a></p>
+      </section>
+    </section>
 
     <footer>
       <p>© OOOOTD. Weather data provided by Open-Meteo. All rights reserved.</p>
