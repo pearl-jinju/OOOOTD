@@ -930,7 +930,7 @@
     </footer>
   </div>
 
-  <script src="/assets/outfit-rules.js?v=photo-colors"></script>
+  <script src="/assets/outfit-rules-gender.js"></script>
   <script>
     /* ==========================================================
        실제 크롤링된 300종 의류 데이터베이스 (남성/여성 태깅 완료)
@@ -1110,7 +1110,7 @@
       closetItems = items.map(item => ({...item,isOwned:true}));
       resetSimilarCombos(); updateClosetUI(); recalculateRankedCombos();
     };
-    window.applyPublicCatalog = items => { CATALOG_ITEMS = items; renderPublicCatalog(); if(recommendationMode !== 'owned')recalculateRankedCombos(); };
+    window.applyPublicCatalog = items => { CATALOG_ITEMS = items.map(OOOOTD_RULES.withCatalogAudience); renderPublicCatalog(); if(recommendationMode !== 'owned')recalculateRankedCombos(); };
 
     /* ==========================================================
        성별 선택

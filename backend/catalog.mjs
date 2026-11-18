@@ -1,4 +1,4 @@
-import {OCCASIONS,CATEGORIES,appropriate,tagsFor,coverage} from '../shared/outfits.mjs';
+import {OCCASIONS,CATEGORIES,appropriate,tagsFor,coverage,withCatalogAudience} from '../shared/outfits.mjs';
 import {withProductTags, PRODUCT_TAG_VERSION} from '../shared/product-tags.mjs';
 const ROOTS={outer:['002'],top:['001'],bottom:['003','100'],shoes:['103']};
 export function walk(node,out=[]){
@@ -55,11 +55,11 @@ export async function collectCatalog({occasion,minimum=2000}={}){
    if(p.isSoldOut){soldOut.add(p.goodsNo);continue}
    const price=Number(p.price);
    if(!Number.isSafeInteger(price)||price<=0||!String(p.thumbnail).startsWith('https://image.msscdn.net/'))continue;
-   const item={id:p.goodsNo,name:p.goodsName.replace(/&amp;/g,'&'),category:source.category,gender:source.gender,
+   const item=withCatalogAudience({id:p.goodsNo,name:p.goodsName.replace(/&amp;/g,'&'),category:source.category,gender:source.gender,
     unisex:label==='공용',sourceGender:label,genderOptions:label==='공용'?['men','women']:[source.gender],
     subcategory:source.title||'',...attributes(p.goodsName),image:p.thumbnail,
     sourceUrl:'https://www.musinsa.com/products/'+p.goodsNo,price,currency:'KRW',
-    priceCheckedAt:new Date().toISOString(),availability:'in_stock'};
+    priceCheckedAt:new Date().toISOString(),availability:'in_stock'});
    item.occasions=tagsFor(item);
    const previous=records.get(item.id);
    if(!previous||(previous.unisex&&!item.unisex)||(!previous.subcategory&&item.subcategory))records.set(item.id,item);
@@ -92,7 +92,7 @@ export async function collectCatalog({occasion,minimum=2000}={}){
  return items;
 }
 export function withCatalogTags(item){
- const tagged=withProductTags(item);
+ const tagged=withProductTags(withCatalogAudience(item));
  return tagged===item && Array.isArray(tagged.occasions) ? tagged : {...tagged,occasions:tagsFor(tagged)};
 }
 async function saveBatch(pool,items,kind,extra={}){

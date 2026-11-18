@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>OOOOTD 공개 상품 검색 소개</title>
+  <link rel="stylesheet" href="./intro.css">
+</head>
+<body>
+  <main>
+    <header>
+      <a class="brand" href="../">OOOOTD</a>
+      <h1>말로 찾는 옷</h1>
+      <p>내 말로 물으면 OOOOTD 공개 의류 카탈로그에서 조건이 가장 가까운 상품 세 개를 찾습니다.</p>
+    </header>
+    <figure class="evidence">
+      <img src="./search-result.png" width="1444" height="648" alt="비 오는 날 검정 방수 신발 검색 질문과 실제 상품명 및 조건 점수 세 건">
+      <figcaption>공개 의류 데이터에서 찾은 결과 · 점수는 상품 종류, 색상, 용도, 방수 표기의 일치도를 나타냅니다.</figcaption>
+    </figure>
+    <details>
+      <summary>직접 검색해 보기</summary>
+      <form id="catalog-question">
+        <label for="question">어떤 옷을 찾나요?</label>
+        <div class="search-row">
+          <input id="question" value="비 오는 날 검정 방수 신발" required maxlength="100">
+          <button type="submit">검색</button>
+        </div>
+      </form>
+      <section class="result-preview" aria-live="polite">
+        <h2 id="search-question"></h2>
+        <p id="search-status"></p>
+        <ol id="search-results"></ol>
+      </section>
+    </details>
+  </main>
+  <script type="module" src="./search.mjs"></script>
+</body>
+</html>

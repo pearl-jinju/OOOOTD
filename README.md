@@ -46,3 +46,8 @@ Schema: `db/001_initial.sql`. Infrastructure: `neon.ts`. Project and branch IDs:
 ## Expanded outfit coverage
 
 18 purpose-specific outfit types use shared eligibility rules in shared/outfits.mjs. Ranking keeps up to 200 distinct combinations and prioritizes visibly different successive results. Missing public-category coverage triggers authenticated, rate-limited category collection; user closets are never automatically populated by collection. Public catalog responses are compressed and the table is paginated with type/search filters.
+
+## Project guide
+
+- [OOOOTD architecture and deployment](ARCHITECTURE.ko.md)
+- [PBL public catalog search exhibit](pbl/index.html)

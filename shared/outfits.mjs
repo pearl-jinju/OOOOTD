@@ -24,8 +24,23 @@ export const OCCASIONS=[
 export const CATEGORIES=['outer','top','bottom','shoes'];
 const casual=/후드|맨투맨|스웨트|조거|트레이닝|반바지|쇼츠|카고|데님|청바지|슬리퍼|샌들|스니커|운동화|플리스|후리스|hood|sweat|jogger|training|shorts|cargo|denim|jeans|slipper|sandal|sneaker|fleece/i;
 const text=item=>String(item.name||'')+' '+String(item.subcategory||'');
-export const genderCompatible=(item,gender)=>item.gender===gender||item.unisex===true;
-export const genderLabel=item=>item.unisex?'남녀공용':item.gender==='women'?'여성':'남성';
+const catalogAudienceOverrides = new Map([[7730672,'women']]);
+
+export function withCatalogAudience(item){
+ const reported=String(item.sourceGender||'').trim();
+ const override=catalogAudienceOverrides.get(Number(item.id));
+ const audience=override||(reported==='여성'?'women':reported==='남성'?'men':null);
+ if(!audience||(item.gender===audience&&item.unisex!==true))return item;
+ return {...item,gender:audience,unisex:false,genderOptions:[audience]};
+}
+export function genderCompatible(item,gender){
+ const audience=item.isOwned?item:withCatalogAudience(item);
+ return audience.gender===gender||audience.unisex===true;
+}
+export function genderLabel(item){
+ const audience=item.isOwned?item:withCatalogAudience(item);
+ return audience.unisex?'남녀공용':audience.gender==='women'?'여성':'남성';
+}
 export function appropriate(item,occasion,gender=item.unisex?null:item.gender){
  const n=text(item),cat=item.category;
  if(!CATEGORIES.includes(cat))return false;
