@@ -32,8 +32,10 @@ export function connectOperations(auth, apiUrl) {
     panel.close();
     return;
    }
-   const token = await auth.getJWTToken();
-   if (!token || current !== revision) return;
+   const result = await auth.token();
+   if (current !== revision) return;
+   const token = result.data?.token;
+   if (result.error || !token) throw Error('Session token unavailable');
    const accessPath = loadReport ? '/admin/operations' : '/admin/operations/access';
    const response = await fetch(apiUrl + accessPath, {
     headers: {Authorization: 'Bearer ' + token},
