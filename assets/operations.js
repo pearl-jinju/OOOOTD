@@ -19,7 +19,32 @@ export function connectOperations(auth, apiUrl) {
  const accountStatus = document.getElementById('operations-account-status');
  const filter = document.getElementById('operations-member-filter');
  const memberSelect = document.getElementById('operations-member-select');
+ const sectionTitle = document.getElementById('operations-section-title');
+ const sectionButtons = [...panel.querySelectorAll('[data-operations-section]')];
+ const views = [...panel.querySelectorAll('[data-operations-view]')];
+ const memberViews = new Set(['logins','visits','searches','closet']);
  let revision = 0;
+ let selectedView = 'overview';
+ let reportAvailable = false;
+
+ function showView(section) {
+  selectedView = section;
+  for (const button of sectionButtons) {
+   const active = button.dataset.operationsSection === section;
+   if (active) {
+    button.setAttribute('aria-current','page');
+    sectionTitle.textContent = button.textContent;
+   } else {
+    button.removeAttribute('aria-current');
+   }
+  }
+  for (const view of views) view.hidden = view.dataset.operationsView !== section;
+  filter.hidden = !reportAvailable || !memberViews.has(section);
+  panel.querySelector('.admin-body').scrollTop = 0;
+ }
+ for (const button of sectionButtons) {
+  button.addEventListener('click',() => showView(button.dataset.operationsSection));
+ }
 
  async function recordActivity(type, query) {
   const session = await auth.getSession();
@@ -59,11 +84,14 @@ export function connectOperations(auth, apiUrl) {
  async function refresh(loadReport = false) {
   const current = ++revision;
   if (!loadReport) {
-   open.hidden = filter.hidden = true;
+   open.hidden = true;
+   reportAvailable = false;
    memberSelect.value = '';
+   showView('overview');
   }
   report.hidden = true;
-  status.textContent = accountStatus.textContent = '';
+  status.textContent = loadReport ? '운영 데이터를 불러오는 중…' : '';
+  accountStatus.textContent = '';
   for (const id of ['operations-traffic','operations-runs','operations-catalog','operations-member-logins','operations-visits','operations-searches','operations-closet-activity']) {
    document.getElementById(id).replaceChildren();
   }
@@ -106,7 +134,7 @@ export function connectOperations(auth, apiUrl) {
     open.hidden = data.admin !== true;
     return;
    }
-   open.hidden = filter.hidden = false;
+   open.hidden = false;
    const options = data.members ?? [];
    memberSelect.replaceChildren(new Option('전체 회원과 비회원',''),new Option('비회원','guest'),
     ...options.map(member=>new Option(
@@ -138,7 +166,15 @@ export function connectOperations(auth, apiUrl) {
     ...run, created_at: new Date(run.created_at).toLocaleString('ko-KR',{timeZone:'Asia/Seoul'}),
    })), ['created_at','kind','status','collected','count']);
    rows('operations-catalog', data.catalog, ['category','products']);
+   document.getElementById('operations-metric-members').textContent = options.filter(member=>!member.id.startsWith('device:')).length.toLocaleString('ko-KR');
+   document.getElementById('operations-metric-requests').textContent =
+    data.traffic.reduce((total,row)=>total + row.requests,0).toLocaleString('ko-KR');
+   document.getElementById('operations-metric-products').textContent =
+    data.catalog.reduce((total,row)=>total + row.products,0).toLocaleString('ko-KR');
+   reportAvailable = true;
    report.hidden = false;
+   status.textContent = '';
+   filter.hidden = !memberViews.has(selectedView);
   } catch {
    if (current !== revision) return;
    if (panel.open) status.textContent = '운영 데이터를 불러오지 못했습니다.';
