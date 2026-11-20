@@ -6,6 +6,32 @@ export function connectOperations(auth, apiUrl) {
  const accountStatus = document.getElementById('operations-account-status');
  let revision = 0;
 
+ async function recordActivity(type, query) {
+  const session = await auth.getSession();
+  if (session.error) return;
+  const user = session.data?.user;
+  const sessionToken = session.data?.session?.token;
+  const validSessionToken = typeof sessionToken === 'string' && /^[\w-]+\.[\w-]+\.[\w-]+$/.test(sessionToken);
+  const body = JSON.stringify({id:crypto.randomUUID(),type,query});
+  const send = token => fetch(apiUrl + '/site/activity', {
+   method:'POST', headers:{'Content-Type':'application/json', ...(token ? {Authorization:'Bearer '+token} : {})},
+   body, signal:AbortSignal.timeout(8000),
+  });
+  if (!user) {
+   await send(null);
+   return;
+  }
+  if (validSessionToken && (await send(sessionToken)).status !== 401) return;
+  const result = await auth.token();
+  if (!result.error && result.data?.token) await send(result.data.token);
+ }
+ document.getElementById('catalog-search-form').addEventListener('submit', event => {
+  event.preventDefault();
+  const query = document.getElementById('catalog-search').value.trim();
+  if (query) recordActivity('search',query).catch(() => {});
+ });
+ recordActivity('visit').catch(() => {});
+
  function rows(id, records, keys) {
   const body = document.getElementById(id);
   body.replaceChildren();
@@ -20,7 +46,7 @@ export function connectOperations(auth, apiUrl) {
   if (!loadReport) open.hidden = true;
   report.hidden = true;
   status.textContent = accountStatus.textContent = '';
-  for (const id of ['operations-traffic','operations-runs','operations-catalog','operations-member-logins']) {
+  for (const id of ['operations-traffic','operations-runs','operations-catalog','operations-member-logins','operations-visits','operations-searches']) {
    document.getElementById(id).replaceChildren();
   }
   try {
@@ -65,6 +91,13 @@ export function connectOperations(auth, apiUrl) {
    rows('operations-member-logins', memberLogins.map(event => ({
     ...event, created_at: new Date(event.created_at).toLocaleString('ko-KR',{timeZone:'Asia/Seoul'}),
    })), ['created_at','member']);
+   for (const [type,keys] of [['visits',['created_at','member']],['searches',['created_at','member','search_term']]]) {
+    const events = data[type] ?? [];
+    document.getElementById('operations-'+type+'-empty').hidden = events.length > 0;
+    rows('operations-'+type, events.map(event=>({
+     ...event, created_at:new Date(event.created_at).toLocaleString('ko-KR',{timeZone:'Asia/Seoul'}),
+    })), keys);
+   }
    rows('operations-traffic', data.traffic, ['method','route','status','requests','avg_ms','max_ms']);
    rows('operations-runs', data.runs.map(run => ({
     ...run, created_at: new Date(run.created_at).toLocaleString('ko-KR',{timeZone:'Asia/Seoul'}),
