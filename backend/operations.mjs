@@ -6,7 +6,7 @@ const methods = new Set(['GET', 'POST', 'PUT', 'DELETE']);
 const operationsPath = '/admin/operations';
 
 export function withOperations(app, {pool, verify, allowedOrigins}) {
- async function operations(request, origin) {
+ async function operations(request, origin, accessOnly) {
   const headers = {
    'Cache-Control': 'no-store',
    'Vary': 'Origin',
@@ -33,6 +33,7 @@ export function withOperations(app, {pool, verify, allowedOrigins}) {
       WHERE a.user_id = $1
    `,[userId]);
    if (!admin) return reply({error:'access_denied'},403);
+   if (accessOnly) return reply({verified:admin.verified});
    if (!admin.verified) return reply({error:'email_verification_required'},403);
 
    const [traffic, runs, catalog] = await Promise.all([
@@ -64,7 +65,8 @@ export function withOperations(app, {pool, verify, allowedOrigins}) {
  return {async fetch(request, ...context) {
   const path = new URL(request.url).pathname.replace(/\/$/,'') || '/';
   const origin = request.headers.get('origin');
-  if (path === operationsPath) return operations(request, origin);
+  const accessOnly = path === operationsPath + '/access';
+  if (accessOnly || path === operationsPath) return operations(request, origin, accessOnly);
   const route = /^\/closet\/\d+$/.test(path) ? '/closet/:id' : path;
   const monitor = methods.has(request.method) &&
    (monitoredRoutes.has(route) || route === '/closet/:id') &&
@@ -86,8 +88,8 @@ export function withOperations(app, {pool, verify, allowedOrigins}) {
    if (path === '/cron/catalog' && response.ok) {
     await pool.query("DELETE FROM ooootd_api_minutes WHERE minute < now() - interval '7 days'");
    }
-  } catch {
-   console.error('OOOOTD operations metrics write failed');
+  } catch (error) {
+   console.error('OOOOTD operations metrics write failed', /^[A-Z0-9]{5}$/.test(error?.code) ? error.code : 'unknown');
   }
   return response;
  }};

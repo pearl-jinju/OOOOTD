@@ -849,7 +849,7 @@
               <button class="btn-icon" id="account-google" type="button">Google로 계속하기</button>
             </div>
           </form>
-          <button class="btn-icon" id="operations-open" type="button" aria-haspopup="dialog" aria-controls="operations" hidden>운영 분석</button>
+          <button class="btn-icon" id="operations-open" type="button" aria-haspopup="dialog" aria-controls="operations" hidden>관리자 기능</button>
           <button class="btn-icon" id="account-sign-out" type="button" hidden>로그아웃</button>
           <p id="account-status" role="status" aria-live="polite"></p>
         </div>
@@ -1144,6 +1144,15 @@
             <li>선택한 도시와 날짜의 기온, 코디 용도를 확인해요.</li>
             <li>날씨와 상황에 맞는 옷을 추려 색상 조합을 비교해요. 더운 날이나 가벼운 외출에는 겉옷을 뺄 수 있어요.</li>
             <li>추천한 이유를 룩북 아래에 보여줘요. 상품 카드에 마우스를 올리거나 탭하면 구매처를 확인할 수 있어요.</li>
+          </ol>
+        </section>
+        <section aria-labelledby="about-account">
+          <h3 id="about-account">계정은 어떻게 관리하나요?</h3>
+          <ol>
+            <li>이메일과 비밀번호로 가입하거나 Google 계정으로 로그인할 수 있어요.</li>
+            <li>로그인하면 오늘의 룩북 전체를 볼 수 있고, 내 계정에서 로그아웃할 수 있어요.</li>
+            <li>내 옷장은 브라우저에 연결돼요. 다른 기기에서 이어 쓰려면 옷장 연결 링크를 이용하세요.</li>
+            <li>관리자 계정은 내 계정의 관리자 기능에서 이메일 인증 후 운영 통계와 수집 이력을 확인할 수 있어요.</li>
           </ol>
         </section>
       </div>
@@ -2118,7 +2127,7 @@
       fetchLiveWeather();
     });
   </script>
-  <script type="module" src="/assets/cloud.js?v=operations-dialog"></script>
+  <script type="module" src="/assets/cloud.js?v=operations-account"></script>
   <script type="module" src="/assets/runtime-pipeline-autoplay.js"></script>
 </body>
 </html>

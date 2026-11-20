@@ -17,9 +17,9 @@ export function connectOperations(auth, apiUrl) {
   }
  }
 
- async function refresh() {
+ async function refresh(loadReport = false) {
   const current = ++revision;
-  open.hidden = true;
+  if (!loadReport) open.hidden = true;
   verifyForm.hidden = report.hidden = true;
   status.textContent = '';
   for (const id of ['operations-traffic','operations-runs','operations-catalog']) {
@@ -34,7 +34,8 @@ export function connectOperations(auth, apiUrl) {
    }
    const token = await auth.getJWTToken();
    if (!token || current !== revision) return;
-   const response = await fetch(apiUrl + '/admin/operations', {
+   const accessPath = loadReport ? '/admin/operations' : '/admin/operations/access';
+   const response = await fetch(apiUrl + accessPath, {
     headers: {Authorization: 'Bearer ' + token},
     signal: AbortSignal.timeout(15000),
    });
@@ -48,12 +49,14 @@ export function connectOperations(auth, apiUrl) {
     if (panel.open) status.textContent = '운영 데이터를 불러오지 못했습니다.';
     return;
    }
+   open.hidden = false;
+   if (!loadReport) return;
    rows('operations-traffic', data.traffic, ['method','route','status','requests','avg_ms','max_ms']);
    rows('operations-runs', data.runs.map(run => ({
     ...run, created_at: new Date(run.created_at).toLocaleString('ko-KR',{timeZone:'Asia/Seoul'}),
    })), ['created_at','kind','status','collected','count']);
    rows('operations-catalog', data.catalog, ['category','products']);
-   report.hidden = open.hidden = false;
+   report.hidden = false;
   } catch {
    if (current === revision && panel.open) status.textContent = '운영 데이터를 불러오지 못했습니다.';
   }
@@ -91,14 +94,14 @@ export function connectOperations(auth, apiUrl) {
    if (result.error) throw Error();
    if (current !== revision) return;
    verifyForm.reset();
-   await refresh();
+   await refresh(true);
   },'인증에 실패했어요. 코드와 만료 시간을 확인해 주세요.');
  });
 
  open.addEventListener('click', () => {
   if (!panel.open) panel.showModal();
-  refresh();
+  refresh(true);
  });
- document.getElementById('operations-refresh').addEventListener('click',refresh);
+ document.getElementById('operations-refresh').addEventListener('click',() => refresh(true));
  return refresh;
 }
