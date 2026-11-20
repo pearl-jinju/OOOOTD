@@ -43,3 +43,16 @@ test('formal occasions reject resort and short-sleeve shirts even with stale cat
   }
   assert.equal(appropriate({name:'(M) SHORT SLEEVE SHIRT (TORTORA)',category:'top'},'daily'),true);
 });
+
+test('garment roles exclude base layers even if the title says long sleeve shirt',()=>{
+ const items=[
+  {name:'긴팔 스판 언더셔츠 BOK-352 (검정)'},
+  {name:'Long Sleeve Base Layer Shirt'},
+  {name:'클래식 긴팔 셔츠',subcategory:'스포츠 이너웨어'},
+  {name:'클래식 긴팔 셔츠',productTags:{layer:['base']}},
+ ];
+ for (const occasion of ['work','interview','wedding','meeting']) {
+  for (const item of items) assert.equal(appropriate({...item,category:'top',color:'black',gender:'men'},occasion),false,item.name);
+ }
+ assert.equal(appropriate({name:'스판 긴팔 드레스 셔츠',category:'top',color:'white'},'interview'),true);
+});

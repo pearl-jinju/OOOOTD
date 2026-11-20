@@ -1,4 +1,5 @@
 export {CLOTHING_COLORS} from './colors.mjs';
+import {hasBaseLayerRole} from './product-tags.mjs';
 export {outfitTagDistance} from './product-tags.mjs';
 
 export const OCCASIONS=[
@@ -55,6 +56,7 @@ export function appropriate(item,occasion,gender=item.unisex?null:item.gender){
  if(['work','interview','wedding','meeting'].includes(occasion)){
   if(casual.test(n)||/tracks?[\s_-]*suits?|트랙[\s_-]*수트|트랙.?탑|track[\s_-]*(?:top|jacket)|하프.?집업|half[\s_-]*zip|쿼터.?집업|quarter[\s_-]*zip|저지|jersey|셔켓|shacket|shirt[\s_-]*jacket/i.test(n))return false;
   if(cat==='top'){
+    if(hasBaseLayerRole(item))return false;
     if(/반팔|반소매|민소매|쇼트.?슬리브|하프.?슬리브|오픈.?카라|오픈.?칼라|캠프.?카라|하와이|리조트|페이즐리|플라워|꽃무늬|그래픽|프린트|타이다이|\b(?:short[ -]*sleeve|half[ -]*sleeve|sleeveless|open[ -]*collar|camp[ -]*collar|hawaiian|resort|paisley|floral|graphic|printed|tie[ -]*dye|polo|henley)\b/i.test(n))return false;
   }
   if(occasion==='interview'){

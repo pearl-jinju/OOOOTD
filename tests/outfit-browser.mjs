@@ -58,8 +58,49 @@ try {
   await verify({occasion:'daily',gender,temp:31});
   await verify({occasion:'daily',gender,temp:4});
  }
+ await page.evaluate(() => {
+  currentWeather = {temp:15};
+  selectGender('men');
+  selectOccasion('daily',false);
+  selectRecommendationMode('catalog');
+ });
+ const currentTop = () => page.locator('#board-img-top').getAttribute('alt');
+ const originalTop = await currentTop();
+ const before = await page.evaluate(() => rankedCombos[currentRankIndex].items.map(item=>item.id));
+ const pin = page.locator('#outfit-pin-top');
+ await pin.click();
+ assert.equal(await pin.getAttribute('aria-pressed'),'true');
+ assert.equal(await currentTop(),originalTop);
+ await page.locator('#next-combo-btn').click();
+ assert.equal(await currentTop(),originalTop);
+ const after = await page.evaluate(() => rankedCombos[currentRankIndex].items.map(item=>item.id));
+ assert.notDeepEqual(after,before);
+ await pin.click();
+ assert.equal(await pin.getAttribute('aria-pressed'),'false');
+
+ await page.evaluate(() => {
+  const make = (id,category,name,color) => ({id,category,name,color,season:'mild',gender:'men',occasion:'interview'});
+  window.applyPublicCatalog([
+   make(101,'outer','클래식 울 블레이저','navy'),
+   make(102,'top','긴팔 스판 언더셔츠 BOK-352 (검정)','black'),
+   make(103,'bottom','울 슬랙스','navy'),
+   make(104,'shoes','클래식 가죽 옥스포드 구두','black'),
+  ]);
+  selectOccasion('daily',false);
+  selectRecommendationMode('catalog');
+ });
+ await pin.click();
+ await page.evaluate(() => selectOccasion('interview',false));
+ assert(await page.locator('#lookbook-top').isHidden());
+ assert.match(await page.locator('#outfit-pin-status').textContent(),/고정 해제/);
+ await page.evaluate(() => {
+  window.applyPublicCatalog([...CATALOG_ITEMS,{
+   id:105,category:'top',name:'솔리드 긴소매 드레스 셔츠',color:'white',season:'mild',gender:'men',occasion:'interview',
+  }]);
+ });
+ assert.equal(await currentTop(),'솔리드 긴소매 드레스 셔츠');
  assert.deepEqual(errors,[]);
- console.log('PASS: 40 browser checks across occasions, genders and temperatures.');
+ console.log('PASS: 40 outfit scenarios, garment pinning, and interview base-layer regression.');
 } finally {
  await browser.close();
 }

@@ -1,4 +1,9 @@
-export const PRODUCT_TAG_VERSION = 2;
+export const PRODUCT_TAG_VERSION = 3;
+
+export function hasBaseLayerRole(item) {
+  return item.productTags?.layer?.includes('base') ||
+    /언더[\s_-]*셔츠|이너웨어|내복|보정속옷|컴프레션|베이스[\s_-]*레이어|\b(?:under[\s_-]*shirts?|base[\s_-]*layers?|thermal[\s_-]*underwear|compression[\s_-]*(?:tops?|shirts?))\b/i.test(String(item.name || '') + ' ' + String(item.subcategory || ''));
+}
 
 const rules = {
   tone: {
@@ -64,6 +69,7 @@ export function productTags(item) {
   const title = String(item.name || '').normalize('NFKC').replace(/_/g, ' ');
   const toneSource = /멀티.?컬러|색상.?선택|\d+\s*(?:컬러|colou?rs?)|[/|]/i.test(title) ? '' : title;
   const tags = {};
+  if (hasBaseLayerRole(item)) tags.layer = ['base'];
   for (const [axis, variants] of Object.entries(rules)) {
     if (item.category === 'shoes' && ['fit','length','pattern','weight'].includes(axis)) continue;
     const source = axis === 'tone' ? toneSource : title;

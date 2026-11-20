@@ -335,6 +335,18 @@
       transition: transform 0.2s;
     }
 
+    .outfit-pin {
+      position: absolute;
+      inset-block-start: 6px;
+      inset-inline-end: 6px;
+      z-index: 5;
+      padding: 3px 7px;
+      font-size: .72rem;
+    }
+    .outfit-pin[aria-pressed="true"] { background: #eef2ff; color: #3730a3; }
+    .lookbook-item.is-preview-locked .outfit-pin { visibility: hidden; }
+    .outfit-pin-status { margin-block-start: 8px; color: var(--text-muted); font-size: .8rem; }
+    .outfit-pin-status:empty { display: none; }
     .lookbook-preview-login {
       position: absolute;
       inset: 0;
@@ -1027,6 +1039,7 @@
             <div class="ai-tryon-board lookbook-board-purchases">
               <div class="lookbook-item" id="lookbook-outer">
                 <span class="lookbook-tag">아우터</span>
+                <button class="btn-icon outfit-pin" id="outfit-pin-outer" type="button" aria-pressed="false" onclick="toggleOutfitPin('outer')" data-html2canvas-ignore="true">고정</button>
                 <img id="board-img-outer" src="" alt="아우터">
                 <button class="lookbook-product-toggle" id="lookbook-toggle-outer" type="button" aria-controls="lookbook-info-outer" aria-expanded="false" data-html2canvas-ignore="true" hidden></button>
                 <span class="lookbook-price" id="lookbook-price-outer" hidden></span>
@@ -1034,6 +1047,7 @@
               </div>
               <div class="lookbook-item" id="lookbook-top">
                 <span class="lookbook-tag">상의</span>
+                <button class="btn-icon outfit-pin" id="outfit-pin-top" type="button" aria-pressed="false" onclick="toggleOutfitPin('top')" data-html2canvas-ignore="true">고정</button>
                 <img id="board-img-top" src="" alt="상의">
                 <button class="lookbook-product-toggle" id="lookbook-toggle-top" type="button" aria-controls="lookbook-info-top" aria-expanded="false" data-html2canvas-ignore="true" hidden></button>
                 <span class="lookbook-price" id="lookbook-price-top" hidden></span>
@@ -1041,6 +1055,7 @@
               </div>
               <div class="lookbook-item" id="lookbook-bottom">
                 <span class="lookbook-tag">하의</span>
+                <button class="btn-icon outfit-pin" id="outfit-pin-bottom" type="button" aria-pressed="false" onclick="toggleOutfitPin('bottom')" data-html2canvas-ignore="true">고정</button>
                 <img id="board-img-bottom" src="" alt="하의">
                 <button class="lookbook-product-toggle" id="lookbook-toggle-bottom" type="button" aria-controls="lookbook-info-bottom" aria-expanded="false" data-html2canvas-ignore="true" hidden></button>
                 <span class="lookbook-price" id="lookbook-price-bottom" hidden></span>
@@ -1051,6 +1066,7 @@
               </div>
               <div class="lookbook-item" id="lookbook-shoes">
                 <span class="lookbook-tag">신발</span>
+                <button class="btn-icon outfit-pin" id="outfit-pin-shoes" type="button" aria-pressed="false" onclick="toggleOutfitPin('shoes')" data-html2canvas-ignore="true">고정</button>
                 <img id="board-img-shoes" src="" alt="신발">
                 <button class="lookbook-product-toggle" id="lookbook-toggle-shoes" type="button" aria-controls="lookbook-info-shoes" aria-expanded="false" data-html2canvas-ignore="true" hidden></button>
                 <span class="lookbook-price" id="lookbook-price-shoes" hidden></span>
@@ -1061,6 +1077,7 @@
               </div>
             </div>
 
+            <p class="outfit-pin-status" id="outfit-pin-status" role="status"></p>
             <p id="lookbook-reason" aria-live="polite"></p>
             <p class="lookbook-purchase-total" id="purchase-summary" hidden><strong id="purchase-total"></strong> ? <span id="purchase-price-status" role="status"></span> ? 배송비·쿠폰 제외</p>
           </div>
@@ -1236,7 +1253,7 @@
     </footer>
   </div>
 
-  <script src="/assets/outfit-rules-layers.js"></script>
+  <script src="/assets/outfit-rules-layers.js?v=layer-role"></script>
   <script>
     /* ==========================================================
        실제 크롤링된 300종 의류 데이터베이스 (남성/여성 태깅 완료)
@@ -1330,9 +1347,22 @@
         (original.occasion === candidate.occasion ? 20 : 0);
     }
 
+    const pinnedGarments = new Map();
+    const sameGarment = (a,b) => a?.id===b?.id && Boolean(a?.isOwned)===Boolean(b?.isOwned);
+
+    function toggleOutfitPin(category) {
+      const selected = displayedAlternative || rankedCombos[currentRankIndex];
+      const item = selected?.items.find(candidate=>candidate.category===category);
+      if (!item || document.getElementById('outfit-pin-'+category).disabled) return;
+      if (sameGarment(item,pinnedGarments.get(category))) pinnedGarments.delete(category);
+      else pinnedGarments.set(category,item);
+      recalculateRankedCombos(selected.items);
+    }
+
     function buildSimilarVariants(anchor) {
       const similarSource = outfitPool();
       const choices = anchor.items.map(original => {
+        if (pinnedGarments.has(original.category)) return [{item:original,similarity:0}];
         let pool = similarSource.filter(item => item.category===original.category&&item.id!==original.id&&isEligibleOutfitItem(item));
         // Keep the original temperature suitability whenever a replacement exists.
         const seasonPool = pool.filter(item => item.season === original.season);
@@ -1392,7 +1422,7 @@
       const source = outfitPool();
       const original = rankedCombos[currentRankIndex];
       document.getElementById('similar-combo-btn').disabled = !original || !original.items.some(base =>
-        source.some(item=>item.category===base.category&&item.id!==base.id&&isEligibleOutfitItem(item)));
+        !pinnedGarments.has(base.category)&&source.some(item=>item.category===base.category&&item.id!==base.id&&isEligibleOutfitItem(item)));
       document.getElementById('restore-combo-btn').hidden = !displayedAlternative;
       const status = document.getElementById('similar-combo-status');
       status.hidden = !displayedAlternative;
@@ -1686,7 +1716,7 @@
       return next;
     }
 
-    function recalculateRankedCombos() {
+    function recalculateRankedCombos(preferredItems) {
       recommendationMode = requestedRecommendationMode;
       const outerPolicy=getOuterPolicy();
       const needsSupplement = recommendationMode === 'owned' &&
@@ -1709,8 +1739,19 @@
       const temp = currentWeather.temp;
       const targetSeason = getTemperatureSeason(temp);
       const source = outfitPool();
+      const released=[];
+      for(const [category,item] of pinnedGarments){
+        if(category==='outer'&&outerPolicy==='omit'||!source.some(candidate=>candidate.category===category&&sameGarment(candidate,item)&&isEligibleOutfitItem(candidate))){
+          pinnedGarments.delete(category);
+          released.push(item.name);
+        }
+      }
+      document.getElementById('outfit-pin-status').textContent = released.length
+        ? '현재 추천 조건에서 고정 해제 · '+released.join(', ')
+        : pinnedGarments.size ? `고정한 옷 ${pinnedGarments.size}개 · 다음 코디에도 유지돼요.` : '';
       const itemScores = new Map();
-      const poolFor = category => source.filter(item => item.category===category && isEligibleOutfitItem(item))
+      const poolFor = category => source.filter(item => item.category===category &&
+        (!pinnedGarments.has(category)||sameGarment(item,pinnedGarments.get(category))) && isEligibleOutfitItem(item))
         .map(item => {
           const temperature=temperatureScore(item,targetSeason);
           const occasion=OOOOTD_RULES.occasionScore(item,currentOccasion);
@@ -1720,8 +1761,10 @@
         .sort((a,b)=>b.score-a.score||a.item.id-b.item.id)
         .slice(0,24);
 
-      const requiredPools=getRequiredCategories().map(poolFor);
-      const optionalOuter=outerPolicy==='optional'?poolFor('outer'):[];
+      const requiredCategories=outerPolicy==='optional'&&pinnedGarments.has('outer')
+        ? ['outer',...baseOutfitCategories] : getRequiredCategories();
+      const requiredPools=requiredCategories.map(poolFor);
+      const optionalOuter=outerPolicy==='optional'&&!pinnedGarments.has('outer')?poolFor('outer'):[];
       const makeCombos=pools=>{
         let beam=[{items:[],baseScore:0}];
         for(const pool of pools)beam=extendOutfitBeam(beam,pool,4000);
@@ -1757,10 +1800,12 @@
         diverse.push(combos.splice(index,1)[0]);
       }
       rankedCombos = diverse;
-      if(recommendationMode!=='owned'&&requiredPools.some(pool=>pool.length<4)&&window.ooootdCloudReady&&window.cloudEnsureCatalog){
+      if(recommendationMode!=='owned'&&requiredPools.some((pool,index)=>!pinnedGarments.has(requiredCategories[index])&&pool.length<4)&&window.ooootdCloudReady&&window.cloudEnsureCatalog){
         window.cloudEnsureCatalog(currentOccasion).catch(()=>{});
       }
-      currentRankIndex = 0;
+      currentRankIndex = preferredItems
+        ? Math.max(0,rankedCombos.findIndex(combo=>!changedGarments(combo.items,preferredItems)))
+        : 0;
       renderComboAtCurrentRank();
     }
 
@@ -1776,6 +1821,7 @@
         tile.classList.toggle('is-preview-locked', locked);
         tile.querySelector('.lookbook-preview-login').hidden = !locked;
         document.getElementById('lookbook-toggle-' + category).disabled = locked;
+        document.getElementById('outfit-pin-' + category).disabled = locked;
         document.getElementById('board-img-' + category).toggleAttribute('aria-hidden', locked);
         tile.toggleAttribute('data-html2canvas-ignore', locked);
       }
@@ -1822,6 +1868,11 @@
         const it = comboItems.find(item=>item.category===cat);
         document.getElementById('lookbook-'+cat).hidden=!it;
         renderLookbookProduct(cat,it);
+        const pin=document.getElementById('outfit-pin-'+cat);
+        const pinned=Boolean(it)&&sameGarment(it,pinnedGarments.get(cat));
+        pin.setAttribute?.('aria-pressed',String(pinned));
+        pin.textContent=pinned?'고정 해제':'고정';
+        if(cat==='outer'||cat==='top')pin.disabled=!it;
         const imgEl = document.getElementById(`board-img-${cat}`);
         if (imgEl && it) {
           imgEl.src = it.image;
