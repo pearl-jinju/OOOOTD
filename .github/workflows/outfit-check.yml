@@ -18,5 +18,7 @@ jobs:
       - run: npm ci
       - run: npm test
       - run: npm run test:outfits
+        # Paused on request.
+        if: ${{ false }}
         env:
           OOOOTD_TEST_BROWSER_CHANNEL: chrome

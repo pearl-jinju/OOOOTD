@@ -1,3 +1,4 @@
 [mcp_servers.playwright]
+enabled = false
 command = "npx"
 args = ["-y", "@playwright/mcp@latest", "--headless", "--isolated"]
