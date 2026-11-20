@@ -335,11 +335,34 @@
       transition: transform 0.2s;
     }
 
-    .lookbook-item.is-preview-locked { pointer-events: none; }
+    .lookbook-preview-login {
+      position: absolute;
+      inset: 0;
+      z-index: 4;
+      display: grid;
+      place-items: center;
+      padding: 8px;
+      border: 0;
+      background: transparent;
+      cursor: pointer;
+    }
+    .lookbook-preview-login span {
+      padding: 6px 9px;
+      border-radius: 6px;
+      background: #162033;
+      color: white;
+      font-size: .8rem;
+      opacity: 0;
+    }
+    .lookbook-preview-login:hover span,
+    .lookbook-preview-login:focus-visible span { opacity: 1; }
+    @media (hover: none) {
+      .lookbook-preview-login span { opacity: 1; }
+    }
     .lookbook-item.is-preview-locked img { filter: blur(14px); }
     .lookbook-item.is-preview-locked .lookbook-price,
     .lookbook-item.is-preview-locked .lookbook-product-info { visibility: hidden; }
-    .lookbook-login { margin-top: 10px; }
+    .lookbook-item.is-preview-locked .lookbook-product-toggle { visibility: hidden; }
 
     .lookbook-item:hover {
       transform: scale(1.02);
@@ -678,9 +701,29 @@
     [hidden] { display: none !important; }
     .btn-icon:disabled { opacity: 0.5; cursor: not-allowed; }
     .private-panel{background:white;border:1px solid var(--border);border-radius:16px;padding:20px;margin-bottom:20px}
-#account-panel [hidden]{display:none}
-#account-panel summary{cursor:pointer;font-weight:700}
-#account-panel p:empty{display:none}
+    .container > .home-heading { padding-block-start: 46px; }
+    .home-account { text-align: right; }
+    .home-account summary {
+      position: absolute;
+      inset-block-start: 10px;
+      inset-inline-end: 16px;
+      color: var(--accent-hover);
+      cursor: pointer;
+      font-size: .86rem;
+      font-weight: 700;
+      padding: 3px 0;
+      list-style: none;
+    }
+    .home-account summary::-webkit-details-marker { display: none; }
+    .home-account summary:hover { text-decoration: underline; }
+    .home-account[open] { margin-block-end: 18px; }
+    .home-account .private-form { margin-block: 0; text-align: left; }
+    .home-account .private-actions { justify-content: flex-end; margin-block-start: 0; }
+    .home-account p { margin-block-start: 8px; color: var(--text-muted); font-size: .85rem; }
+    .home-account p:empty { display: none; }
+    @media (max-width: 600px) {
+      .home-account[open] { margin-inline: -52px; }
+    }
 .private-panel h2{font-size:1.1rem;margin-bottom:8px}.private-panel p{font-size:.86rem;color:var(--text-muted);margin-top:6px}
 .private-panel details{margin-top:16px}.private-form{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;margin-top:14px}
 .private-form label{display:flex;flex-direction:column;gap:5px;font-size:.85rem}.private-form input,.private-form select{width:100%;padding:10px;border:1px solid var(--border);border-radius:8px;min-width:0;background:white}.wide{grid-column:1/-1}
@@ -758,21 +801,21 @@
 
   <div class="container">
     <!-- 서비스 소개 헤더 -->
-    <details class="private-panel" id="account-panel">
-      <summary id="account-label">로그인 · 회원가입</summary>
-      <form class="private-form" id="account-form">
-        <label id="account-name-label" hidden>이름<input id="account-name" autocomplete="name" maxlength="100"></label>
-        <label>이메일<input id="account-email" type="email" autocomplete="username" required maxlength="254"></label>
-        <label>비밀번호<input id="account-password" type="password" autocomplete="current-password" required maxlength="128"></label>
-        <div class="wide private-actions">
-          <button class="btn-icon" id="account-submit" type="submit">로그인</button>
-          <button class="btn-icon" id="account-mode" type="button">회원가입</button>
-        </div>
-      </form>
-      <button class="btn-icon" id="account-sign-out" type="button" hidden>로그아웃</button>
-      <p id="account-status" role="status" aria-live="polite"></p>
-    </details>
     <header class="home-heading">
+      <details class="home-account" id="account-panel">
+        <summary id="account-label">로그인 · 회원가입</summary>
+        <form class="private-form" id="account-form">
+          <label id="account-name-label" hidden>이름<input id="account-name" autocomplete="name" maxlength="100"></label>
+          <label>이메일<input id="account-email" type="email" autocomplete="username" required maxlength="254"></label>
+          <label>비밀번호<input id="account-password" type="password" autocomplete="current-password" required maxlength="128"></label>
+          <div class="wide private-actions">
+            <button class="btn-icon" id="account-submit" type="submit">로그인</button>
+            <button class="btn-icon" id="account-mode" type="button">회원가입</button>
+          </div>
+        </form>
+        <button class="btn-icon" id="account-sign-out" type="button" hidden>로그아웃</button>
+        <p id="account-status" role="status" aria-live="polite"></p>
+      </details>
       <div class="home-brand">
         <span class="home-brand-icon"><i class="fa-solid fa-shirt" aria-hidden="true"></i></span>
         <div>
@@ -922,6 +965,9 @@
                 <button class="lookbook-product-toggle" id="lookbook-toggle-bottom" type="button" aria-controls="lookbook-info-bottom" aria-expanded="false" data-html2canvas-ignore="true" hidden></button>
                 <span class="lookbook-price" id="lookbook-price-bottom" hidden></span>
                 <div class="lookbook-product-info" id="lookbook-info-bottom" data-html2canvas-ignore="true" hidden></div>
+                <button class="lookbook-preview-login" type="button" aria-controls="account-panel" hidden>
+                  <span>로그인하여 오늘의 룩을 확인하세요</span>
+                </button>
               </div>
               <div class="lookbook-item" id="lookbook-shoes">
                 <span class="lookbook-tag">신발</span>
@@ -929,12 +975,12 @@
                 <button class="lookbook-product-toggle" id="lookbook-toggle-shoes" type="button" aria-controls="lookbook-info-shoes" aria-expanded="false" data-html2canvas-ignore="true" hidden></button>
                 <span class="lookbook-price" id="lookbook-price-shoes" hidden></span>
                 <div class="lookbook-product-info" id="lookbook-info-shoes" data-html2canvas-ignore="true" hidden></div>
+                <button class="lookbook-preview-login" type="button" aria-controls="account-panel" hidden>
+                  <span>로그인하여 오늘의 룩을 확인하세요</span>
+                </button>
               </div>
             </div>
 
-            <button class="btn-icon lookbook-login" id="lookbook-login" type="button" data-html2canvas-ignore="true" hidden>
-              로그인하고 오늘의 룩북 전체 보기
-            </button>
             <p id="lookbook-reason" aria-live="polite"></p>
             <p class="lookbook-purchase-total" id="purchase-summary" hidden><strong id="purchase-total"></strong> ? <span id="purchase-price-status" role="status"></span> ? 배송비·쿠폰 제외</p>
           </div>
@@ -1606,16 +1652,15 @@
     function syncLookbookPreview() {
       const signedIn = !document.getElementById('account-sign-out').hidden;
       const preview = forecastDay === 'today' && !signedIn;
-      let hasLockedCards = false;
       for (const category of ['bottom', 'shoes']) {
         const tile = document.getElementById('lookbook-' + category);
         const locked = preview && !tile.hidden;
         tile.classList.toggle('is-preview-locked', locked);
-        tile.inert = locked;
+        tile.querySelector('.lookbook-preview-login').hidden = !locked;
+        document.getElementById('lookbook-toggle-' + category).disabled = locked;
+        document.getElementById('board-img-' + category).toggleAttribute('aria-hidden', locked);
         tile.toggleAttribute('data-html2canvas-ignore', locked);
-        hasLockedCards ||= locked;
       }
-      document.getElementById('lookbook-login').hidden = !hasLockedCards;
     }
 
     function renderComboAtCurrentRank() {
@@ -1724,7 +1769,7 @@
       for(const category of OOOOTD_RULES.CATEGORIES){
         const tile=document.getElementById('lookbook-'+category);
         const toggle=document.getElementById('lookbook-toggle-'+category);
-        tile.addEventListener('pointerenter',event=>{if(event.pointerType==='mouse'&&!toggle.hidden)show(category);});
+        tile.addEventListener('pointerenter',event=>{if(event.pointerType==='mouse'&&!toggle.hidden&&!toggle.disabled)show(category);});
         tile.addEventListener('pointerleave',event=>{if(event.pointerType==='mouse'&&!tile.contains(document.activeElement))close(category);});
         toggle.addEventListener('click',()=>{
           if(toggle.getAttribute('aria-expanded')==='true')close(category);
@@ -1982,18 +2027,20 @@
         attributes: true,
         attributeFilter: ['hidden']
       });
-      document.getElementById('lookbook-login').addEventListener('click', () => {
-        const panel = document.getElementById('account-panel');
-        panel.open = true;
-        panel.scrollIntoView({block: 'start'});
-        document.getElementById('account-email').focus({preventScroll: true});
-      });
+      for (const button of document.querySelectorAll('.lookbook-preview-login')) {
+        button.addEventListener('click', () => {
+          const panel = document.getElementById('account-panel');
+          panel.open = true;
+          panel.scrollIntoView({block: 'start'});
+          document.getElementById('account-email').focus({preventScroll: true});
+        });
+      }
       syncLookbookPreview();
       initCloset();
       fetchLiveWeather();
     });
   </script>
-  <script type="module" src="/assets/cloud.js?v=account-login"></script>
+  <script type="module" src="/assets/cloud.js?v=public-weather"></script>
   <script type="module" src="/assets/runtime-pipeline-autoplay.js"></script>
 </body>
 </html>

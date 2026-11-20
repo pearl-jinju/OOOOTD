@@ -33,10 +33,8 @@ async function api(path,{method='GET',body,signal}={}){
 }
 const auth=config.authUrl ? createAuthClient(config.authUrl) : null;
 window.cloudFetchWeather=async city=>{
- const token=await auth?.getJWTToken();
- if(!token)throw Error('로그인이 필요합니다.');
  const response=await fetch(config.apiUrl+'/weather?city='+encodeURIComponent(city),{
-  headers:{Authorization:'Bearer '+token},signal:AbortSignal.timeout(12000),
+  signal:AbortSignal.timeout(12000),
  });
  if(!response.ok)throw Error('날씨 조회에 실패했습니다.');
  return response.json();

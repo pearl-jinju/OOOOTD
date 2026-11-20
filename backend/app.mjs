@@ -63,16 +63,11 @@ export function createApp({pool,verify,storage,analyze,weatherFetch=fetch,writeW
     const result=await refreshCatalog(pool);catalogCache=null;return reply(result);
    }
    if(path==='/weather'&&request.method==='GET'){
-    let accountAlias='anonymous',providerCalls=0;
+    let providerCalls=0;
     const finish=(decision,body,status=200)=>{
-     writeWeatherAudit({time:new Date().toISOString(),accountAlias,action:'weather_lookup',decision,providerCalls});
+     writeWeatherAudit({time:new Date().toISOString(),accountAlias:'anonymous',action:'weather_lookup',decision,providerCalls});
      return reply(body,status);
     };
-    let session;
-    try{session=await resolveSession(request)}catch{return finish('session_error',{error:'Session unavailable'},503)}
-    if(!session.userId)return finish('unauthenticated',{error:'Authentication required'},401);
-    accountAlias=createHash('sha256').update('weather-audit:'+session.userId).digest('hex').slice(0,24);
-    if(session.role!=='member')return finish('denied',{error:'Weather access denied'},403);
     const cities={Seoul:[37.5665,126.978],Busan:[35.1796,129.0756],Incheon:[37.4563,126.7052],Daegu:[35.8714,128.6014],Daejeon:[36.3504,127.3845],Gwangju:[35.1595,126.8526],Jeju:[33.4996,126.5312]};
     const city=new URL(request.url).searchParams.get('city')||'Seoul';
     if(!Object.hasOwn(cities,city))return finish('invalid_city',{error:'Unknown city'},400);
