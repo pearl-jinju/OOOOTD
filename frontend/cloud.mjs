@@ -1,3 +1,4 @@
+import {connectOperations} from '../assets/operations.js';
 import {createAuthClient} from '@neon/auth';
 import {connectAccount} from './account.mjs';
 import {analyzeGarmentPhoto} from './photo-analysis.mjs';
@@ -39,7 +40,8 @@ window.cloudFetchWeather=async city=>{
  if(!response.ok)throw Error('날씨 조회에 실패했습니다.');
  return response.json();
 };
-connectAccount(auth,()=>window.fetchLiveWeather());
+const refreshOperations=auth ? connectOperations(auth,config.apiUrl) : null;
+connectAccount(auth,()=>{window.fetchLiveWeather(); refreshOperations?.();});
 async function loadCloset(){
  const gen=epoch,data=await api('/closet');
  if(gen===epoch)window.applyCloudCloset(data.items,session.userId);

@@ -5,6 +5,7 @@ import {S3Client,PutObjectCommand,GetObjectCommand,DeleteObjectCommand} from '@a
 import {getSignedUrl} from '@aws-sdk/s3-request-presigner';
 import {createApp,BUCKET} from './app.mjs';
 import {attributes} from './catalog.mjs';
+import {withOperations} from './operations.mjs';
 const connectionString=process.env.OOOOTD_DATABASE_URL||process.env.DATABASE_URL;
 const connectionInfo=new URL(connectionString);
 console.log('DB configuration ready',JSON.stringify({custom:!!process.env.OOOOTD_DATABASE_URL,passwordPresent:!!connectionInfo.password}));
@@ -35,11 +36,14 @@ async function analyze(bytes,type,name){
   safe.name=String(value.name||name).slice(0,160);safe.analysis='ai';safe.message='사진 분석 결과입니다. 확인 후 등록해주세요.';return safe;
  }catch{return fallback}
 }
-export default createApp({pool,verify:async token=>{
+const allowedOrigins=['https://ooootd.onrender.com','http://localhost:4173'];
+async function verify(token){
  const {payload}=await jwtVerify(token,jwks,{issuer:new URL(process.env.NEON_AUTH_BASE_URL).origin,algorithms:['EdDSA']});
  return typeof payload.sub==='string'&&!payload.is_anonymous?payload.sub:null;
-},storage:{
+}
+const app=createApp({pool,verify,allowedOrigins,storage:{
  put:(key,body,type)=>s3.send(new PutObjectCommand({Bucket:BUCKET,Key:key,Body:body,ContentType:type,CacheControl:'private,max-age=3600'})),
  url:key=>getSignedUrl(s3,new GetObjectCommand({Bucket:BUCKET,Key:key}),{expiresIn:3600}),
  remove:key=>s3.send(new DeleteObjectCommand({Bucket:BUCKET,Key:key}))
 },analyze});
+export default withOperations(app,{pool,verify,allowedOrigins});
