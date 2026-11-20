@@ -20,7 +20,7 @@ export function connectOperations(auth, apiUrl) {
   if (!loadReport) open.hidden = true;
   report.hidden = true;
   status.textContent = accountStatus.textContent = '';
-  for (const id of ['operations-traffic','operations-runs','operations-catalog']) {
+  for (const id of ['operations-traffic','operations-runs','operations-catalog','operations-member-logins']) {
    document.getElementById(id).replaceChildren();
   }
   try {
@@ -30,8 +30,9 @@ export function connectOperations(auth, apiUrl) {
     panel.close();
     return;
    }
-   const accessPath = loadReport ? '/admin/operations' : '/admin/operations/access';
+   const accessPath = loadReport ? '/admin/operations' : '/member/activity';
    const useToken = token => fetch(apiUrl + accessPath, {
+    method: loadReport ? 'GET' : 'POST',
     headers: {Authorization: 'Bearer ' + token},
     signal: AbortSignal.timeout(15000),
    });
@@ -54,8 +55,16 @@ export function connectOperations(auth, apiUrl) {
     if (response.status !== 403 || loadReport) throw Error('Admin request failed');
     return;
    }
+   if (!loadReport) {
+    open.hidden = data.admin !== true;
+    return;
+   }
    open.hidden = false;
-   if (!loadReport) return;
+   const memberLogins = data.memberLogins ?? [];
+   document.getElementById('operations-member-empty').hidden = memberLogins.length > 0;
+   rows('operations-member-logins', memberLogins.map(event => ({
+    ...event, created_at: new Date(event.created_at).toLocaleString('ko-KR',{timeZone:'Asia/Seoul'}),
+   })), ['created_at','member']);
    rows('operations-traffic', data.traffic, ['method','route','status','requests','avg_ms','max_ms']);
    rows('operations-runs', data.runs.map(run => ({
     ...run, created_at: new Date(run.created_at).toLocaleString('ko-KR',{timeZone:'Asia/Seoul'}),

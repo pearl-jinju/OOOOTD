@@ -7,7 +7,7 @@ const ruleBundle=await readFile('assets/outfit-rules-layers.js','utf8');
 const catalog=JSON.parse(await readFile('catalog_300.json','utf8'));
 function context(){
  const nodes=new Map();
- const element=()=>({style:{},classList:{add(){},remove(){}},appendChild(){},removeAttribute(){},getAttribute(){return ''}});
+ const element=()=>({style:{},classList:{add(){},remove(){},toggle(){}},querySelector(){return {hidden:false}},toggleAttribute(){},appendChild(){},removeAttribute(){},getAttribute(){return ''}});
  const document={getElementById(id){if(!nodes.has(id))nodes.set(id,element());return nodes.get(id)},createElement:element,querySelectorAll(){return []}};
  const c=vm.createContext({document,console,window:{addEventListener(){}},alert(){}});
  vm.runInContext(ruleBundle,c);

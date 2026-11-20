@@ -5,7 +5,7 @@ import {readFile} from 'node:fs/promises';
 import {OCCASIONS,CATEGORIES,appropriate,genderCompatible,coverage} from '../shared/outfits.mjs';
 const fixture=JSON.parse(await readFile('tests/fixtures/style-catalog.json','utf8'));
 function engine(){
- const nodes=new Map(),element=()=>({style:{},classList:{add(){},remove(){}},appendChild(){},removeAttribute(){},getAttribute(){return ''}});
+ const nodes=new Map(),element=()=>({style:{},classList:{add(){},remove(){},toggle(){}},querySelector(){return {hidden:false}},toggleAttribute(){},appendChild(){},removeAttribute(){},getAttribute(){return ''}});
  const document={getElementById(id){if(!nodes.has(id))nodes.set(id,element());return nodes.get(id)},createElement:element,querySelectorAll(){return []},querySelector(){return null}};
  const c=vm.createContext({console,window:{addEventListener(){}},document});
  vm.runInContext(awaitRules,c);vm.runInContext(html.match(/<script>([\s\S]*?)<\/script>/)[1],c);

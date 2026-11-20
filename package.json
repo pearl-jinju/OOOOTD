@@ -5,7 +5,8 @@
   "type": "module",
   "scripts": {
     "build": "node scripts/build.mjs",
-    "test": "node --test tests/*.test.mjs"
+    "test": "node --test tests/*.test.mjs",
+    "test:outfits": "node tests/outfit-browser.mjs"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "latest",
