@@ -820,7 +820,7 @@
       .about-diagram li + li::before { content: "\2193"; left: 11px; top: -13px; transform: none; line-height: 12px; }
     }
   </style>
-  <link rel="stylesheet" href="/assets/admin.css?v=console">
+  <link rel="stylesheet" href="/assets/admin.css?v=member-roles">
   <link rel="stylesheet" href="/assets/home.css?v=lookbook-first">
   <link rel="stylesheet" href="/assets/lookbook-workspace.css">
   <link rel="stylesheet" href="/assets/lookbook-purchases.css">
@@ -886,6 +886,8 @@
           <button type="button" data-operations-section="visits">사이트 접속</button>
           <button type="button" data-operations-section="searches">상품 검색</button>
           <button type="button" data-operations-section="closet">옷장 변경</button>
+          <h3>회원 관리</h3>
+          <button type="button" data-operations-section="members">회원 권한</button>
           <h3>시스템</h3>
           <button type="button" data-operations-section="catalog">카탈로그</button>
           <button type="button" data-operations-section="traffic">API 요청</button>
@@ -944,6 +946,26 @@
               <div class="operations-scroll"><table>
                 <thead><tr><th scope="col">변경 시각 (한국시간)</th><th scope="col">회원·옷장</th><th scope="col">작업</th><th scope="col">품목</th><th scope="col">옷 이름</th></tr></thead>
                 <tbody id="operations-closet-activity"></tbody>
+              </table></div>
+            </section>
+            <section class="admin-view" data-operations-view="members" aria-label="회원 권한" hidden>
+              <form class="admin-members-search" id="admin-members-search">
+                <label>회원 검색 <input type="search" class="city-select" id="admin-members-query" placeholder="이름 또는 이메일" maxlength="120"></label>
+                <button class="admin-button" type="submit">검색</button>
+              </form>
+              <p id="admin-members-status" role="status"></p>
+              <div class="operations-scroll"><table>
+                <thead><tr><th scope="col">이름</th><th scope="col">계정</th><th scope="col">권한</th><th scope="col">작업</th></tr></thead>
+                <tbody id="admin-members-rows"></tbody>
+              </table></div>
+              <div class="admin-member-pagination">
+                <button id="admin-members-prev" class="admin-button" type="button" disabled>이전</button>
+                <button id="admin-members-next" class="admin-button" type="button" disabled>다음</button>
+              </div>
+              <h4>최근 권한 변경</h4>
+              <div class="operations-scroll"><table>
+                <thead><tr><th scope="col">변경 시각 (한국시간)</th><th scope="col">변경한 관리자</th><th scope="col">대상 회원</th><th scope="col">부여된 권한</th></tr></thead>
+                <tbody id="admin-role-history"></tbody>
               </table></div>
             </section>
             <section class="admin-view" data-operations-view="catalog" aria-label="카탈로그" hidden>
@@ -2258,7 +2280,7 @@
       fetchLiveWeather();
     });
   </script>
-  <script type="module" src="/assets/cloud.js?v=operations-console"></script>
+  <script type="module" src="/assets/cloud.js?v=operations-member-roles"></script>
   <script type="module" src="/assets/runtime-pipeline-autoplay.js"></script>
 </body>
 </html>

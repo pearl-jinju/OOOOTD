@@ -127,3 +127,8 @@
   .admin-metric { padding: 8px; }
   .admin-metric dd { font-size: 1.3rem; }
 }
+
+.admin-members-search { display:flex; flex-wrap:wrap; align-items:center; gap:8px; margin-block-end:12px; }
+.admin-member-pagination { display:flex; gap:8px; margin-block:10px 18px; }
+.admin-button:disabled { opacity:.5; cursor:default; }
+.admin-view [role="status"]:empty { display:none; }

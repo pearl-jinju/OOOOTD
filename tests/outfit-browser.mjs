@@ -5,9 +5,9 @@ import {OCCASIONS, appropriate, genderCompatible, outerwearPolicy, suitableWeath
 
 const root = new URL('../', import.meta.url);
 const read = path => readFile(new URL(path, root), 'utf8');
-const [html, rules, fixture, adminCss, operations] = await Promise.all([
+const [html, rules, fixture, adminCss, operations, memberAdmin] = await Promise.all([
  read('index.html'), read('assets/outfit-rules-layers.js'), read('tests/fixtures/style-catalog.json').then(JSON.parse),
- read('assets/admin.css'), read('assets/operations.js'),
+ read('assets/admin.css'), read('assets/operations.js'), read('assets/member-admin.js'),
 ]);
 const origin = 'https://outfit-check.test';
 const channel = process.env.OOOOTD_TEST_BROWSER_CHANNEL;
@@ -32,6 +32,9 @@ try {
   }
   if (url.origin === origin && url.pathname === '/assets/operations.js') {
    return route.fulfill({contentType:'text/javascript; charset=utf-8',body:operations});
+  }
+  if (url.origin === origin && url.pathname === '/assets/member-admin.js') {
+   return route.fulfill({contentType:'text/javascript; charset=utf-8',body:memberAdmin});
   }
   if (url.origin === origin && ['/site/activity','/member/activity'].includes(url.pathname)) {
    return route.fulfill({json:{admin:true}});

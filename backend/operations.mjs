@@ -4,14 +4,54 @@ const monitoredRoutes = new Set([
 ]);
 const methods = new Set(['GET', 'POST', 'PUT', 'DELETE']);
 const operationsPath = '/admin/operations';
+const manageMembersPath = '/admin/members';
 const activityPath = '/member/activity';
 const siteActivityPath = '/site/activity';
+
+async function changeMemberRole(pool, actorId, memberId, role) {
+ const client = await pool.connect();
+ try {
+  await client.query('BEGIN');
+  await client.query('SELECT pg_advisory_xact_lock(7100301)');
+  const change = async () => {
+   const {rowCount:authorized} = await client.query('SELECT 1 FROM ooootd_admins WHERE user_id=$1',[actorId]);
+   if (!authorized) return {status:403,error:'access_denied'};
+   const {rows:[member]} = await client.query(`
+    SELECT EXISTS(SELECT 1 FROM ooootd_admins WHERE user_id=$1) AS admin
+      FROM neon_auth."user" WHERE id=$1::text::uuid
+   `,[memberId]);
+   if (!member) return {status:404,error:'member_not_found'};
+   const grant = role === 'admin';
+   if (member.admin === grant) return {status:200,role,changed:false,accessRetained:true};
+   if (grant) {
+    await client.query('INSERT INTO ooootd_admins(user_id) VALUES($1)',[memberId]);
+   } else {
+    const {rows:[count]} = await client.query(`
+     SELECT count(*)::int AS admins FROM ooootd_admins a JOIN neon_auth."user" u ON u.id::text=a.user_id
+    `);
+    if (count.admins < 2) return {status:409,error:'last_admin'};
+    await client.query('DELETE FROM ooootd_admins WHERE user_id=$1',[memberId]);
+   }
+   await client.query('INSERT INTO ooootd_member_role_changes(actor_id,member_id,role) VALUES($1,$2,$3)',[actorId,memberId,role]);
+   return {status:200,role,changed:true,accessRetained:grant || actorId!==memberId};
+  };
+  const result = await change();
+  await client.query('COMMIT');
+  return result;
+ } catch (error) {
+  await client.query('ROLLBACK');
+  throw error;
+ } finally {
+  client.release();
+ }
+}
 
 export function withOperations(app, {pool, verify, allowedOrigins}) {
  async function operations(request, origin, path) {
   const activity = path === activityPath;
   const siteActivity = path === siteActivityPath;
-  const method = activity || siteActivity ? 'POST' : 'GET';
+  const manageMembers = path === manageMembersPath;
+  const acceptedMethods = manageMembers ? ['GET','POST'] : [activity || siteActivity ? 'POST' : 'GET'];
   const headers = {
    'Cache-Control': 'no-store',
    'Vary': 'Origin',
@@ -21,11 +61,11 @@ export function withOperations(app, {pool, verify, allowedOrigins}) {
   if ((siteActivity || origin) && !allowedOrigins.includes(origin)) return reply({error:'origin_not_allowed'},403);
   if (origin) {
    headers['Access-Control-Allow-Origin'] = origin;
-   headers['Access-Control-Allow-Headers'] = siteActivity ? 'Authorization, Content-Type' : 'Authorization';
-   headers['Access-Control-Allow-Methods'] = method + ', OPTIONS';
+   headers['Access-Control-Allow-Headers'] = siteActivity || manageMembers ? 'Authorization, Content-Type' : 'Authorization';
+   headers['Access-Control-Allow-Methods'] = [...acceptedMethods,'OPTIONS'].join(', ');
   }
   if (request.method === 'OPTIONS') return new Response(null, {status:204, headers});
-  if (request.method !== method) return reply({error:'method_not_allowed'},405);
+  if (!acceptedMethods.includes(request.method)) return reply({error:'method_not_allowed'},405);
 
   const token = request.headers.get('authorization')?.match(/^Bearer (.+)$/i)?.[1];
   if (!token && !siteActivity) return reply({error:'login_required'},401);
@@ -72,6 +112,42 @@ export function withOperations(app, {pool, verify, allowedOrigins}) {
    }
    const {rowCount} = await pool.query('SELECT 1 FROM ooootd_admins WHERE user_id=$1',[userId]);
    if (!rowCount) return reply({error:'access_denied'},403);
+   if (manageMembers) {
+    if (request.method === 'POST') {
+     if (Number(request.headers.get('content-length')) > 1024) return reply({error:'invalid_role_change'},413);
+     const data = await request.json().catch(() => null);
+     if (!data || typeof data.memberId !== 'string' ||
+         !/^[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i.test(data.memberId) ||
+         !['member','admin'].includes(data.role)) return reply({error:'invalid_role_change'},400);
+     const {status,...result} = await changeMemberRole(pool,userId,data.memberId.toLowerCase(),data.role);
+     return reply(result,status);
+    }
+
+    const params = new URL(request.url).searchParams;
+    const search = (params.get('q')||'').trim().slice(0,120);
+    const offset = Number(params.get('offset')||0);
+    if (!Number.isSafeInteger(offset) || offset<0 || offset>100000) return reply({error:'invalid_offset'},400);
+    const [list, history] = await Promise.all([
+     pool.query(`
+      SELECT u.id::text AS id, u.name,
+             left(split_part(u.email,'@',1),2) || '***@' || split_part(u.email,'@',2) AS email,
+             CASE WHEN a.user_id IS NOT NULL THEN 'admin' ELSE 'member' END AS role
+        FROM neon_auth."user" u LEFT JOIN ooootd_admins a ON a.user_id=u.id::text
+       WHERE strpos(lower(u.email),lower($1))>0 OR strpos(lower(coalesce(u.name,'')),lower($1))>0
+       ORDER BY u.name NULLS LAST, u.email, u.id LIMIT 21 OFFSET $2::integer
+     `,[search,offset]),
+     pool.query(`
+      SELECT r.created_at,r.role,
+             coalesce(actor.name,'탈퇴한 회원') || ' · ' || right(r.actor_id,6) AS actor,
+             coalesce(member.name,'탈퇴한 회원') || ' · ' || right(r.member_id,6) AS member
+        FROM ooootd_member_role_changes r
+        LEFT JOIN neon_auth."user" actor ON actor.id::text=r.actor_id
+        LEFT JOIN neon_auth."user" member ON member.id::text=r.member_id
+       ORDER BY r.created_at DESC,r.id DESC LIMIT 30
+     `),
+    ]);
+    return reply({members:list.rows.slice(0,20),hasMore:list.rows.length>20,history:history.rows});
+   }
    if (path !== operationsPath) {
     console.info('OOOOTD administrator access confirmed');
     return reply({admin:true});
@@ -164,7 +240,7 @@ export function withOperations(app, {pool, verify, allowedOrigins}) {
   const path = new URL(request.url).pathname.replace(/\/$/,'') || '/';
   const origin = request.headers.get('origin');
   const accessOnly = path === operationsPath + '/access';
-  if (accessOnly || path === operationsPath || path === activityPath || path === siteActivityPath) return operations(request, origin, path);
+  if (accessOnly || path === operationsPath || path === activityPath || path === siteActivityPath || path === manageMembersPath) return operations(request, origin, path);
   const route = /^\/closet\/\d+$/.test(path) ? '/closet/:id' : path;
   const monitor = methods.has(request.method) &&
    (monitoredRoutes.has(route) || route === '/closet/:id') &&

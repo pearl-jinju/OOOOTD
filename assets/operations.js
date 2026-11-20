@@ -1,3 +1,5 @@
+import {connectMemberAdmin} from './member-admin.js?v=roles';
+
 export async function closetMemberHeaders(auth,path,method) {
  if (!auth || !(path==='/closet' && method==='POST' || method==='DELETE' && /^\/closet\/\d+$/.test(path))) return {};
  try {
@@ -27,6 +29,35 @@ export function connectOperations(auth, apiUrl) {
  let selectedView = 'overview';
  let reportAvailable = false;
 
+ async function authorizedRequest(session,path,method = 'GET',body) {
+  const send = token => fetch(apiUrl+path,{
+   method, headers:{Authorization:'Bearer '+token,...(body ? {'Content-Type':'application/json'} : {})},
+   body:body ? JSON.stringify(body) : undefined, signal:AbortSignal.timeout(15000),
+  });
+  const sessionToken = session.data.session?.token;
+  let response;
+  if (typeof sessionToken==='string' && /^[\w-]+\.[\w-]+\.[\w-]+$/.test(sessionToken)) {
+   response = await send(sessionToken);
+  }
+  if (!response || response.status===401) {
+   const result = await auth.token();
+   const token = result.data?.token;
+   if (result.error || !token) throw Error('Session token unavailable');
+   if (token!==sessionToken || !response) response=await send(token);
+  }
+  return response;
+ }
+
+ const memberAdmin=connectMemberAdmin(async (path,method,body) => {
+  const session=await auth.getSession();
+  if (!session.data?.user) throw Error('Member session required');
+  return authorizedRequest(session,path,method,body);
+ },async () => {
+  panel.close();
+  await refresh();
+  accountStatus.textContent='일반 회원 권한으로 변경됐어요.';
+ });
+
  function showView(section) {
   selectedView = section;
   for (const button of sectionButtons) {
@@ -43,7 +74,10 @@ export function connectOperations(auth, apiUrl) {
   panel.querySelector('.admin-body').scrollTop = 0;
  }
  for (const button of sectionButtons) {
-  button.addEventListener('click',() => showView(button.dataset.operationsSection));
+  button.addEventListener('click',() => {
+   showView(button.dataset.operationsSection);
+   if (selectedView==='members') memberAdmin.load();
+  });
  }
 
  async function recordActivity(type, query) {
@@ -86,6 +120,7 @@ export function connectOperations(auth, apiUrl) {
   if (!loadReport) {
    open.hidden = true;
    reportAvailable = false;
+   memberAdmin.reset();
    memberSelect.value = '';
    showView('overview');
   }
@@ -106,24 +141,7 @@ export function connectOperations(auth, apiUrl) {
    const accessPath = loadReport
     ? '/admin/operations' + (memberId ? '?member='+encodeURIComponent(memberId) : '')
     : '/member/activity';
-   const useToken = token => fetch(apiUrl + accessPath, {
-    method: loadReport ? 'GET' : 'POST',
-    headers: {Authorization: 'Bearer ' + token},
-    signal: AbortSignal.timeout(15000),
-   });
-   const sessionToken = session.data.session?.token;
-   let response;
-   if (typeof sessionToken === 'string' && /^[\w-]+\.[\w-]+\.[\w-]+$/.test(sessionToken)) {
-    response = await useToken(sessionToken);
-   }
-   if (current !== revision) return;
-   if (!response || response.status === 401) {
-    const result = await auth.token();
-    if (current !== revision) return;
-    const token = result.data?.token;
-    if (result.error || !token) throw Error('Session token unavailable');
-    if (token !== sessionToken || !response) response = await useToken(token);
-   }
+   const response = await authorizedRequest(session,accessPath,loadReport ? 'GET' : 'POST');
    const data = await response.json();
    if (current !== revision) return;
    if (!response.ok) {
@@ -175,6 +193,7 @@ export function connectOperations(auth, apiUrl) {
    report.hidden = false;
    status.textContent = '';
    filter.hidden = !memberViews.has(selectedView);
+   if (selectedView==='members') memberAdmin.load();
   } catch {
    if (current !== revision) return;
    if (panel.open) status.textContent = '운영 데이터를 불러오지 못했습니다.';
