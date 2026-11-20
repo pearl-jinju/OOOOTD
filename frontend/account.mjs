@@ -1,9 +1,10 @@
-﻿export function connectAccount(auth, onSessionChange) {
+export function connectAccount(auth, onSessionChange) {
  const byId = id => document.getElementById('account-' + id);
  const panel = byId('panel');
  if (!panel) return;
  const form = byId('form'), email = byId('email'), name = byId('name');
  const password = byId('password'), submit = byId('submit'), mode = byId('mode');
+ const confirmation = byId('password-confirm'), google = byId('google');
  const signOut = byId('sign-out'), status = byId('status');
  let signingUp = false;
 
@@ -16,6 +17,11 @@
  function showMode() {
   byId('name-label').hidden = !signingUp;
   name.required = signingUp;
+  byId('password-confirm-label').hidden = !signingUp;
+  confirmation.required = signingUp;
+  confirmation.value = '';
+  byId('password-hint').hidden = !signingUp;
+  form.setAttribute('aria-label', signingUp ? '이메일 회원가입' : '이메일 로그인');
   submit.textContent = signingUp ? '가입하기' : '로그인';
   mode.textContent = signingUp ? '로그인으로 돌아가기' : '회원가입';
   password.autocomplete = signingUp ? 'new-password' : 'current-password';
@@ -26,6 +32,7 @@
  function busy(value) {
   submit.disabled = value;
   mode.disabled = value;
+  google.disabled = value;
   signOut.disabled = value;
  }
  if (!auth) {
@@ -36,6 +43,11 @@
  mode.addEventListener('click', () => { signingUp = !signingUp; showMode(); });
  form.addEventListener('submit', async event => {
   event.preventDefault();
+  if (signingUp && password.value !== confirmation.value) {
+   status.textContent = '비밀번호와 비밀번호 확인이 일치하지 않습니다.';
+   confirmation.focus();
+   return;
+  }
   busy(true);
   status.textContent = '처리 중입니다.';
   const credentials = {email:email.value.trim(), password:password.value};
@@ -53,6 +65,19 @@
    status.textContent = signingUp ? '가입에 실패했습니다. 입력 정보와 이메일을 확인해 주세요.' : '로그인에 실패했습니다. 이메일과 비밀번호를 확인해 주세요.';
   } finally {
    password.value = '';
+   confirmation.value = '';
+   busy(false);
+  }
+ });
+ google.addEventListener('click', async () => {
+  busy(true);
+  status.textContent = 'Google 로그인으로 이동 중입니다.';
+  try {
+   const result = await auth.signIn.social({provider:'google', callbackURL:location.origin+'/'});
+   if (result.error) throw Error();
+  } catch {
+   status.textContent = 'Google 로그인에 실패했습니다. 다시 시도해 주세요.';
+  } finally {
    busy(false);
   }
  });

@@ -804,13 +804,16 @@
     <header class="home-heading">
       <details class="home-account" id="account-panel">
         <summary id="account-label">로그인 · 회원가입</summary>
-        <form class="private-form" id="account-form">
+        <form class="private-form" id="account-form" aria-label="이메일 로그인">
           <label id="account-name-label" hidden>이름<input id="account-name" autocomplete="name" maxlength="100"></label>
-          <label>이메일<input id="account-email" type="email" autocomplete="username" required maxlength="254"></label>
-          <label>비밀번호<input id="account-password" type="password" autocomplete="current-password" required maxlength="128"></label>
+          <label>이메일<input id="account-email" name="email" type="email" autocomplete="username" required maxlength="254"></label>
+          <label>비밀번호<input id="account-password" name="password" type="password" autocomplete="current-password" aria-describedby="account-password-hint" required maxlength="128"></label>
+          <label id="account-password-confirm-label" hidden>비밀번호 확인<input id="account-password-confirm" type="password" autocomplete="new-password" maxlength="128"></label>
+          <p class="wide" id="account-password-hint" hidden>비밀번호는 8자 이상 입력하세요.</p>
           <div class="wide private-actions">
             <button class="btn-icon" id="account-submit" type="submit">로그인</button>
             <button class="btn-icon" id="account-mode" type="button">회원가입</button>
+            <button class="btn-icon" id="account-google" type="button">Google로 계속하기</button>
           </div>
         </form>
         <button class="btn-icon" id="account-sign-out" type="button" hidden>로그아웃</button>
@@ -2040,7 +2043,7 @@
       fetchLiveWeather();
     });
   </script>
-  <script type="module" src="/assets/cloud.js?v=public-weather"></script>
+  <script type="module" src="/assets/cloud.js?v=account-google"></script>
   <script type="module" src="/assets/runtime-pipeline-autoplay.js"></script>
 </body>
 </html>
