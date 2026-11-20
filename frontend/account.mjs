@@ -3,13 +3,17 @@ export function connectAccount(auth, onSessionChange) {
  const panel = byId('panel');
  if (!panel) return;
  const form = byId('form'), email = byId('email'), name = byId('name');
- const password = byId('password'), submit = byId('submit'), mode = byId('mode');
+ const password = byId('password'), submit = byId('submit');
+ const login = byId('login'), signup = byId('signup'), menu = byId('menu');
+ const content = byId('content');
  const confirmation = byId('password-confirm'), google = byId('google');
  const signOut = byId('sign-out'), status = byId('status');
  let signingUp = false;
 
  function showUser(user) {
-  byId('label').textContent = user ? '내 계정' : '로그인 · 회원가입';
+  login.hidden = signup.hidden = Boolean(user);
+  menu.hidden = !user;
+  updateExpanded();
   form.hidden = Boolean(user);
   signOut.hidden = !user;
   status.textContent = user ? '로그인되었습니다.' : '';
@@ -23,24 +27,41 @@ export function connectAccount(auth, onSessionChange) {
   byId('password-hint').hidden = !signingUp;
   form.setAttribute('aria-label', signingUp ? '이메일 회원가입' : '이메일 로그인');
   submit.textContent = signingUp ? '가입하기' : '로그인';
-  mode.textContent = signingUp ? '로그인으로 돌아가기' : '회원가입';
   password.autocomplete = signingUp ? 'new-password' : 'current-password';
   password.minLength = signingUp ? 8 : 0;
   password.value = '';
   status.textContent = '';
  }
+ function updateExpanded() {
+  login.setAttribute('aria-expanded', String(!content.hidden && !login.hidden && !signingUp));
+  signup.setAttribute('aria-expanded', String(!content.hidden && !signup.hidden && signingUp));
+  menu.setAttribute('aria-expanded', String(!content.hidden && !menu.hidden));
+ }
+ function openForm(signupMode) {
+  signingUp = signupMode;
+  showMode();
+  content.hidden = false;
+  updateExpanded();
+  if (auth) (signingUp ? name : email).focus({preventScroll: true});
+  else status.textContent = '계정 서비스 설정이 필요합니다.';
+ }
+ login.addEventListener('click', () => openForm(false));
+ signup.addEventListener('click', () => openForm(true));
+ menu.addEventListener('click', () => {
+  content.hidden = !content.hidden;
+  updateExpanded();
+ });
  function busy(value) {
   submit.disabled = value;
-  mode.disabled = value;
+  login.disabled = value;
+  signup.disabled = value;
   google.disabled = value;
   signOut.disabled = value;
  }
  if (!auth) {
   form.hidden = true;
-  status.textContent = '계정 서비스 설정이 필요합니다.';
   return;
  }
- mode.addEventListener('click', () => { signingUp = !signingUp; showMode(); });
  form.addEventListener('submit', async event => {
   event.preventDefault();
   if (signingUp && password.value !== confirmation.value) {
@@ -89,7 +110,9 @@ export function connectAccount(auth, onSessionChange) {
    signingUp = false;
    form.reset();
    showMode();
+   content.hidden = true;
    showUser(null);
+   login.focus();
    onSessionChange();
   } catch {
    status.textContent = '로그아웃에 실패했습니다. 다시 시도해 주세요.';
