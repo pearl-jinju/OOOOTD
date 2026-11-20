@@ -3,6 +3,7 @@ export function connectOperations(auth, apiUrl) {
  const open = document.getElementById('operations-open');
  const status = document.getElementById('operations-status');
  const report = document.getElementById('operations-report');
+ const accountStatus = document.getElementById('operations-account-status');
  let revision = 0;
 
  function rows(id, records, keys) {
@@ -18,7 +19,7 @@ export function connectOperations(auth, apiUrl) {
   const current = ++revision;
   if (!loadReport) open.hidden = true;
   report.hidden = true;
-  status.textContent = '';
+  status.textContent = accountStatus.textContent = '';
   for (const id of ['operations-traffic','operations-runs','operations-catalog']) {
    document.getElementById(id).replaceChildren();
   }
@@ -29,19 +30,28 @@ export function connectOperations(auth, apiUrl) {
     panel.close();
     return;
    }
-   const result = await auth.token();
-   if (current !== revision) return;
-   const token = result.data?.token;
-   if (result.error || !token) throw Error('Session token unavailable');
    const accessPath = loadReport ? '/admin/operations' : '/admin/operations/access';
-   const response = await fetch(apiUrl + accessPath, {
+   const useToken = token => fetch(apiUrl + accessPath, {
     headers: {Authorization: 'Bearer ' + token},
     signal: AbortSignal.timeout(15000),
    });
+   const sessionToken = session.data.session?.token;
+   let response;
+   if (typeof sessionToken === 'string' && /^[\w-]+\.[\w-]+\.[\w-]+$/.test(sessionToken)) {
+    response = await useToken(sessionToken);
+   }
+   if (current !== revision) return;
+   if (!response || response.status === 401) {
+    const result = await auth.token();
+    if (current !== revision) return;
+    const token = result.data?.token;
+    if (result.error || !token) throw Error('Session token unavailable');
+    if (token !== sessionToken || !response) response = await useToken(token);
+   }
    const data = await response.json();
    if (current !== revision) return;
    if (!response.ok) {
-    if (panel.open) status.textContent = '운영 데이터를 불러오지 못했습니다.';
+    if (response.status !== 403 || loadReport) throw Error('Admin request failed');
     return;
    }
    open.hidden = false;
@@ -53,10 +63,15 @@ export function connectOperations(auth, apiUrl) {
    rows('operations-catalog', data.catalog, ['category','products']);
    report.hidden = false;
   } catch {
-   if (current === revision && panel.open) status.textContent = '운영 데이터를 불러오지 못했습니다.';
+   if (current !== revision) return;
+   if (panel.open) status.textContent = '운영 데이터를 불러오지 못했습니다.';
+   else accountStatus.textContent = '계정 권한을 확인하지 못했어요. 내 계정 메뉴를 다시 열어 주세요.';
   }
  }
 
+ document.getElementById('account-menu').addEventListener('click', () => {
+  if (!document.getElementById('account-content').hidden && open.hidden) refresh();
+ });
  open.addEventListener('click', () => {
   if (!panel.open) panel.showModal();
   refresh(true);

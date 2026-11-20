@@ -852,6 +852,7 @@
           <button class="btn-icon" id="operations-open" type="button" aria-haspopup="dialog" aria-controls="operations" hidden>관리자 기능</button>
           <button class="btn-icon" id="account-sign-out" type="button" hidden>로그아웃</button>
           <p id="account-status" role="status" aria-live="polite"></p>
+          <p id="operations-account-status" role="status"></p>
         </div>
       </div>
       <div class="home-brand">
@@ -2119,7 +2120,7 @@
       fetchLiveWeather();
     });
   </script>
-  <script type="module" src="/assets/cloud.js?v=operations-admin-access"></script>
+  <script type="module" src="/assets/cloud.js?v=operations-session-jwt"></script>
   <script type="module" src="/assets/runtime-pipeline-autoplay.js"></script>
 </body>
 </html>

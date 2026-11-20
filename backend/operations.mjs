@@ -23,13 +23,23 @@ export function withOperations(app, {pool, verify, allowedOrigins}) {
   if (request.method !== 'GET') return reply({error:'method_not_allowed'},405);
 
   const token = request.headers.get('authorization')?.match(/^Bearer (.+)$/i)?.[1];
-  const userId = token ? await verify(token).catch(() => null) : null;
+  if (!token) return reply({error:'login_required'},401);
+  let userId;
+  try {
+   userId = await verify(token);
+  } catch (error) {
+   const code = /^[A-Z_]+$/.test(error?.code) ? error.code : 'unknown';
+   console.info('OOOOTD administrator token rejected', code);
+  }
   if (!userId) return reply({error:'login_required'},401);
 
   try {
    const {rowCount} = await pool.query('SELECT 1 FROM ooootd_admins WHERE user_id=$1',[userId]);
    if (!rowCount) return reply({error:'access_denied'},403);
-   if (accessOnly) return reply({admin:true});
+   if (accessOnly) {
+    console.info('OOOOTD administrator access confirmed');
+    return reply({admin:true});
+   }
 
    const [traffic, runs, catalog] = await Promise.all([
     pool.query(`
