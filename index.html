@@ -873,14 +873,6 @@
         <h2 id="operations-title">운영 분석</h2>
         <form method="dialog"><button class="btn-icon" type="submit">닫기</button></form>
       </div>
-      <form id="operations-verify" class="private-form" hidden>
-        <p class="wide">관리자 화면을 열려면 가입한 이메일을 인증해 주세요.</p>
-        <label>이메일 인증 코드<input id="operations-otp" required autocomplete="one-time-code" inputmode="numeric" pattern="[0-9]{6}" maxlength="6"></label>
-        <div class="private-actions">
-          <button class="btn-icon" id="operations-send" type="button">인증 코드 보내기</button>
-          <button class="btn-icon" type="submit">인증하기</button>
-        </div>
-      </form>
       <p id="operations-status" role="status"></p>
       <div id="operations-report" hidden>
         <button class="btn-icon" id="operations-refresh" type="button">새로고침</button>
@@ -1152,7 +1144,7 @@
             <li>이메일과 비밀번호로 가입하거나 Google 계정으로 로그인할 수 있어요.</li>
             <li>로그인하면 오늘의 룩북 전체를 볼 수 있고, 내 계정에서 로그아웃할 수 있어요.</li>
             <li>내 옷장은 브라우저에 연결돼요. 다른 기기에서 이어 쓰려면 옷장 연결 링크를 이용하세요.</li>
-            <li>관리자 계정은 내 계정의 관리자 기능에서 이메일 인증 후 운영 통계와 수집 이력을 확인할 수 있어요.</li>
+            <li>관리자 계정은 로그인 후 내 계정의 관리자 기능에서 운영 통계와 수집 이력을 확인할 수 있어요.</li>
           </ol>
         </section>
       </div>
@@ -2127,7 +2119,7 @@
       fetchLiveWeather();
     });
   </script>
-  <script type="module" src="/assets/cloud.js?v=operations-auth-token"></script>
+  <script type="module" src="/assets/cloud.js?v=operations-admin-access"></script>
   <script type="module" src="/assets/runtime-pipeline-autoplay.js"></script>
 </body>
 </html>

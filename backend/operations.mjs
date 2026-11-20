@@ -27,14 +27,9 @@ export function withOperations(app, {pool, verify, allowedOrigins}) {
   if (!userId) return reply({error:'login_required'},401);
 
   try {
-   const {rows:[admin]} = await pool.query(`
-    SELECT u."emailVerified" AS verified
-      FROM ooootd_admins a JOIN neon_auth."user" u ON u.id::text = a.user_id
-      WHERE a.user_id = $1
-   `,[userId]);
-   if (!admin) return reply({error:'access_denied'},403);
-   if (accessOnly) return reply({verified:admin.verified});
-   if (!admin.verified) return reply({error:'email_verification_required'},403);
+   const {rowCount} = await pool.query('SELECT 1 FROM ooootd_admins WHERE user_id=$1',[userId]);
+   if (!rowCount) return reply({error:'access_denied'},403);
+   if (accessOnly) return reply({admin:true});
 
    const [traffic, runs, catalog] = await Promise.all([
     pool.query(`
