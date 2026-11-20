@@ -1,4 +1,4 @@
-import {connectOperations} from '../assets/operations.js';
+import {connectOperations,closetMemberHeaders} from '../assets/operations.js';
 import {createAuthClient} from '@neon/auth';
 import {connectAccount} from './account.mjs';
 import {analyzeGarmentPhoto} from './photo-analysis.mjs';
@@ -26,7 +26,9 @@ const say=(message,error=false)=>{$('cloud-message').textContent=message;$('clou
 async function api(path,{method='GET',body,signal}={}){
  const generation=epoch;
  if(!session?.token)throw Error('개인 옷장에 연결 중입니다.');
- const response=await fetch(config.apiUrl+path,{method,signal,headers:{Authorization:'Bearer '+session.token,...(body instanceof FormData?{}:{'Content-Type':'application/json'})},body:body instanceof FormData?body:body?JSON.stringify(body):undefined});
+ const extraHeaders=await closetMemberHeaders(auth,path,method);
+ if(generation!==epoch)throw Error('사용자가 변경되어 요청을 취소했습니다.');
+ const response=await fetch(config.apiUrl+path,{method,signal,headers:{...extraHeaders,Authorization:'Bearer '+session.token,...(body instanceof FormData?{}:{'Content-Type':'application/json'})},body:body instanceof FormData?body:body?JSON.stringify(body):undefined});
  const data=await response.json();
  if(generation!==epoch)throw Error('사용자가 변경되어 요청을 취소했습니다.');
  if(!response.ok)throw Object.assign(Error(data.error||'요청에 실패했습니다.'),{status:response.status});

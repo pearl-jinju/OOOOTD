@@ -1,9 +1,24 @@
+export async function closetMemberHeaders(auth,path,method) {
+ if (!auth || !(path==='/closet' && method==='POST' || method==='DELETE' && /^\/closet\/\d+$/.test(path))) return {};
+ try {
+  const {data} = await auth.getSession();
+  if (!data?.user) return {};
+  let token = data.session?.token;
+  if (typeof token !== 'string' || !/^[\w-]+\.[\w-]+\.[\w-]+$/.test(token)) token = (await auth.token()).data?.token;
+  return token ? {'X-OOOOTD-Member':token} : {};
+ } catch {
+  return {};
+ }
+}
+
 export function connectOperations(auth, apiUrl) {
  const panel = document.getElementById('operations');
  const open = document.getElementById('operations-open');
  const status = document.getElementById('operations-status');
  const report = document.getElementById('operations-report');
  const accountStatus = document.getElementById('operations-account-status');
+ const filter = document.getElementById('operations-member-filter');
+ const memberSelect = document.getElementById('operations-member-select');
  let revision = 0;
 
  async function recordActivity(type, query) {
@@ -43,10 +58,13 @@ export function connectOperations(auth, apiUrl) {
 
  async function refresh(loadReport = false) {
   const current = ++revision;
-  if (!loadReport) open.hidden = true;
+  if (!loadReport) {
+   open.hidden = filter.hidden = true;
+   memberSelect.value = '';
+  }
   report.hidden = true;
   status.textContent = accountStatus.textContent = '';
-  for (const id of ['operations-traffic','operations-runs','operations-catalog','operations-member-logins','operations-visits','operations-searches']) {
+  for (const id of ['operations-traffic','operations-runs','operations-catalog','operations-member-logins','operations-visits','operations-searches','operations-closet-activity']) {
    document.getElementById(id).replaceChildren();
   }
   try {
@@ -56,7 +74,10 @@ export function connectOperations(auth, apiUrl) {
     panel.close();
     return;
    }
-   const accessPath = loadReport ? '/admin/operations' : '/member/activity';
+   const memberId = memberSelect.value;
+   const accessPath = loadReport
+    ? '/admin/operations' + (memberId ? '?member='+encodeURIComponent(memberId) : '')
+    : '/member/activity';
    const useToken = token => fetch(apiUrl + accessPath, {
     method: loadReport ? 'GET' : 'POST',
     headers: {Authorization: 'Bearer ' + token},
@@ -85,7 +106,12 @@ export function connectOperations(auth, apiUrl) {
     open.hidden = data.admin !== true;
     return;
    }
-   open.hidden = false;
+   open.hidden = filter.hidden = false;
+   const options = data.members ?? [];
+   memberSelect.replaceChildren(new Option('전체 회원과 비회원',''),new Option('비회원','guest'),
+    ...options.map(member=>new Option(
+     [member.name,member.member,member.id.slice(-6)].filter(Boolean).join(' · '),member.id)));
+   memberSelect.value = memberId;
    const memberLogins = data.memberLogins ?? [];
    document.getElementById('operations-member-empty').hidden = memberLogins.length > 0;
    rows('operations-member-logins', memberLogins.map(event => ({
@@ -98,6 +124,15 @@ export function connectOperations(auth, apiUrl) {
      ...event, created_at:new Date(event.created_at).toLocaleString('ko-KR',{timeZone:'Asia/Seoul'}),
     })), keys);
    }
+   const closetActivity = data.closetActivity ?? [];
+   document.getElementById('operations-closet-empty').hidden = closetActivity.length > 0;
+   const categoryLabels = {outer:'아우터',top:'상의',bottom:'하의',shoes:'신발'};
+   rows('operations-closet-activity', closetActivity.map(event=>({
+    ...event,
+    created_at:new Date(event.created_at).toLocaleString('ko-KR',{timeZone:'Asia/Seoul'}),
+    action:event.action==='added'?'추가':'삭제',
+    category:categoryLabels[event.category]??event.category,
+   })), ['created_at','member','action','category','garment_name']);
    rows('operations-traffic', data.traffic, ['method','route','status','requests','avg_ms','max_ms']);
    rows('operations-runs', data.runs.map(run => ({
     ...run, created_at: new Date(run.created_at).toLocaleString('ko-KR',{timeZone:'Asia/Seoul'}),
@@ -119,5 +154,6 @@ export function connectOperations(auth, apiUrl) {
   refresh(true);
  });
  document.getElementById('operations-refresh').addEventListener('click',() => refresh(true));
+ memberSelect.addEventListener('change',() => refresh(true));
  return refresh;
 }

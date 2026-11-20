@@ -48,10 +48,22 @@ export function createApp({pool,verify,storage,analyze,weatherFetch=fetch,writeW
    await c.query('COMMIT');return value;
   }catch(e){await c.query('ROLLBACK');throw e}finally{c.release()}
  }
+ async function closetMember(request, userId, role){
+  if(role==='member')return userId;
+  const token=request.headers.get('x-ooootd-member');
+  if(!token)return null;
+  try{return await verify(token)||null}catch{return null}
+ }
+ function logCloset(c,userId,memberId,id,item,action){
+  return c.query(
+   'INSERT INTO ooootd_closet_activity(closet_owner_id,member_id,garment_id,garment_name,category,action) VALUES($1,$2,$3,$4,$5,$6)',
+   [userId,memberId,id,String(item?.name??'').slice(0,160),item?.category??'unknown',action]
+  );
+ }
  return {async fetch(request){
   const origin=request.headers.get('origin');
   const headers={'Vary':'Origin','Cache-Control':'no-store','X-Content-Type-Options':'nosniff'};
-  if(origin&&allowedOrigins.includes(origin)){headers['Access-Control-Allow-Origin']=origin;headers['Access-Control-Allow-Headers']='Authorization,Content-Type';headers['Access-Control-Allow-Methods']='GET,POST,PUT,DELETE,OPTIONS'}
+  if(origin&&allowedOrigins.includes(origin)){headers['Access-Control-Allow-Origin']=origin;headers['Access-Control-Allow-Headers']='Authorization,Content-Type,X-OOOOTD-Member';headers['Access-Control-Allow-Methods']='GET,POST,PUT,DELETE,OPTIONS'}
   const reply=(data,status=200)=>Response.json(data,{status,headers});
   if(origin&&!allowedOrigins.includes(origin))return reply({error:'Origin not allowed'},403);
   if(request.method==='OPTIONS')return new Response(null,{status:204,headers});
@@ -111,7 +123,7 @@ export function createApp({pool,verify,storage,analyze,weatherFetch=fetch,writeW
     await pool.query('INSERT INTO device_sessions(token_hash,user_id) VALUES($1,$2) ON CONFLICT(user_id) DO UPDATE SET token_hash=excluded.token_hash',[createHash('sha256').update(token).digest('hex'),userId]);
     return reply({token,userId},201);
    }
-   const {userId}=await resolveSession(request);
+   const {userId,role}=await resolveSession(request);
    if(!userId)return reply({error:'로그인이 필요합니다.'},401);
    if(path==='/catalog/expand'&&request.method==='POST'){
     const {occasion}=await request.json();
@@ -138,7 +150,12 @@ export function createApp({pool,verify,storage,analyze,weatherFetch=fetch,writeW
     const key='users/'+encodeURIComponent(userId)+'/'+randomUUID()+'.'+ext;
     await storage.put(key,bytes,type);
     try{
-     const row=await owned(userId,async c=>(await c.query('INSERT INTO user_closet(user_id,item,image_key) VALUES($1,$2,$3) RETURNING id',[userId,item,key])).rows[0]);
+     const memberId=await closetMember(request,userId,role);
+     const row=await owned(userId,async c=>{
+      const {rows:[inserted]}=await c.query('INSERT INTO user_closet(user_id,item,image_key) VALUES($1,$2,$3) RETURNING id',[userId,item,key]);
+      await logCloset(c,userId,memberId,inserted.id,item,'added');
+      return inserted;
+     });
      return reply({id:Number(row.id)},201);
     }catch(e){await storage.remove(key).catch(()=>{});throw e}
    }
@@ -161,7 +178,12 @@ export function createApp({pool,verify,storage,analyze,weatherFetch=fetch,writeW
    }
    const match=path.match(/^\/closet\/(\d+)$/);
    if(match&&request.method==='DELETE'){
-    const row=await owned(userId,async c=>(await c.query('DELETE FROM user_closet WHERE id=$1 AND user_id=$2 RETURNING image_key',[match[1],userId])).rows[0]);
+    const memberId=await closetMember(request,userId,role);
+    const row=await owned(userId,async c=>{
+     const {rows:[removed]}=await c.query('DELETE FROM user_closet WHERE id=$1 AND user_id=$2 RETURNING image_key,item',[match[1],userId]);
+     if(removed)await logCloset(c,userId,memberId,match[1],removed.item,'removed');
+     return removed;
+    });
     if(!row)return reply({error:'해당 옷을 찾을 수 없습니다.'},404);
     if(row.image_key)await storage.remove(row.image_key).catch(()=>{});
     return reply({ok:true});

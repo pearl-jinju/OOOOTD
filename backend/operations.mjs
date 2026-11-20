@@ -77,7 +77,12 @@ export function withOperations(app, {pool, verify, allowedOrigins}) {
     return reply({admin:true});
    }
 
-   const [traffic, runs, catalog, memberLogins, visits, searches] = await Promise.all([
+   const memberId = new URL(request.url).searchParams.get('member');
+   if (memberId !== null && memberId !== 'guest' &&
+       !/^(?:device:)?[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i.test(memberId)) {
+    return reply({error:'invalid_member'},400);
+   }
+   const [traffic, runs, catalog, memberLogins, visits, searches, members, closetActivity] = await Promise.all([
     pool.query(`
      SELECT route, method, status, sum(requests)::int AS requests,
             round(sum(elapsed_ms) / sum(requests)::numeric)::int AS avg_ms,
@@ -101,8 +106,9 @@ export function withOperations(app, {pool, verify, allowedOrigins}) {
        FROM ooootd_member_logins l
        LEFT JOIN neon_auth."user" u ON u.id::text = l.user_id
       WHERE l.created_at >= now() - interval '30 days'
+        AND ($1::text IS NULL OR l.user_id=$1)
       ORDER BY l.created_at DESC, l.session_id DESC LIMIT 100
-    `),
+    `,[memberId]),
     ...['visit','search'].map(type=>pool.query(`
      SELECT e.created_at,e.search_term,
             CASE WHEN e.user_id IS NULL THEN '비회원'
@@ -111,12 +117,42 @@ export function withOperations(app, {pool, verify, allowedOrigins}) {
        FROM ooootd_site_activity e
        LEFT JOIN neon_auth."user" u ON u.id::text=e.user_id
       WHERE e.event_type=$1 AND e.created_at >= now() - interval '30 days'
+        AND ($2::text IS NULL OR e.user_id=$2 OR ($2='guest' AND e.user_id IS NULL))
       ORDER BY e.created_at DESC, e.event_id DESC LIMIT 100
-    `,[type])),
+    `,[type,memberId])),
+    pool.query(`
+     WITH recent_members AS (
+      SELECT user_id FROM ooootd_member_logins WHERE created_at >= now() - interval '30 days'
+      UNION
+      SELECT user_id FROM ooootd_site_activity
+       WHERE user_id IS NOT NULL AND created_at >= now() - interval '30 days'
+      UNION
+      SELECT coalesce(member_id,closet_owner_id) AS user_id FROM ooootd_closet_activity
+       WHERE created_at >= now() - interval '30 days'
+     )
+     SELECT r.user_id AS id, u.name,
+            coalesce(left(split_part(u.email,'@',1),2) || '***@' ||
+                     split_part(u.email,'@',2),
+                     CASE WHEN r.user_id LIKE 'device:%' THEN '브라우저 옷장' ELSE '탈퇴한 회원' END) AS member
+       FROM recent_members r LEFT JOIN neon_auth."user" u ON u.id::text=r.user_id
+      ORDER BY u.name NULLS LAST, member, r.user_id
+    `),
+    pool.query(`
+     SELECT a.created_at,a.action,a.garment_name,a.category,
+            coalesce(left(split_part(u.email,'@',1),2) || '***@' || split_part(u.email,'@',2),
+                     CASE WHEN a.member_id IS NULL THEN '브라우저 옷장 · ' || right(a.closet_owner_id,6)
+                          ELSE '탈퇴한 회원' END) AS member
+       FROM ooootd_closet_activity a
+       LEFT JOIN neon_auth."user" u ON u.id::text=a.member_id
+      WHERE a.created_at >= now() - interval '30 days'
+        AND ($1::text IS NULL OR a.member_id=$1 OR
+             (a.member_id IS NULL AND (a.closet_owner_id=$1 OR $1='guest')))
+      ORDER BY a.created_at DESC, a.id DESC LIMIT 100
+    `,[memberId]),
    ]);
    return reply({
     traffic:traffic.rows, runs:runs.rows, catalog:catalog.rows, memberLogins:memberLogins.rows,
-    visits:visits.rows, searches:searches.rows,
+    visits:visits.rows, searches:searches.rows, members:members.rows, closetActivity:closetActivity.rows,
    });
   } catch {
    console.error(siteActivity ? 'OOOOTD site activity recording failed' : activity ? 'OOOOTD member login recording failed' : 'OOOOTD operations report unavailable');
@@ -151,6 +187,7 @@ export function withOperations(app, {pool, verify, allowedOrigins}) {
     await pool.query("DELETE FROM ooootd_api_minutes WHERE minute < now() - interval '7 days'");
     await pool.query("DELETE FROM ooootd_member_logins WHERE created_at < now() - interval '30 days'");
     await pool.query("DELETE FROM ooootd_site_activity WHERE created_at < now() - interval '30 days'");
+    await pool.query("DELETE FROM ooootd_closet_activity WHERE created_at < now() - interval '30 days'");
    }
   } catch (error) {
    console.error('OOOOTD operations metrics write failed', /^[A-Z0-9]{5}$/.test(error?.code) ? error.code : 'unknown');
