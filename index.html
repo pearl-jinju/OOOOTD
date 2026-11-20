@@ -701,7 +701,15 @@
     [hidden] { display: none !important; }
     .btn-icon:disabled { opacity: 0.5; cursor: not-allowed; }
     .private-panel{background:white;border:1px solid var(--border);border-radius:16px;padding:20px;margin-bottom:20px}
-    .operations-panel { margin-block: 24px; overflow-wrap: anywhere; }
+    dialog.operations-panel {
+      width: min(54rem, calc(100% - 24px));
+      max-height: calc(100dvh - 32px);
+      margin: auto;
+      overflow: auto;
+      overflow-wrap: anywhere;
+    }
+    .operations-panel::backdrop { background: #11182785; }
+    .operations-heading { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
     .operations-panel h3 { margin-block: 18px 6px; font-size: 1rem; }
     .operations-scroll { overflow-x: auto; }
     .operations-panel table { width: 100%; border-collapse: collapse; font-size: .85rem; }
@@ -841,6 +849,7 @@
               <button class="btn-icon" id="account-google" type="button">Google로 계속하기</button>
             </div>
           </form>
+          <button class="btn-icon" id="operations-open" type="button" aria-haspopup="dialog" aria-controls="operations" hidden>운영 분석</button>
           <button class="btn-icon" id="account-sign-out" type="button" hidden>로그아웃</button>
           <p id="account-status" role="status" aria-live="polite"></p>
         </div>
@@ -859,8 +868,11 @@
     </header>
 
 
-    <section class="private-panel operations-panel" id="operations" aria-labelledby="operations-title" hidden>
-      <h2 id="operations-title">운영 분석</h2>
+    <dialog class="private-panel operations-panel" id="operations" aria-labelledby="operations-title">
+      <div class="operations-heading">
+        <h2 id="operations-title">운영 분석</h2>
+        <form method="dialog"><button class="btn-icon" type="submit">닫기</button></form>
+      </div>
       <form id="operations-verify" class="private-form" hidden>
         <p class="wide">관리자 화면을 열려면 가입한 이메일을 인증해 주세요.</p>
         <label>이메일 인증 코드<input id="operations-otp" required autocomplete="one-time-code" inputmode="numeric" pattern="[0-9]{6}" maxlength="6"></label>
@@ -896,7 +908,7 @@
         </table></div>
         <p><a href="https://dashboard.render.com/static/srv-dbtrl79srm7s73dreu60">Render 배포 기록</a> · <a href="https://console.neon.tech/app/projects/late-king-76702472">Neon 운영 로그</a></p>
       </div>
-    </section>
+    </dialog>
 
     <!-- 날씨 실시간 연동 Bar -->
     <div class="weather-bar">
@@ -2106,7 +2118,7 @@
       fetchLiveWeather();
     });
   </script>
-  <script type="module" src="/assets/cloud.js?v=operations"></script>
+  <script type="module" src="/assets/cloud.js?v=operations-dialog"></script>
   <script type="module" src="/assets/runtime-pipeline-autoplay.js"></script>
 </body>
 </html>

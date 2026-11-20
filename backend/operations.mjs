@@ -77,7 +77,7 @@ export function withOperations(app, {pool, verify, allowedOrigins}) {
   try {
    await pool.query(`
     INSERT INTO ooootd_api_minutes (minute, route, method, status, elapsed_ms, max_ms)
-     VALUES (date_trunc('minute',now()),$1,$2,$3,$4,$4)
+     VALUES (date_trunc('minute',now()),$1,$2,$3,$4::integer,$4::integer)
      ON CONFLICT (minute, route, method, status) DO UPDATE
      SET requests = ooootd_api_minutes.requests + 1,
          elapsed_ms = ooootd_api_minutes.elapsed_ms + excluded.elapsed_ms,
