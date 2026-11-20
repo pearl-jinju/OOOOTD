@@ -1,4 +1,4 @@
-import {connectMemberAdmin} from './member-admin.js?v=roles';
+import {connectMemberAdmin} from './member-admin.js?v=tiers';
 
 export async function closetMemberHeaders(auth,path,method) {
  if (!auth || !(path==='/closet' && method==='POST' || method==='DELETE' && /^\/closet\/\d+$/.test(path))) return {};
@@ -28,6 +28,8 @@ export function connectOperations(auth, apiUrl) {
  let revision = 0;
  let selectedView = 'overview';
  let reportAvailable = false;
+ let canManageRoles = false;
+ const manageButton = panel.querySelector('[data-operations-section="members"]');
 
  async function authorizedRequest(session,path,method = 'GET',body) {
   const send = token => fetch(apiUrl+path,{
@@ -52,13 +54,14 @@ export function connectOperations(auth, apiUrl) {
   const session=await auth.getSession();
   if (!session.data?.user) throw Error('Member session required');
   return authorizedRequest(session,path,method,body);
- },async () => {
+ },async role => {
   panel.close();
   await refresh();
-  accountStatus.textContent='일반 회원 권한으로 변경됐어요.';
+  accountStatus.textContent=role==='manager' ? '중간 관리자 권한으로 변경됐어요.' : '일반 회원 권한으로 변경됐어요.';
  });
 
  function showView(section) {
+  if (section==='members' && !canManageRoles) section='overview';
   selectedView = section;
   for (const button of sectionButtons) {
    const active = button.dataset.operationsSection === section;
@@ -120,6 +123,8 @@ export function connectOperations(auth, apiUrl) {
   if (!loadReport) {
    open.hidden = true;
    reportAvailable = false;
+   canManageRoles = false;
+   manageButton.hidden = true;
    memberAdmin.reset();
    memberSelect.value = '';
    showView('overview');
@@ -153,6 +158,12 @@ export function connectOperations(auth, apiUrl) {
     return;
    }
    open.hidden = false;
+   canManageRoles = data.canManageRoles === true;
+   manageButton.hidden = !canManageRoles;
+   if (selectedView==='members' && !canManageRoles) {
+    memberAdmin.reset();
+    showView('overview');
+   }
    const options = data.members ?? [];
    memberSelect.replaceChildren(new Option('전체 회원과 비회원',''),new Option('비회원','guest'),
     ...options.map(member=>new Option(

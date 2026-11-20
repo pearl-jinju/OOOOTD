@@ -6,19 +6,21 @@ const owner = '11111111-1111-1111-1111-111111111111';
 const member = '22222222-2222-2222-2222-222222222222';
 
 function fixture() {
- const admins = new Set([owner]);
+ const roles = new Map([[owner,'admin']]);
  const changes = [];
  const statements = [];
  const client = {
   release(){},
   async query(sql, values = []) {
    statements.push(sql);
-   const [id] = values;
-   if (sql.startsWith('SELECT 1 FROM ooootd_admins')) return {rowCount:Number(admins.has(id))};
-   if (sql.includes('AS admins FROM ooootd_admins')) return {rows:[{admins:admins.size}]};
-   if (sql.includes('AS admin')) return {rows:[{admin:admins.has(id)}]};
-   if (sql.startsWith('INSERT INTO ooootd_admins')) admins.add(id);
-   if (sql.startsWith('DELETE FROM ooootd_admins')) admins.delete(id);
+   const [id,role] = values;
+   if (sql.startsWith('SELECT 1 FROM ooootd_admins')) return {rowCount:Number(roles.get(id)==='admin')};
+   if (sql.startsWith('SELECT access_role')) return {rows:roles.has(id)?[{access_role:roles.get(id)}]:[]};
+   if (sql.includes('AS admins FROM ooootd_admins')) return {rows:[{admins:[...roles.values()].filter(x=>x==='admin').length}]};
+   if (sql.includes("coalesce(a.access_role,'member') AS role")) return {rows:[{role:roles.get(id)??'member'}]};
+   if (sql.includes('AS role') && sql.includes('WHERE user_id=$1')) return {rows:[{role:roles.get(id)??'member'}]};
+   if (sql.includes('INSERT INTO ooootd_admins')) roles.set(id,role);
+   if (sql.startsWith('DELETE FROM ooootd_admins')) roles.delete(id);
    if (sql.startsWith('INSERT INTO ooootd_member_role_changes')) changes.push(values);
    return {rows:[]};
   },
@@ -28,35 +30,47 @@ function fixture() {
   verify:async token=>token,
   allowedOrigins:['https://ooootd.onrender.com'],
  });
- const request = (actor, target, role) => response.fetch(new Request('https://test.invalid/admin/members',{
+ const get = (actor,path) => response.fetch(new Request('https://test.invalid'+path,{
+  headers:{Authorization:'Bearer '+actor},
+ }));
+ const write = (actor,target,role) => response.fetch(new Request('https://test.invalid/admin/members',{
   method:'POST',headers:{Authorization:'Bearer '+actor,'Content-Type':'application/json'},
   body:JSON.stringify({memberId:target,role}),
  }));
- return {admins,changes,statements,request};
+ return {roles,changes,statements,get,write};
 }
 
-test('only an administrator can assign roles and the final administrator cannot be removed',async()=>{
+test('a manager can enter the console but cannot open or write the permissions endpoint',async()=>{
  const f = fixture();
- assert.equal((await f.request(member,member,'admin')).status,403);
- assert.equal((await f.request(owner,owner,'member')).status,409);
- assert.deepEqual(f.changes,[]);
- assert(f.admins.has(owner));
- const granted = await f.request(owner,member,'admin');
- assert.equal(granted.status,200);
- assert.equal((await granted.json()).changed,true);
- assert(f.admins.has(member));
- assert.deepEqual(f.changes,[[owner,member,'admin']]);
+ assert.equal((await f.get(member,'/admin/operations')).status,403);
+ assert.equal((await f.write(owner,member,'manager')).status,200);
+ const report = await f.get(member,'/admin/operations');
+ assert.equal(report.status,200);
+ assert.equal((await report.json()).canManageRoles,false);
+ assert.equal((await f.get(member,'/admin/members')).status,403);
+ assert.equal((await f.write(member,member,'admin')).status,403);
+ assert.deepEqual(f.changes,[[owner,member,'manager']]);
+});
+
+test('the final full administrator remains protected even when a manager exists',async()=>{
+ const f = fixture();
+ await f.write(owner,member,'manager');
+ for (const role of ['member','manager']) assert.equal((await f.write(owner,owner,role)).status,409);
+ assert.equal(f.roles.get(owner),'admin');
+ assert.equal(f.changes.length,1);
  assert(f.statements.some(sql=>sql.includes('pg_advisory_xact_lock')));
 });
 
-test('an idempotent grant does not duplicate history and revoking your own role reports loss of access',async()=>{
+test('an unchanged grant is idempotent and a self-demotion disables permission editing',async()=>{
  const f = fixture();
- await f.request(owner,member,'admin');
- const unchanged = await f.request(owner,member,'admin');
+ await f.write(owner,member,'admin');
+ const unchanged = await f.write(owner,member,'admin');
  assert.equal((await unchanged.json()).changed,false);
- const revoked = await f.request(owner,owner,'member');
- assert.equal(revoked.status,200);
- assert.equal((await revoked.json()).accessRetained,false);
- assert.deepEqual([...f.admins],[member]);
- assert.deepEqual(f.changes,[[owner,member,'admin'],[owner,owner,'member']]);
+ const downgraded = await f.write(owner,owner,'manager');
+ assert.equal(downgraded.status,200);
+ assert.equal((await downgraded.json()).accessRetained,false);
+ assert.equal((await f.get(owner,'/admin/operations')).status,200);
+ assert.equal((await f.get(owner,'/admin/members')).status,403);
+ assert.deepEqual([...f.roles],[[owner,'manager'],[member,'admin']]);
+ assert.deepEqual(f.changes,[[owner,member,'admin'],[owner,owner,'manager']]);
 });

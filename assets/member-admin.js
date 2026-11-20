@@ -1,4 +1,4 @@
-const roles = {member:'일반 회원',admin:'관리자'};
+const roles = {member:'일반 회원',manager:'중간 관리자',admin:'관리자'};
 
 export function connectMemberAdmin(request, onAccessLost) {
  const byId = id => document.getElementById('admin-'+id);
@@ -19,7 +19,7 @@ export function connectMemberAdmin(request, onAccessLost) {
    const response = await request('/admin/members','POST',{memberId:member.id,role:role.value});
    const data = await response.json();
    if (!data.accessRetained && response.ok) {
-    onAccessLost();
+    onAccessLost(data.role);
     return;
    }
    if (before !== revision) return;

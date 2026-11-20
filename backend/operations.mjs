@@ -14,26 +14,32 @@ async function changeMemberRole(pool, actorId, memberId, role) {
   await client.query('BEGIN');
   await client.query('SELECT pg_advisory_xact_lock(7100301)');
   const change = async () => {
-   const {rowCount:authorized} = await client.query('SELECT 1 FROM ooootd_admins WHERE user_id=$1',[actorId]);
+   const {rowCount:authorized} = await client.query("SELECT 1 FROM ooootd_admins WHERE user_id=$1 AND access_role='admin'",[actorId]);
    if (!authorized) return {status:403,error:'access_denied'};
    const {rows:[member]} = await client.query(`
-    SELECT EXISTS(SELECT 1 FROM ooootd_admins WHERE user_id=$1) AS admin
-      FROM neon_auth."user" WHERE id=$1::text::uuid
+    SELECT coalesce(a.access_role,'member') AS role
+      FROM neon_auth."user" u LEFT JOIN ooootd_admins a ON a.user_id=u.id::text
+     WHERE u.id=$1::text::uuid
    `,[memberId]);
    if (!member) return {status:404,error:'member_not_found'};
-   const grant = role === 'admin';
-   if (member.admin === grant) return {status:200,role,changed:false,accessRetained:true};
-   if (grant) {
-    await client.query('INSERT INTO ooootd_admins(user_id) VALUES($1)',[memberId]);
-   } else {
+   if (member.role === role) return {status:200,role,changed:false,accessRetained:true};
+   if (member.role === 'admin' && role !== 'admin') {
     const {rows:[count]} = await client.query(`
      SELECT count(*)::int AS admins FROM ooootd_admins a JOIN neon_auth."user" u ON u.id::text=a.user_id
+      WHERE a.access_role='admin'
     `);
     if (count.admins < 2) return {status:409,error:'last_admin'};
+   }
+   if (role === 'member') {
     await client.query('DELETE FROM ooootd_admins WHERE user_id=$1',[memberId]);
+   } else {
+    await client.query(`
+     INSERT INTO ooootd_admins(user_id,access_role) VALUES($1,$2)
+     ON CONFLICT(user_id) DO UPDATE SET access_role=excluded.access_role
+    `,[memberId,role]);
    }
    await client.query('INSERT INTO ooootd_member_role_changes(actor_id,member_id,role) VALUES($1,$2,$3)',[actorId,memberId,role]);
-   return {status:200,role,changed:true,accessRetained:grant || actorId!==memberId};
+   return {status:200,role,changed:true,accessRetained:role==='admin' || actorId!==memberId};
   };
   const result = await change();
   await client.query('COMMIT');
@@ -103,22 +109,24 @@ export function withOperations(app, {pool, verify, allowedOrigins}) {
          AND "createdAt" >= now() - interval '30 days'
       ON CONFLICT (session_id) DO NOTHING
      )
-     SELECT EXISTS(SELECT 1 FROM ooootd_admins WHERE user_id=$1) AS admin
+     SELECT coalesce((SELECT access_role FROM ooootd_admins WHERE user_id=$1),'member') AS role
     `,[userId]).catch(() => {
      console.error('OOOOTD member login recording failed');
-     return pool.query('SELECT EXISTS(SELECT 1 FROM ooootd_admins WHERE user_id=$1) AS admin',[userId]);
+     return pool.query("SELECT coalesce((SELECT access_role FROM ooootd_admins WHERE user_id=$1),'member') AS role",[userId]);
     });
-    return reply({admin:member.admin});
+    return reply({admin:member.role!=='member',canManageRoles:member.role==='admin'});
    }
-   const {rowCount} = await pool.query('SELECT 1 FROM ooootd_admins WHERE user_id=$1',[userId]);
-   if (!rowCount) return reply({error:'access_denied'},403);
+   const {rows:[operator]} = await pool.query('SELECT access_role FROM ooootd_admins WHERE user_id=$1',[userId]);
+   if (!operator) return reply({error:'access_denied'},403);
+   const canManageRoles = operator.access_role==='admin';
    if (manageMembers) {
+    if (!canManageRoles) return reply({error:'access_denied'},403);
     if (request.method === 'POST') {
      if (Number(request.headers.get('content-length')) > 1024) return reply({error:'invalid_role_change'},413);
      const data = await request.json().catch(() => null);
      if (!data || typeof data.memberId !== 'string' ||
          !/^[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i.test(data.memberId) ||
-         !['member','admin'].includes(data.role)) return reply({error:'invalid_role_change'},400);
+         !['member','manager','admin'].includes(data.role)) return reply({error:'invalid_role_change'},400);
      const {status,...result} = await changeMemberRole(pool,userId,data.memberId.toLowerCase(),data.role);
      return reply(result,status);
     }
@@ -131,7 +139,7 @@ export function withOperations(app, {pool, verify, allowedOrigins}) {
      pool.query(`
       SELECT u.id::text AS id, u.name,
              left(split_part(u.email,'@',1),2) || '***@' || split_part(u.email,'@',2) AS email,
-             CASE WHEN a.user_id IS NOT NULL THEN 'admin' ELSE 'member' END AS role
+             coalesce(a.access_role,'member') AS role
         FROM neon_auth."user" u LEFT JOIN ooootd_admins a ON a.user_id=u.id::text
        WHERE strpos(lower(u.email),lower($1))>0 OR strpos(lower(coalesce(u.name,'')),lower($1))>0
        ORDER BY u.name NULLS LAST, u.email, u.id LIMIT 21 OFFSET $2::integer
@@ -150,7 +158,7 @@ export function withOperations(app, {pool, verify, allowedOrigins}) {
    }
    if (path !== operationsPath) {
     console.info('OOOOTD administrator access confirmed');
-    return reply({admin:true});
+    return reply({admin:true,canManageRoles});
    }
 
    const memberId = new URL(request.url).searchParams.get('member');
@@ -227,7 +235,7 @@ export function withOperations(app, {pool, verify, allowedOrigins}) {
     `,[memberId]),
    ]);
    return reply({
-    traffic:traffic.rows, runs:runs.rows, catalog:catalog.rows, memberLogins:memberLogins.rows,
+    canManageRoles, traffic:traffic.rows, runs:runs.rows, catalog:catalog.rows, memberLogins:memberLogins.rows,
     visits:visits.rows, searches:searches.rows, members:members.rows, closetActivity:closetActivity.rows,
    });
   } catch {
