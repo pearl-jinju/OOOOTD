@@ -9,7 +9,8 @@ const [html, rules, fixture] = await Promise.all([
  read('index.html'), read('assets/outfit-rules-layers.js'), read('tests/fixtures/style-catalog.json').then(JSON.parse),
 ]);
 const origin = 'http://outfit-check.test';
-const browser = await chromium.launch({headless:true});
+const channel = process.env.OOOOTD_TEST_BROWSER_CHANNEL;
+const browser = await chromium.launch({headless:true, channel});
 const categories = ['outer','top','bottom','shoes'];
 const core = ['top','bottom','shoes'];
 const errors = [];

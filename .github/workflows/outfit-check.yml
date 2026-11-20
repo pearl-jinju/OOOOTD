@@ -17,5 +17,6 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm test
-      - run: npx playwright-core install --with-deps chromium
       - run: npm run test:outfits
+        env:
+          OOOOTD_TEST_BROWSER_CHANNEL: chrome
