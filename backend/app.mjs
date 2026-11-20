@@ -20,9 +20,24 @@ export function imageType(bytes){
  if(Buffer.from(bytes.subarray(0,4)).toString()==='RIFF'&&Buffer.from(bytes.subarray(8,12)).toString()==='WEBP')return ['image/webp','webp'];
  throw Object.assign(Error('JPG·PNG·WebP 이미지가 필요합니다.'),{status:400});
 }
-export function createApp({pool,verify,storage,analyze,allowedOrigins=['https://ooootd.onrender.com','http://localhost:4173']}){
+export function createApp({pool,verify,storage,analyze,weatherFetch=fetch,writeWeatherAudit=entry=>console.info(JSON.stringify(entry)),allowedOrigins=['https://ooootd.onrender.com','http://localhost:4173']}){
  const weatherCache=new Map();
  let catalogCache=null;
+ async function resolveSession(request){
+   const token=request.headers.get('authorization')?.match(/^Bearer (.+)$/i)?.[1];
+   let userId;
+   let role;
+   if(token){
+    try{userId=await verify(token)}catch{}
+    if(userId)role='member';
+    if(!userId&&/^[A-Za-z0-9_-]{43}$/.test(token)){
+     const {rows}=await pool.query('SELECT user_id FROM device_sessions WHERE token_hash=$1 AND expires_at>now()',[createHash('sha256').update(token).digest('hex')]);
+     userId=rows[0]?.user_id;
+     if(userId)role='guest';
+    }
+   }
+   return {userId,role};
+ }
  async function owned(userId,fn){
   const c=await pool.connect();
   try{
@@ -48,16 +63,31 @@ export function createApp({pool,verify,storage,analyze,allowedOrigins=['https://
     const result=await refreshCatalog(pool);catalogCache=null;return reply(result);
    }
    if(path==='/weather'&&request.method==='GET'){
+    let accountAlias='anonymous',providerCalls=0;
+    const finish=(decision,body,status=200)=>{
+     writeWeatherAudit({time:new Date().toISOString(),accountAlias,action:'weather_lookup',decision,providerCalls});
+     return reply(body,status);
+    };
+    let session;
+    try{session=await resolveSession(request)}catch{return finish('session_error',{error:'Session unavailable'},503)}
+    if(!session.userId)return finish('unauthenticated',{error:'Authentication required'},401);
+    accountAlias=createHash('sha256').update('weather-audit:'+session.userId).digest('hex').slice(0,24);
+    if(session.role!=='member')return finish('denied',{error:'Weather access denied'},403);
     const cities={Seoul:[37.5665,126.978],Busan:[35.1796,129.0756],Incheon:[37.4563,126.7052],Daegu:[35.8714,128.6014],Daejeon:[36.3504,127.3845],Gwangju:[35.1595,126.8526],Jeju:[33.4996,126.5312]};
     const city=new URL(request.url).searchParams.get('city')||'Seoul';
-    if(!cities[city])return reply({error:'Unknown city'},400);
+    if(!Object.hasOwn(cities,city))return finish('invalid_city',{error:'Unknown city'},400);
     const cached=weatherCache.get(city);
-    if(cached&&Date.now()-cached.time<600000)return reply(cached.data);
+    if(cached&&Date.now()-cached.time<600000)return finish('allowed_cached',cached.data);
     const [lat,lon]=cities[city];
-    const response=await fetch('https://api.open-meteo.com/v1/forecast?latitude='+lat+'&longitude='+lon+'&current_weather=true&daily=temperature_2m_max,temperature_2m_min,weather_code,precipitation_probability_max&forecast_days=2&timezone=Asia%2FSeoul',{signal:AbortSignal.timeout(10000)});
-    if(!response.ok)return reply({error:'Forecast unavailable'},502);
-    const data=await response.json();
-    weatherCache.set(city,{time:Date.now(),data});return reply(data);
+    let data;
+    try{
+     providerCalls++;
+     const response=await weatherFetch('https://api.open-meteo.com/v1/forecast?latitude='+lat+'&longitude='+lon+'&current_weather=true&daily=temperature_2m_max,temperature_2m_min,weather_code,precipitation_probability_max&forecast_days=2&timezone=Asia%2FSeoul',{signal:AbortSignal.timeout(10000)});
+     if(!response.ok)return finish('provider_failed',{error:'Forecast unavailable'},502);
+     data=await response.json();
+    }catch{return finish('provider_failed',{error:'Forecast unavailable'},502)}
+    weatherCache.set(city,{time:Date.now(),data});
+    return finish('allowed',data);
    }
    // This route contains only the public shopping catalog, never user clothes.
    if(path==='/catalog'&&request.method==='GET'){
@@ -86,15 +116,7 @@ export function createApp({pool,verify,storage,analyze,allowedOrigins=['https://
     await pool.query('INSERT INTO device_sessions(token_hash,user_id) VALUES($1,$2) ON CONFLICT(user_id) DO UPDATE SET token_hash=excluded.token_hash',[createHash('sha256').update(token).digest('hex'),userId]);
     return reply({token,userId},201);
    }
-   const token=request.headers.get('authorization')?.match(/^Bearer (.+)$/i)?.[1];
-   let userId;
-   if(token){
-    try{userId=await verify(token)}catch{}
-    if(!userId&&/^[A-Za-z0-9_-]{43}$/.test(token)){
-     const {rows}=await pool.query('SELECT user_id FROM device_sessions WHERE token_hash=$1 AND expires_at>now()',[createHash('sha256').update(token).digest('hex')]);
-     userId=rows[0]?.user_id;
-    }
-   }
+   const {userId}=await resolveSession(request);
    if(!userId)return reply({error:'로그인이 필요합니다.'},401);
    if(path==='/catalog/expand'&&request.method==='POST'){
     const {occasion}=await request.json();

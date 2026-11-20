@@ -1,6 +1,8 @@
+import {createAuthClient} from '@neon/auth';
+import {connectAccount} from './account.mjs';
 import {analyzeGarmentPhoto} from './photo-analysis.mjs';
 const config=await (await fetch('/cloud-config.json')).json();
-window.ooootdApiUrl=config.apiUrl;
+
 const $=id=>document.getElementById(id);
 const attemptedExpansion=new Set();
 const options=OOOOTD_RULES.OCCASIONS;
@@ -20,15 +22,26 @@ window.cloudEnsureCatalog=async occasion=>{
 const SESSION_KEY='ooootd_private_session_v1';
 let session=null,epoch=0;
 const say=(message,error=false)=>{$('cloud-message').textContent=message;$('cloud-message').style.color=error?'#b91c1c':'#475569'};
-async function api(path,{method='GET',body}={}){
+async function api(path,{method='GET',body,signal}={}){
  const generation=epoch;
  if(!session?.token)throw Error('개인 옷장에 연결 중입니다.');
- const response=await fetch(config.apiUrl+path,{method,headers:{Authorization:'Bearer '+session.token,...(body instanceof FormData?{}:{'Content-Type':'application/json'})},body:body instanceof FormData?body:body?JSON.stringify(body):undefined});
+ const response=await fetch(config.apiUrl+path,{method,signal,headers:{Authorization:'Bearer '+session.token,...(body instanceof FormData?{}:{'Content-Type':'application/json'})},body:body instanceof FormData?body:body?JSON.stringify(body):undefined});
  const data=await response.json();
  if(generation!==epoch)throw Error('사용자가 변경되어 요청을 취소했습니다.');
  if(!response.ok)throw Object.assign(Error(data.error||'요청에 실패했습니다.'),{status:response.status});
  return data;
 }
+const auth=config.authUrl ? createAuthClient(config.authUrl) : null;
+window.cloudFetchWeather=async city=>{
+ const token=await auth?.getJWTToken();
+ if(!token)throw Error('로그인이 필요합니다.');
+ const response=await fetch(config.apiUrl+'/weather?city='+encodeURIComponent(city),{
+  headers:{Authorization:'Bearer '+token},signal:AbortSignal.timeout(12000),
+ });
+ if(!response.ok)throw Error('날씨 조회에 실패했습니다.');
+ return response.json();
+};
+connectAccount(auth,()=>window.fetchLiveWeather());
 async function loadCloset(){
  const gen=epoch,data=await api('/closet');
  if(gen===epoch)window.applyCloudCloset(data.items,session.userId);
@@ -177,6 +190,6 @@ async function loadCatalog(){
 }
 window.addEventListener('focus',()=>{if(session)loadCloset().catch(()=>{})});
 await loadCatalog();
-window.fetchLiveWeather();
 try{await connect()}catch(e){window.applyCloudCloset([],null);say(e.message,true)}
+window.fetchLiveWeather();
 window.ooootdCloudReady=true;

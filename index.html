@@ -335,6 +335,12 @@
       transition: transform 0.2s;
     }
 
+    .lookbook-item.is-preview-locked { pointer-events: none; }
+    .lookbook-item.is-preview-locked img { filter: blur(14px); }
+    .lookbook-item.is-preview-locked .lookbook-price,
+    .lookbook-item.is-preview-locked .lookbook-product-info { visibility: hidden; }
+    .lookbook-login { margin-top: 10px; }
+
     .lookbook-item:hover {
       transform: scale(1.02);
     }
@@ -672,6 +678,9 @@
     [hidden] { display: none !important; }
     .btn-icon:disabled { opacity: 0.5; cursor: not-allowed; }
     .private-panel{background:white;border:1px solid var(--border);border-radius:16px;padding:20px;margin-bottom:20px}
+#account-panel [hidden]{display:none}
+#account-panel summary{cursor:pointer;font-weight:700}
+#account-panel p:empty{display:none}
 .private-panel h2{font-size:1.1rem;margin-bottom:8px}.private-panel p{font-size:.86rem;color:var(--text-muted);margin-top:6px}
 .private-panel details{margin-top:16px}.private-form{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;margin-top:14px}
 .private-form label{display:flex;flex-direction:column;gap:5px;font-size:.85rem}.private-form input,.private-form select{width:100%;padding:10px;border:1px solid var(--border);border-radius:8px;min-width:0;background:white}.wide{grid-column:1/-1}
@@ -749,6 +758,20 @@
 
   <div class="container">
     <!-- 서비스 소개 헤더 -->
+    <details class="private-panel" id="account-panel">
+      <summary id="account-label">로그인 · 회원가입</summary>
+      <form class="private-form" id="account-form">
+        <label id="account-name-label" hidden>이름<input id="account-name" autocomplete="name" maxlength="100"></label>
+        <label>이메일<input id="account-email" type="email" autocomplete="username" required maxlength="254"></label>
+        <label>비밀번호<input id="account-password" type="password" autocomplete="current-password" required maxlength="128"></label>
+        <div class="wide private-actions">
+          <button class="btn-icon" id="account-submit" type="submit">로그인</button>
+          <button class="btn-icon" id="account-mode" type="button">회원가입</button>
+        </div>
+      </form>
+      <button class="btn-icon" id="account-sign-out" type="button" hidden>로그아웃</button>
+      <p id="account-status" role="status" aria-live="polite"></p>
+    </details>
     <header class="home-heading">
       <div class="home-brand">
         <span class="home-brand-icon"><i class="fa-solid fa-shirt" aria-hidden="true"></i></span>
@@ -909,6 +932,9 @@
               </div>
             </div>
 
+            <button class="btn-icon lookbook-login" id="lookbook-login" type="button" data-html2canvas-ignore="true" hidden>
+              로그인하고 오늘의 룩북 전체 보기
+            </button>
             <p id="lookbook-reason" aria-live="polite"></p>
             <p class="lookbook-purchase-total" id="purchase-summary" hidden><strong id="purchase-total"></strong> ? <span id="purchase-price-status" role="status"></span> ? 배송비·쿠폰 제외</p>
           </div>
@@ -1577,6 +1603,21 @@
     /* ==========================================================
        룩북 및 디테일 카드 렌더링
        ========================================================== */
+    function syncLookbookPreview() {
+      const signedIn = !document.getElementById('account-sign-out').hidden;
+      const preview = forecastDay === 'today' && !signedIn;
+      let hasLockedCards = false;
+      for (const category of ['bottom', 'shoes']) {
+        const tile = document.getElementById('lookbook-' + category);
+        const locked = preview && !tile.hidden;
+        tile.classList.toggle('is-preview-locked', locked);
+        tile.inert = locked;
+        tile.toggleAttribute('data-html2canvas-ignore', locked);
+        hasLockedCards ||= locked;
+      }
+      document.getElementById('lookbook-login').hidden = !hasLockedCards;
+    }
+
     function renderComboAtCurrentRank() {
       ++priceRequestId;
       document.getElementById('purchase-summary').hidden = true;
@@ -1591,6 +1632,7 @@
         });
         document.getElementById('lookbook-reason').textContent="추천할 옷이 부족합니다.";
         document.getElementById('combo-rank-text').textContent='';
+        syncLookbookPreview();
         return;
       }
 
@@ -1636,6 +1678,7 @@
 
       // 3. 헤더 타이틀 및 설명
       renderPurchaseSummary(comboItems,"수집 시점 가격");
+      syncLookbookPreview();
     }
 
 
@@ -1734,6 +1777,7 @@
 
     function changeForecastDay(day) {
       forecastDay=day==='tomorrow'?'tomorrow':'today';
+      syncLookbookPreview();
       document.getElementById('lookbook-day-title').textContent=forecastDay==='tomorrow'?"내일의 룩북":"오늘의 룩북";
       fetchLiveWeather();
     }
@@ -1742,10 +1786,7 @@
       const tempEl=document.getElementById('weather-temp'),condEl=document.getElementById('weather-condition'),tipEl=document.getElementById('weather-tip'),iconEl=document.getElementById('weather-icon');
       condEl.innerHTML='<span class="spinner"></span> '+label+' 날씨 조회 중...';
       try {
-        const weatherUrl=window.ooootdApiUrl?window.ooootdApiUrl+'/weather?city='+encodeURIComponent(currentCity):'https://api.open-meteo.com/v1/forecast?latitude='+city.lat+'&longitude='+city.lon+'&current_weather=true&daily=temperature_2m_max,temperature_2m_min,weather_code,precipitation_probability_max&forecast_days=2&timezone=Asia%2FSeoul';
-        const res=await fetch(weatherUrl,{signal:AbortSignal.timeout(12000)});
-        if(!res.ok)throw Error('Weather API request failed');
-        const data=await res.json();if(requestId!==weatherRequestId)return;
+        const data=await window.cloudFetchWeather(currentCity);if(requestId!==weatherRequestId)return;
         if(day==='tomorrow'){
           const min=data.daily?.temperature_2m_min?.[1],max=data.daily?.temperature_2m_max?.[1];
           if(!Number.isFinite(min)||!Number.isFinite(max))throw Error('Tomorrow forecast unavailable');
@@ -1936,11 +1977,23 @@
     window.addEventListener('DOMContentLoaded', () => {
       initOccasionDial();
       initLookbookProducts();
+      const signOut = document.getElementById('account-sign-out');
+      new MutationObserver(syncLookbookPreview).observe(signOut, {
+        attributes: true,
+        attributeFilter: ['hidden']
+      });
+      document.getElementById('lookbook-login').addEventListener('click', () => {
+        const panel = document.getElementById('account-panel');
+        panel.open = true;
+        panel.scrollIntoView({block: 'start'});
+        document.getElementById('account-email').focus({preventScroll: true});
+      });
+      syncLookbookPreview();
       initCloset();
       fetchLiveWeather();
     });
   </script>
-  <script type="module" src="/assets/cloud.js?v=photo-colors"></script>
+  <script type="module" src="/assets/cloud.js?v=account-login"></script>
   <script type="module" src="/assets/runtime-pipeline-autoplay.js"></script>
 </body>
 </html>
