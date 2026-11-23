@@ -25,6 +25,27 @@ The My Clothes and Recommended Clothes tabs are separate. Explicit owned, owned-
 
 Neon trigger `weekly-catalog`: `0 0 * * 1` UTC, Monday 09:00 Asia/Seoul. Collects real adult clothing and footwear across discovered merchant categories using NEW and POPULAR sorts. Public gender metadata is preserved, including explicitly marked unisex products. Every one of 18 outfit types must have at least four candidates per gender/category before a full batch is accepted. New records accumulate rather than discarding the previous catalog; confirmed sold-out records become inactive. Failures retain the last successful batch and record a failed run. Prices are collection-time values; shopping checkout is not implemented.
 
+## Scheduled catalog maintenance
+
+The [Catalog maintenance workflow](.github/workflows/catalog-maintenance.yml) refreshes public Musinsa listings every 30 minutes at :07 and :37. It rotates through up to 24 existing product pages per run for public structured ratings, review counts and explicit purchase counts. A failed listing scan leaves the catalog unchanged. Successful collection and cleanup runs record counts and cleanup reasons in `agent_runs`.
+
+Daily cleanup is scheduled at 03:17 Asia/Seoul. It removes products from public recommendations by marking them inactive and recording the reason in `catalog_maintenance`. The default limit is 100 items per run. Any one of these conditions qualifies an item for cleanup.
+
+- Below 3.5 out of 5 with at least 10 reviews.
+- Fewer than five published cumulative purchases after at least 30 days in the monitored catalog.
+- Previously observed on a popular listing, then absent from the monitored listings for over 60 days. This rule requires a successful scan in the last two hours and successful scans on at least 45 distinct UTC dates in the 60-day window. A product that returns to a popular listing can re-enter the catalog.
+
+Rating and purchase observations expire after 21 days. Missing metrics are unknown. Purchase counts must come from the product's structured purchase data.
+
+Apply `db/008_catalog_maintenance.sql` on the development database first. After checking the results, apply the migration on the target database and configure the repository's GitHub Actions secret `OOOOTD_DATABASE_URL` with credentials that can update the catalog and its maintenance tables. GitHub runs scheduled workflows from the default branch. The workflow also supports manual collection and cleanup preview.
+
+```sh
+python -m pip install -r scripts/requirements-catalog.txt
+python scripts/catalog_maintenance.py collect
+python scripts/catalog_maintenance.py prune --dry-run
+python -m unittest discover -s tests -p test_catalog_maintenance.py
+```
+
 ## Development
 
 Node.js 24:

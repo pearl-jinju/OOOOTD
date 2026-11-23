@@ -1,0 +1,48 @@
+name: Catalog maintenance
+
+on:
+  schedule:
+    - cron: '7,37 * * * *'
+    - cron: '17 18 * * *'
+  workflow_dispatch:
+    inputs:
+      job:
+        description: Catalog operation
+        type: choice
+        options: [collect, prune]
+        default: collect
+      dry_run:
+        description: Preview cleanup without changing the catalog
+        type: boolean
+        default: true
+
+permissions:
+  contents: read
+
+concurrency:
+  group: catalog-maintenance
+  cancel-in-progress: false
+
+jobs:
+  maintain:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+          cache-dependency-path: scripts/requirements-catalog.txt
+      - run: python -m pip install -r scripts/requirements-catalog.txt
+      - name: Maintain catalog
+        env:
+          OOOOTD_DATABASE_URL: ${{ secrets.OOOOTD_DATABASE_URL }}
+          CATALOG_JOB: ${{ inputs.job || (github.event.schedule == '17 18 * * *' && 'prune') || 'collect' }}
+          CATALOG_DRY_RUN: ${{ inputs.dry_run }}
+        run: |
+          args=()
+          if [[ "$CATALOG_JOB" == prune && "$CATALOG_DRY_RUN" == true ]]; then
+            args+=(--dry-run)
+          fi
+          python scripts/catalog_maintenance.py "$CATALOG_JOB" "${args[@]}"
