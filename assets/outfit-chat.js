@@ -1,5 +1,6 @@
 const $=id=>document.getElementById(id);
 const panel=$('outfit-chat');
+const launcher=$('outfit-chat-launcher');
 const log=$('outfit-chat-log');
 const form=$('outfit-chat-form');
 const input=$('outfit-chat-input');
@@ -40,14 +41,20 @@ function busy(value){
 }
 function openTab(tab,target){
  const button=[...document.querySelectorAll('.tab-btn')].find(node=>node.getAttribute('onclick')?.includes("'"+tab+"'"));
+ panel.open=false;
  button?.click();
- $(target)?.scrollIntoView({block:'start'});
+ const destination=$(target);
+ if(destination){
+  if(!destination.matches('button,input,select,a'))destination.tabIndex=-1;
+  destination.focus({preventScroll:true});
+  destination.scrollIntoView({block:'start'});
+ }
 }
 function help(){
  const entry=message('날짜·지역은 날씨 영역에서, 용도와 다음·유사 코디는 룩북에서 바꿀 수 있어요. 내 옷장에서는 옷 사진을 등록할 수 있고, 룩북에서는 이미지 저장과 추천의상 구매 링크를 이용할 수 있어요. 다른 기기에서 기존 옷장을 열려면 발급받은 옷장 연결 링크가 필요해요.');
  const row=actions(entry);
  button(row,'내 옷장',()=>openTab('closetTab','private-title'));
- button(row,'지역·날짜',()=>$('forecast-day').focus());
+ button(row,'지역·날짜',()=>{panel.open=false;$('forecast-day').focus()});
  button(row,'룩북',()=>openTab('recommendTab','lookbook-day-title'));
  button(row,'추천의상',()=>openTab('catalogTab','catalog-search'));
 }
@@ -293,3 +300,21 @@ panel.addEventListener('toggle',()=>{
  if(!panel.open&&openingMic)revision++;
 });
 window.addEventListener('pagehide',()=>stopRecording(true));
+
+panel.addEventListener('keydown',event=>{
+ if(event.key!=='Escape'||!panel.open)return;
+ event.preventDefault();
+ panel.open=false;
+ launcher.focus();
+});
+const viewport=window.visualViewport;
+if(viewport){
+ const placeChat=()=>{
+  const keyboard=Math.max(0,window.innerHeight-viewport.height-viewport.offsetTop);
+  panel.style.setProperty('--outfit-chat-height',viewport.height+'px');
+  panel.style.setProperty('--outfit-chat-keyboard',keyboard+'px');
+ };
+ viewport.addEventListener('resize',placeChat);
+ viewport.addEventListener('scroll',placeChat);
+ placeChat();
+}

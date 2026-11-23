@@ -1,17 +1,49 @@
 .outfit-chat {
-  margin: 0 0 1rem;
-  background: #fff;
+  --outfit-chat-inset: calc(.85rem + env(safe-area-inset-bottom, 0px));
+  position: fixed;
+  z-index: 60;
+  right: max(.85rem, env(safe-area-inset-right, 0px));
+  bottom: calc(var(--outfit-chat-inset) + var(--outfit-chat-keyboard, 0px));
+  max-width: calc(100vw - 1.7rem);
   color: #1f2937;
-  border: 1px solid #dbe0ec;
-  border-radius: 14px;
 }
 .outfit-chat > summary {
-  padding: .85rem 1rem;
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: .55rem;
+  min-height: 48px;
+  width: max-content;
+  margin-left: auto;
+  padding: .65rem 1rem;
+  border-radius: 999px;
+  background: #3730a3;
+  color: #fff;
+  box-shadow: 0 6px 22px #312e8133;
+  list-style: none;
   cursor: pointer;
   font-weight: 700;
-  color: #3730a3;
 }
-.outfit-chat-body { display: grid; gap: .7rem; padding: 0 1rem 1rem; }
+.outfit-chat > summary::-webkit-details-marker { display: none; }
+.outfit-chat > summary:focus-visible { outline: 3px solid #6366f1; outline-offset: 3px; }
+.outfit-chat[open] > summary .outfit-chat-chevron { transform: rotate(180deg); }
+.outfit-chat-body {
+  position: absolute;
+  bottom: calc(100% + .5rem);
+  right: 0;
+  display: grid;
+  gap: .7rem;
+  width: min(28rem, calc(100vw - 1.7rem));
+  max-height: max(6rem, calc(var(--outfit-chat-height, 100dvh) - 5rem));
+  overflow: auto;
+  overscroll-behavior: contain;
+  padding: .85rem;
+  border: 1px solid #dbe0ec;
+  border-radius: 14px;
+  background: #fff;
+  box-shadow: 0 16px 40px #0f172a24;
+}
+.outfit-chat:not([open]) > .outfit-chat-body { display: none; }
 .outfit-chat-log { display: grid; gap: .65rem; max-height: 25rem; overflow-y: auto; }
 .outfit-chat-log:empty { display: none; }
 .outfit-chat-log article { border-radius: 9px; background: #f6f7fc; padding: .65rem; overflow-wrap: anywhere; }
@@ -42,10 +74,7 @@
 .outfit-chat-products h3 { font-size: .95rem; margin: .3rem 0; }
 @media (max-width: 600px) {
   .outfit-chat-body { padding-inline: .65rem; }
-  .outfit-chat-log { max-height: min(22rem, 42dvh); }
+  .outfit-chat-log { max-height: min(18rem, calc(var(--outfit-chat-height, 100dvh) * .38)); }
   .outfit-chat-actions button, .outfit-chat-actions a { min-height: 44px; }
 }
 .outfit-chat-privacy { margin: 0; color: #475569; font-size: .82rem; }
-@media (min-width: 980px) {
-  .outfit-chat { width: min(100%, 40rem); margin-left: auto; }
-}

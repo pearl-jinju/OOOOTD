@@ -826,9 +826,33 @@
   <link rel="stylesheet" href="/assets/lookbook-purchases.css">
   <link rel="stylesheet" href="/assets/runtime-pipeline.css">
   <link rel="stylesheet" href="/assets/mascot-layout.css">
-  <link rel="stylesheet" href="/assets/outfit-chat.css">
+  <link rel="stylesheet" href="/assets/outfit-chat.css?v=floating">
+  <link rel="stylesheet" href="/assets/favorites.css">
 </head>
 <body>
+  <details class="outfit-chat" id="outfit-chat">
+    <summary id="outfit-chat-launcher"><i class="fa-solid fa-comment-dots" aria-hidden="true"></i><span>AI 코디 채팅</span><span class="outfit-chat-chevron" aria-hidden="true">▴</span></summary>
+    <div class="outfit-chat-body" aria-labelledby="outfit-chat-launcher">
+      <p class="outfit-chat-privacy">조건을 해석하기 위해 입력 내용은 Gemini로, 음성 전사를 위해 녹음은 Groq로 전송될 수 있어요.</p>
+      <div id="outfit-chat-log" class="outfit-chat-log" role="log" aria-label="코디 대화" tabindex="0"></div>
+      <div id="outfit-chat-examples" class="outfit-chat-actions">
+        <button type="button" data-prompt="내일 서울에서 면접 코디 추천해줘">내일 면접 코디</button>
+        <button type="button" data-prompt="내 옷만 써서 출근룩 추천해줘">내 옷으로 출근룩</button>
+        <button type="button" data-prompt="비 오는 날 신을 신발 5만 원 안에서 찾아줘">5만 원 이하 비 오는 날 신발</button>
+        <button type="button" data-prompt="사용법">사용법</button>
+      </div>
+      <form id="outfit-chat-form">
+        <label for="outfit-chat-input">코디 조건</label>
+        <input id="outfit-chat-input" type="text" maxlength="400" autocomplete="off" placeholder="검은 바지는 빼고 조금 더 편하게">
+        <div class="outfit-chat-actions">
+          <button type="submit" id="outfit-chat-send">보내기</button>
+          <button type="button" id="outfit-chat-mic" aria-pressed="false">말하기</button>
+          <button type="button" id="outfit-chat-reset">대화 초기화</button>
+        </div>
+      </form>
+      <p id="outfit-chat-status" role="status"></p>
+    </div>
+  </details>
 
   <div class="container">
     <!-- 서비스 소개 헤더 -->
@@ -1021,6 +1045,8 @@
       </div>
     </div>
 
+    <p class="favorite-status" id="favorites-status" role="status"></p>
+
     <!-- 탭 네비게이션 -->
     <div class="tabs">
       <button class="tab-btn active" onclick="switchTab('recommendTab', this)">
@@ -1030,33 +1056,11 @@
         <i class="fa-solid fa-door-open"></i> 내 옷 (<span id="closet-count">0</span>)
       </button>
     <button class="tab-btn" onclick="switchTab('catalogTab', this)">추천의상 (<span id="catalog-count">0</span>)</button>
+    <button class="tab-btn" id="favorites-tab-button" type="button" onclick="switchTab('favoritesTab', this)">찜 목록 (<span id="favorites-count">0</span>)</button>
 </div>
 
     <!-- 1. 오늘의 코디 추천 탭 -->
     <div id="recommendTab" class="tab-pane active">
-      <details class="outfit-chat" id="outfit-chat">
-        <summary>AI 코디 채팅</summary>
-        <div class="outfit-chat-body">
-          <p class="outfit-chat-privacy">조건을 해석하기 위해 입력 내용은 Gemini로, 음성 전사를 위해 녹음은 Groq로 전송될 수 있어요.</p>
-          <div id="outfit-chat-log" class="outfit-chat-log" role="log" aria-label="코디 대화" tabindex="0"></div>
-          <div id="outfit-chat-examples" class="outfit-chat-actions">
-            <button type="button" data-prompt="내일 서울에서 면접 코디 추천해줘">내일 면접 코디</button>
-            <button type="button" data-prompt="내 옷만 써서 출근룩 추천해줘">내 옷으로 출근룩</button>
-            <button type="button" data-prompt="비 오는 날 신을 신발 5만 원 안에서 찾아줘">5만 원 이하 비 오는 날 신발</button>
-            <button type="button" data-prompt="사용법">사용법</button>
-          </div>
-          <form id="outfit-chat-form">
-            <label for="outfit-chat-input">코디 조건</label>
-            <input id="outfit-chat-input" type="text" maxlength="400" autocomplete="off" placeholder="검은 바지는 빼고 조금 더 편하게">
-            <div class="outfit-chat-actions">
-              <button type="submit" id="outfit-chat-send">보내기</button>
-              <button type="button" id="outfit-chat-mic" aria-pressed="false">말하기</button>
-              <button type="button" id="outfit-chat-reset">대화 초기화</button>
-            </div>
-          </form>
-          <p id="outfit-chat-status" role="status"></p>
-        </div>
-      </details>
 
       <!-- 성별(남성/여성) 원터치 토글 바 -->
       <details class="lookbook-settings" id="lookbook-settings">
@@ -1126,6 +1130,7 @@
                 <span id="gender-indicator-badge" class="badge" style="background:#4338ca; color:#fff; margin-right:4px;">남성</span>
                 <span id="occasion-indicator-badge" class="badge">일상생활용</span>
               </div>
+              <button class="favorite-toggle" id="favorite-outfit" type="button" aria-pressed="false" data-html2canvas-ignore="true" disabled><span aria-hidden="true">♡</span><strong>코디 찜</strong></button>
             </div>
 
 
@@ -1232,10 +1237,19 @@
           <button class="btn-icon" type="submit">검색</button>
         </form>
         <p id="catalog-page-info"></p>
-        <div style="overflow-x:auto;margin-top:12px;"><table class="closet-table"><thead><tr><th>사진</th><th>분류</th><th>성별</th><th>상품명</th><th>색상·계절</th></tr></thead><tbody id="catalog-table-body"></tbody></table></div><button id="catalog-load-more" class="btn-icon" onclick="catalogVisibleLimit+=60;renderPublicCatalog()">추천의상 더 보기</button>
+        <div style="overflow-x:auto;margin-top:12px;"><table class="closet-table"><thead><tr><th>사진</th><th>분류</th><th>성별</th><th>상품명</th><th>색상·계절</th><th>찜</th></tr></thead><tbody id="catalog-table-body"></tbody></table></div><button id="catalog-load-more" class="btn-icon" onclick="catalogVisibleLimit+=60;renderPublicCatalog()">추천의상 더 보기</button>
       </section>
     </div>
 
+
+    <div id="favoritesTab" class="tab-pane">
+      <section class="closet-list-card" aria-labelledby="favorites-title">
+        <h2 id="favorites-title">찜 목록</h2>
+        <p class="favorites-note">찜한 코디와 상품은 이 브라우저에 저장돼요.</p>
+        <p class="favorites-note" id="favorites-empty">아직 찜한 항목이 없어요. 룩북 또는 추천의상에서 하트를 눌러 저장해 보세요.</p>
+        <div class="favorites-list" id="favorites-list"></div>
+      </section>
+    </div>
 
     <section class="site-about otto-seat" id="about-ooootd" aria-labelledby="about-title">
       <img class="otto-sitting" src="/assets/otto-sit.webp" alt="" width="416" height="416" loading="lazy">
@@ -2150,6 +2164,19 @@
       }
     }
 
+    window.ooootdFavoriteData={
+      owner:()=>chatClosetOwner,
+      closet:()=>closetItems,
+      catalog:()=>CATALOG_ITEMS,
+      current:()=>{
+        const items=(displayedAlternative||rankedCombos[currentRankIndex])?.items;
+        if(!items?.length||items.some(item=>item.isOwned&&!chatClosetOwner))return null;
+        const occasion=OCCASIONS.find(item=>item.id===currentOccasion)?.name||'코디';
+        return {owner:chatClosetOwner,title:CITY_COORDS[currentCity].name+' · '+occasion,
+          items:items.map(item=>({id:item.id,category:item.category,owned:Boolean(item.isOwned)}))};
+      }
+    };
+
     function renderComboAtCurrentRank() {
       ++priceRequestId;
       document.getElementById('purchase-summary').hidden = true;
@@ -2165,6 +2192,7 @@
         document.getElementById('lookbook-reason').textContent="추천할 옷이 부족합니다.";
         document.getElementById('combo-rank-text').textContent='';
         syncLookbookPreview();
+        window.ooootdFavorites?.outfitChanged();
         return;
       }
 
@@ -2217,6 +2245,7 @@
       renderPurchaseSummary(comboItems,"수집 시점 가격");
       syncLookbookPreview();
       rememberLookbook(comboItems);
+      window.ooootdFavorites?.outfitChanged();
     }
 
 
@@ -2405,7 +2434,8 @@
       const more=document.getElementById('catalog-load-more');
       if(more)more.hidden=catalogVisibleLimit>=filtered.length;
       const body=document.getElementById('catalog-table-body');
-      body.innerHTML=filtered.length?filtered.slice(0,catalogVisibleLimit).map(item=>'<tr><td><img src="'+escapeHtml(item.image)+'" class="table-thumb" alt="'+escapeHtml(item.name)+'" loading="lazy"></td><td>'+CATEGORY_NAMES[item.category]+'</td><td>'+OOOOTD_RULES.genderLabel(item)+'</td><td>'+escapeHtml(item.name)+'</td><td>'+COLOR_LABELS[item.color]+' · '+(SEASON_LABELS[item.season]||item.season)+'</td></tr>').join(''):'<tr><td colspan="5">해당 조건의 추천의상이 없습니다.</td></tr>';
+      body.innerHTML=filtered.length?filtered.slice(0,catalogVisibleLimit).map(item=>'<tr><td><img src="'+escapeHtml(item.image)+'" class="table-thumb" alt="'+escapeHtml(item.name)+'" loading="lazy"></td><td>'+CATEGORY_NAMES[item.category]+'</td><td>'+OOOOTD_RULES.genderLabel(item)+'</td><td>'+escapeHtml(item.name)+'</td><td>'+COLOR_LABELS[item.color]+' · '+(SEASON_LABELS[item.season]||item.season)+'</td><td><button class="favorite-toggle" type="button" aria-pressed="false" aria-label="'+escapeHtml(item.name)+' 찜하기" data-favorite-product="'+Number(item.id)+'" data-favorite-name="'+escapeHtml(item.name)+'"><span aria-hidden="true">♡</span></button></td></tr>').join(''):'<tr><td colspan="6">해당 조건의 추천의상이 없습니다.</td></tr>';
+      window.ooootdFavorites?.catalogChanged();
     }
 
     function updateClosetUI() {
@@ -2499,6 +2529,7 @@
       btn.classList.add('active');
       document.getElementById(tabId).classList.add('active');
       if(tabId==='recommendTab')syncOccasionDial?.();
+      if(tabId==='favoritesTab')window.ooootdFavorites?.open();
     }
 
     function escapeHtml(text) {
@@ -2541,6 +2572,7 @@
   </script>
   <script type="module" src="/assets/cloud.js?v=outfit-chat"></script>
   <script type="module" src="/assets/runtime-pipeline-autoplay.js"></script>
-  <script type="module" src="/assets/outfit-chat.js"></script>
+  <script type="module" src="/assets/outfit-chat.js?v=floating"></script>
+  <script type="module" src="/assets/favorites.js"></script>
 </body>
 </html>
