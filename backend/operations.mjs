@@ -8,6 +8,25 @@ const manageMembersPath = '/admin/members';
 const activityPath = '/member/activity';
 const siteActivityPath = '/site/activity';
 
+const automationScope = `(kind='catalog_cleanup' OR
+ (kind='catalog_refresh' AND details->>'source'='musinsa_root_scan'))`;
+export const automationReportsSql = `
+ WITH automation_runs AS NOT MATERIALIZED (
+  SELECT id::text AS id, id AS sequence, kind, status, created_at, details
+    FROM agent_runs WHERE ${automationScope}
+ )
+ SELECT job.kind, to_jsonb(success) - 'sequence' AS "lastSuccess",
+        to_jsonb(latest) - 'sequence' AS latest
+ FROM (VALUES ('catalog_refresh'), ('catalog_cleanup')) AS job(kind)
+ LEFT JOIN LATERAL (
+  SELECT * FROM automation_runs WHERE kind=job.kind AND status='success'
+   ORDER BY sequence DESC LIMIT 1
+ ) AS success ON true
+ LEFT JOIN LATERAL (
+  SELECT * FROM automation_runs WHERE kind=job.kind ORDER BY sequence DESC LIMIT 1
+ ) AS latest ON true
+`;
+
 async function changeMemberRole(pool, actorId, memberId, role) {
  const client = await pool.connect();
  try {
@@ -166,7 +185,7 @@ export function withOperations(app, {pool, verify, allowedOrigins}) {
        !/^(?:device:)?[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i.test(memberId)) {
     return reply({error:'invalid_member'},400);
    }
-   const [traffic, runs, catalog, memberLogins, visits, searches, members, closetActivity] = await Promise.all([
+   const [traffic, runs, catalog, memberLogins, visits, searches, members, closetActivity, automationReports] = await Promise.all([
     pool.query(`
      SELECT route, method, status, sum(requests)::int AS requests,
             round(sum(elapsed_ms) / sum(requests)::numeric)::int AS avg_ms,
@@ -175,9 +194,9 @@ export function withOperations(app, {pool, verify, allowedOrigins}) {
       GROUP BY route, method, status ORDER BY route, method, status
     `),
     pool.query(`
-     SELECT kind, status, created_at, details->'count' AS count,
-            details->'collected' AS collected
-       FROM agent_runs WHERE kind IN ('catalog_refresh','catalog_expand')
+     SELECT id::text AS id, kind, status, created_at, details->'count' AS count,
+            details->'collected' AS collected, details->'retired' AS retired
+       FROM agent_runs WHERE kind IN ('catalog_refresh','catalog_expand','catalog_cleanup')
       ORDER BY id DESC LIMIT 30
     `),
     pool.query(`
@@ -233,10 +252,12 @@ export function withOperations(app, {pool, verify, allowedOrigins}) {
              (a.member_id IS NULL AND (a.closet_owner_id=$1 OR $1='guest')))
       ORDER BY a.created_at DESC, a.id DESC LIMIT 100
     `,[memberId]),
+    pool.query(automationReportsSql),
    ]);
    return reply({
     canManageRoles, traffic:traffic.rows, runs:runs.rows, catalog:catalog.rows, memberLogins:memberLogins.rows,
     visits:visits.rows, searches:searches.rows, members:members.rows, closetActivity:closetActivity.rows,
+    automationReports:automationReports.rows,
    });
   } catch {
    console.error(siteActivity ? 'OOOOTD site activity recording failed' : activity ? 'OOOOTD member login recording failed' : 'OOOOTD operations report unavailable');

@@ -95,6 +95,21 @@
 .admin-metric { padding: 13px; border: 1px solid var(--admin-border); background: #fff; }
 .admin-metric dt { color: var(--admin-muted); }
 .admin-metric dd { margin-block-start: 3px; font-size: 1.6rem; font-weight: 750; font-variant-numeric: tabular-nums; }
+.admin-report-columns { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+#operations-automation-reports h5 { margin: 12px 0 4px; }
+.admin-report-columns p + p { margin-top: 4px; }
+.admin-report-source {
+  border: 0;
+  background: none;
+  padding: 2px 0;
+  color: #1c526f;
+  font: inherit;
+  font-size: 1.25rem;
+  font-weight: 750;
+  text-decoration: underline;
+  cursor: pointer;
+}
+#operations-run-source pre { white-space: pre-wrap; overflow-wrap: anywhere; }
 .admin-flow { padding: 13px; border: 1px solid var(--admin-border); background: #fff; }
 .admin-flow ul { padding-inline-start: 1.3rem; }
 .admin-flow li + li { margin-top: .35rem; }

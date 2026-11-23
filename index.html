@@ -820,7 +820,7 @@
       .about-diagram li + li::before { content: "\2193"; left: 11px; top: -13px; transform: none; line-height: 12px; }
     }
   </style>
-  <link rel="stylesheet" href="/assets/admin.css?v=member-roles">
+  <link rel="stylesheet" href="/assets/admin.css?v=automation-reports">
   <link rel="stylesheet" href="/assets/home.css?v=lookbook-first">
   <link rel="stylesheet" href="/assets/lookbook-workspace.css">
   <link rel="stylesheet" href="/assets/lookbook-purchases.css">
@@ -935,6 +935,11 @@
               <div class="admin-metric"><dt>API 요청 (24시간)</dt><dd id="operations-metric-requests">0</dd></div>
               <div class="admin-metric"><dt>활성 상품</dt><dd id="operations-metric-products">0</dd></div>
             </dl>
+              <section class="admin-flow" aria-labelledby="operations-automation-heading">
+                <h4 id="operations-automation-heading">자동 보고서</h4>
+                <p>모든 시각은 한국시간입니다. <a href="https://github.com/pearl-jinju/OOOOTD/actions/workflows/catalog-maintenance.yml">GitHub Actions 실행 기록</a></p>
+                <div id="operations-automation-reports"></div>
+              </section>
               <div class="admin-flow"><h4>데이터 흐름</h4>
             <ul>
           <li>날씨 · Render 화면 → Neon API → Open-Meteo</li>
@@ -994,9 +999,14 @@
               </table></div>
             </section>
             <section class="admin-view" data-operations-view="catalog" aria-label="카탈로그" hidden>
-              <h4>최근 카탈로그 수집</h4>
+              <section class="admin-flow" id="operations-run-source" tabindex="-1" aria-labelledby="operations-run-source-heading" hidden>
+                <h4 id="operations-run-source-heading">자동 보고서 원본 실행 기록</h4>
+                <p id="operations-run-source-meta"></p>
+                <pre id="operations-run-source-details"></pre>
+              </section>
+              <h4>최근 카탈로그 실행</h4>
               <div class="operations-scroll"><table>
-                <thead><tr><th>한국 시각</th><th>작업</th><th>상태</th><th>수집 수</th><th>전체 상품</th></tr></thead>
+                <thead><tr><th>한국 시각</th><th>작업</th><th>상태</th><th>수집 수</th><th>제외 수</th><th>전체 상품</th></tr></thead>
                 <tbody id="operations-runs"></tbody>
               </table></div>
               <h4>활성 상품</h4>
@@ -2713,7 +2723,7 @@
       fetchLiveWeather();
     });
   </script>
-  <script type="module" src="/assets/cloud.js?v=outfit-chat"></script>
+  <script type="module" src="/assets/cloud.js?v=automation-reports"></script>
   <script type="module" src="/assets/runtime-pipeline-autoplay.js"></script>
   <script type="module" src="/assets/outfit-chat.js?v=price-range"></script>
   <script type="module" src="/assets/favorites.js?v=lookbook-items"></script>

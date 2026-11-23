@@ -317,6 +317,10 @@ def inspect_products(item_ids, fetch=fetch_page):
 
 
 def record_run(conn, kind, status, details):
+    run_id = os.environ.get("GITHUB_RUN_ID", "")
+    attempt = os.environ.get("GITHUB_RUN_ATTEMPT", "")
+    if run_id.isdecimal() and attempt.isdecimal():
+        details = {**details, "github_run_id": run_id, "github_run_attempt": attempt}
     conn.execute(
         "INSERT INTO agent_runs (kind, status, details) VALUES (%s, %s, %s::jsonb)",
         (kind, status, json.dumps(details)),
@@ -383,6 +387,7 @@ def save_collection(conn, items, popular, listings, inspections, observed_at):
     successful = [metrics for metrics in inspections.values() if metrics is not None]
     details = {
         "source": SCAN_SOURCE,
+        "reference_at": observed_at.isoformat(),
         "count": conn.execute("SELECT count(*) AS total FROM catalog_items WHERE active").fetchone()["total"],
         "collected": len(items),
         "listing_pages": listings,
@@ -426,7 +431,9 @@ def prune(conn, policy, dry_run=False):
             ORDER BY state.first_seen_at, state.item_id
         """)
         matches = []
+        observed = 0
         for item in pending:
+            observed += 1
             reason = retirement_reason(item, now, policy, healthy)
             if reason:
                 matches.append({"id": item["item_id"], "reason": reason})
@@ -447,9 +454,12 @@ def prune(conn, policy, dry_run=False):
             "dry_run": dry_run, "matched": len(matches), "selected": len(selected),
             "retired": 0 if dry_run else len(selected), "by_reason": counts,
             "trend_coverage": healthy, "trend_days_observed": scans["days"],
+            "reference_at": now.isoformat(), "observed": observed,
         }
         if not dry_run:
-            record_run(conn, "catalog_cleanup", "success", details)
+            if not observed:
+                details["reason"] = "no_observations"
+            record_run(conn, "catalog_cleanup", "success" if observed else "no_data", details)
         return details
 
 
@@ -504,8 +514,10 @@ def main(argv=None):
                     results = prune(conn, policy, args.dry_run)
             except (MerchantError, psycopg.Error) as exc:
                 details = {"error": type(exc).__name__}
+                if args.job == "collect":
+                    details["source"] = SCAN_SOURCE
                 if isinstance(exc, MerchantError):
-                    details.update(source=SCAN_SOURCE, message=str(exc))
+                    details["message"] = str(exc)
                 if isinstance(exc, psycopg.Error):
                     details["sqlstate"] = exc.sqlstate
                 if not getattr(args, "dry_run", False):

@@ -144,6 +144,16 @@ class CleanupTests(unittest.TestCase):
         self.assertEqual((report["matched"], report["selected"], report["retired"]), (2, 1, 0))
         self.assertEqual(conn.execute.call_count, 3)
 
+    def test_empty_cleanup_logs_no_data_with_a_reason(self):
+        conn = MagicMock()
+        conn.execute.side_effect = [MagicMock(), MagicMock(**{"fetchone.return_value": {
+            "latest": None, "days": 0,
+        }}), []]
+        with patch.object(catalog, "record_run") as record:
+            catalog.prune(conn, catalog.CleanupPolicy())
+        self.assertEqual(record.call_args.args[1:3], ("catalog_cleanup", "no_data"))
+        self.assertEqual(record.call_args.args[3]["reason"], "no_observations")
+
 
 if __name__ == "__main__":
     unittest.main()

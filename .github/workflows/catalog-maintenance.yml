@@ -1,4 +1,5 @@
 name: Catalog maintenance
+run-name: ${{ inputs.job == 'prune' && inputs.dry_run && 'catalog-prune-preview' || ((inputs.job == 'prune' || github.event.schedule == '17 18 * * *') && 'catalog-prune') || 'catalog-collect' }}
 
 on:
   schedule:
@@ -28,6 +29,14 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
+      - name: Check database connection setting
+        env:
+          OOOOTD_DATABASE_URL: ${{ secrets.OOOOTD_DATABASE_URL }}
+        run: |
+          if [[ -z "$OOOOTD_DATABASE_URL" ]]; then
+            echo "::error::OOOOTD_DATABASE_URL is missing"
+            exit 1
+          fi
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:

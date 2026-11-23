@@ -1,4 +1,5 @@
 import {connectMemberAdmin} from './member-admin.js?v=tiers';
+import {fetchAutomationRuns,formatRunTime,renderAutomationReports,runStatus} from './automation-report.js';
 
 export async function closetMemberHeaders(auth,path,method) {
  if (!auth || !(path==='/closet' && method==='POST' || method==='DELETE' && /^\/closet\/\d+$/.test(path))) return {};
@@ -24,6 +25,8 @@ export function connectOperations(auth, apiUrl) {
  const sectionTitle = document.getElementById('operations-section-title');
  const sectionButtons = [...panel.querySelectorAll('[data-operations-section]')];
  const views = [...panel.querySelectorAll('[data-operations-view]')];
+ const automation = document.getElementById('operations-automation-reports');
+ const sourcePanel = document.getElementById('operations-run-source');
  const memberViews = new Set(['logins','visits','searches','closet']);
  let revision = 0;
  let selectedView = 'overview';
@@ -118,6 +121,15 @@ export function connectOperations(auth, apiUrl) {
   }
  }
 
+ function openRunSource(run) {
+  document.getElementById('operations-run-source-meta').textContent =
+   [`실행 #${run.id}`,formatRunTime(run.created_at),runStatus[run.status] ?? run.status].join(' · ');
+  document.getElementById('operations-run-source-details').textContent = JSON.stringify(run.details,null,2);
+  sourcePanel.hidden = false;
+  showView('catalog');
+  sourcePanel.focus();
+ }
+
  async function refresh(loadReport = false) {
   const current = ++revision;
   if (!loadReport) {
@@ -127,6 +139,9 @@ export function connectOperations(auth, apiUrl) {
    manageButton.hidden = true;
    memberAdmin.reset();
    memberSelect.value = '';
+   sourcePanel.hidden = true;
+   document.getElementById('operations-run-source-details').replaceChildren();
+   automation.replaceChildren();
    showView('overview');
   }
   report.hidden = true;
@@ -193,7 +208,7 @@ export function connectOperations(auth, apiUrl) {
    rows('operations-traffic', data.traffic, ['method','route','status','requests','avg_ms','max_ms']);
    rows('operations-runs', data.runs.map(run => ({
     ...run, created_at: new Date(run.created_at).toLocaleString('ko-KR',{timeZone:'Asia/Seoul'}),
-   })), ['created_at','kind','status','collected','count']);
+   })), ['created_at','kind','status','collected','retired','count']);
    rows('operations-catalog', data.catalog, ['category','products']);
    document.getElementById('operations-metric-members').textContent = options.filter(member=>!member.id.startsWith('device:')).length.toLocaleString('ko-KR');
    document.getElementById('operations-metric-requests').textContent =
@@ -205,6 +220,12 @@ export function connectOperations(auth, apiUrl) {
    status.textContent = '';
    filter.hidden = !memberViews.has(selectedView);
    if (selectedView==='members') memberAdmin.load();
+   if (Array.isArray(data.automationReports)) {
+    renderAutomationReports(automation,data.automationReports,null,openRunSource);
+    void fetchAutomationRuns().then(history => {
+     if (current === revision) renderAutomationReports(automation,data.automationReports,history,openRunSource);
+    }).catch(() => {});
+   }
   } catch {
    if (current !== revision) return;
    if (panel.open) status.textContent = '운영 데이터를 불러오지 못했습니다.';
