@@ -37,6 +37,8 @@ Daily cleanup is scheduled at 03:17 Asia/Seoul. It removes products from public 
 
 Rating and purchase observations expire after 21 days. Missing metrics are unknown. Purchase counts must come from the product's structured purchase data.
 
+Neon runs `daily-catalog-report` at 03:47 Asia/Seoul. It stores a report for the previous Korean calendar day in `agent_runs`, including collection and cleanup totals, execution counts, and the source run records. The admin dashboard keeps the last successful report when a newer daily report has no usable data or fails.
+
 Apply `db/008_catalog_maintenance.sql` on the development database first. After checking the results, apply the migration on the target database and configure the repository's GitHub Actions secret `OOOOTD_DATABASE_URL` with credentials that can update the catalog and its maintenance tables. GitHub runs scheduled workflows from the default branch. The workflow also supports manual collection and cleanup preview.
 
 ```sh

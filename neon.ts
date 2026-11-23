@@ -12,5 +12,8 @@ export default defineConfig({
    GEMINI_MODEL:{value:process.env.GEMINI_MODEL,required:false,onUndefined:'skip'}
   }
  }},
- triggers:{'weekly-catalog':{type:'schedule',function:'api',cron:'0 0 * * 1',functionPath:'/cron/catalog'}}
+ triggers:{
+  'weekly-catalog':{type:'schedule',function:'api',cron:'0 0 * * 1',functionPath:'/cron/catalog'},
+  'daily-catalog-report':{type:'schedule',function:'api',cron:'47 18 * * *',functionPath:'/cron/catalog-report'}
+ }
 });

@@ -1,5 +1,5 @@
 import {connectMemberAdmin} from './member-admin.js?v=tiers';
-import {fetchAutomationRuns,formatRunTime,renderAutomationReports,runStatus} from './automation-report.js';
+import {fetchAutomationRuns,formatRunTime,renderAutomationReports,runStatus} from './automation-report.js?v=daily-report';
 
 export async function closetMemberHeaders(auth,path,method) {
  if (!auth || !(path==='/closet' && method==='POST' || method==='DELETE' && /^\/closet\/\d+$/.test(path))) return {};

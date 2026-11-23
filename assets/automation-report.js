@@ -1,8 +1,10 @@
 const actionsUrl = 'https://github.com/pearl-jinju/OOOOTD/actions';
 const actionsApi = 'https://api.github.com/repos/pearl-jinju/OOOOTD/actions';
 const jobs = [
- {kind:'catalog_refresh', title:'상품 수집', runName:'catalog-collect', metric:'수집 상품', field:'collected'},
- {kind:'catalog_cleanup', title:'상품 정리', runName:'catalog-prune', metric:'추천에서 제외한 상품', field:'retired'},
+ {kind:'catalog_daily_report', title:'일일 상품 운영 보고서',
+  metrics:[['성공한 실행','succeeded','회'],['수집 합계 (중복 포함)','collected','개'],['추천에서 제외한 상품','retired','개']]},
+ {kind:'catalog_refresh', title:'상품 수집', runName:'catalog-collect', metrics:[['수집 상품','collected','개']]},
+ {kind:'catalog_cleanup', title:'상품 정리', runName:'catalog-prune', metrics:[['추천에서 제외한 상품','retired','개']]},
 ];
 const unsuccessful = new Set(['failure','timed_out','action_required','startup_failure','stale','cancelled','skipped','neutral']);
 export const runStatus = {
@@ -11,6 +13,9 @@ export const runStatus = {
 };
 const reasonLabels = {
  no_observations:'정리에 사용할 상품 관측 기록이 없어요.',
+ no_daily_source_runs:'집계할 수 있는 전날의 성공 기록이 없어요.',
+ source_runs_failed:'전날 상품 작업에 실패 기록이 있고 성공 기록이 없어요.',
+ daily_report_unavailable:'일일 보고서를 DB에 저장하지 못했어요.',
  github_failed:'Actions에서 실행이 실패했어요.',
  github_unrecorded:'운영 DB에 결과가 기록되지 않았어요.',
  github_pending:'Actions에서 작업이 끝나기를 기다리고 있어요.',
@@ -50,7 +55,11 @@ export function latestAutomationRun(record, github) {
 }
 
 function runReason(run, job) {
- if (run.status === 'success') return job.kind === 'catalog_refresh' ? '상품 목록을 갱신했어요.' : '정리 기준을 적용했어요.';
+ if (run.status === 'success') return {
+  catalog_daily_report:'전날 상품 작업을 집계했어요.',
+  catalog_refresh:'상품 목록을 갱신했어요.',
+  catalog_cleanup:'정리 기준을 적용했어요.',
+ }[job.kind];
  const details = run.details ?? {};
  return reasonLabels[details.reason] ?? details.message ??
   (details.sqlstate ? 'DB 오류 '+details.sqlstate : details.error ?? '기록된 사유가 없어요.');
@@ -63,7 +72,7 @@ export async function fetchAutomationRuns() {
  });
  if (!response.ok) throw Error('Actions run history unavailable');
  const {workflow_runs:runs} = await response.json();
- return new Map(await Promise.all(jobs.map(async job => {
+ return new Map(await Promise.all(jobs.filter(job => job.runName).map(async job => {
   const run = runs.filter(run => run.display_title === job.runName && Number.isSafeInteger(run.id))
    .sort((left,right) => new Date(right.run_started_at ?? right.created_at) -
                         new Date(left.run_started_at ?? left.created_at))[0];
@@ -109,17 +118,23 @@ export function renderAutomationReports(container, reports, githubRuns, openSour
   left.className = right.className = 'admin-metric';
   left.append(paragraph('마지막 성공 보고서'));
   if (success) {
-   const value = success.details?.[job.field];
-   if (Number.isFinite(value)) {
+   if (success.details?.report_date) left.append(paragraph('집계일 · '+success.details.report_date));
+   for (const [label,field,unit] of job.metrics) {
+    const value = success.details?.[field];
+    if (!Number.isFinite(value)) {
+     left.append(paragraph(label+' · 기록 없음'));
+     continue;
+    }
     const metric = document.createElement('button');
     metric.type = 'button';
     metric.className = 'admin-report-source';
-    metric.textContent = value.toLocaleString('ko-KR')+'개';
-    metric.setAttribute('aria-label', `${job.metric} ${metric.textContent}의 원본 실행 기록 열기`);
+    metric.textContent = value.toLocaleString('ko-KR')+unit;
+    metric.setAttribute('aria-label', `${label} ${metric.textContent}의 원본 실행 기록 열기`);
     metric.addEventListener('click', () => openSource(success));
-    left.append(paragraph(job.metric), metric);
-   } else {
-    left.append(paragraph('보고서에 집계 숫자가 없어요.'));
+    left.append(paragraph(label), metric);
+   }
+   if (job.kind === 'catalog_daily_report') {
+    left.append(paragraph(`실패 ${success.details.failed}회 · 자료 없음 ${success.details.no_data}회`));
    }
    left.append(paragraph('기준 시각 · '+formatRunTime(success.details?.reference_at ?? success.created_at)));
   } else {

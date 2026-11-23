@@ -1,3 +1,5 @@
+import {parseTriggerDelivery} from '@neon/functions/triggers';
+
 const monitoredRoutes = new Set([
  '/weather', '/catalog', '/catalog/expand', '/cron/catalog', '/session',
  '/session/transfer', '/closet', '/profile', '/analyze', '/prices',
@@ -7,8 +9,10 @@ const operationsPath = '/admin/operations';
 const manageMembersPath = '/admin/members';
 const activityPath = '/member/activity';
 const siteActivityPath = '/site/activity';
+const dailyReportKind = 'catalog_daily_report';
+const dailyReportPath = '/cron/catalog-report';
 
-const automationScope = `(kind='catalog_cleanup' OR
+const automationScope = `(kind IN ('catalog_cleanup','catalog_daily_report') OR
  (kind='catalog_refresh' AND details->>'source'='musinsa_root_scan'))`;
 export const automationReportsSql = `
  WITH automation_runs AS NOT MATERIALIZED (
@@ -17,15 +21,69 @@ export const automationReportsSql = `
  )
  SELECT job.kind, to_jsonb(success) - 'sequence' AS "lastSuccess",
         to_jsonb(latest) - 'sequence' AS latest
- FROM (VALUES ('catalog_refresh'), ('catalog_cleanup')) AS job(kind)
+ FROM (VALUES ('catalog_daily_report'), ('catalog_refresh'), ('catalog_cleanup')) AS job(kind)
  LEFT JOIN LATERAL (
   SELECT * FROM automation_runs WHERE kind=job.kind AND status='success'
-   ORDER BY sequence DESC LIMIT 1
+   ORDER BY (details->>'report_date') DESC NULLS LAST, sequence DESC LIMIT 1
  ) AS success ON true
  LEFT JOIN LATERAL (
   SELECT * FROM automation_runs WHERE kind=job.kind ORDER BY sequence DESC LIMIT 1
  ) AS latest ON true
 `;
+
+export const dailyCatalogReportSql = `
+ WITH report_day AS (
+  SELECT ($1::timestamptz AT TIME ZONE 'Asia/Seoul')::date - 1 AS day
+ ), bounds AS (
+  SELECT day, day::timestamp AT TIME ZONE 'Asia/Seoul' AS starts_at,
+              (day + 1)::timestamp AT TIME ZONE 'Asia/Seoul' AS ends_at FROM report_day
+ ), source AS (
+  SELECT id::text AS id, kind, status, created_at,
+         CASE WHEN kind='catalog_refresh' THEN details->'collected' ELSE details->'retired' END AS quantity
+    FROM agent_runs CROSS JOIN bounds
+   WHERE created_at >= starts_at AND created_at < ends_at
+     AND (kind='catalog_cleanup' OR (kind='catalog_refresh' AND details->>'source'='musinsa_root_scan'))
+ ), totals AS (
+  SELECT count(*) FILTER (WHERE status='success') AS succeeded,
+         count(*) FILTER (WHERE status='failed') AS failed,
+         count(*) FILTER (WHERE status='no_data') AS no_data,
+         sum(CASE WHEN kind='catalog_refresh' AND status='success' AND jsonb_typeof(quantity)='number'
+                  THEN quantity::numeric END) AS collected,
+         sum(CASE WHEN kind='catalog_cleanup' AND status='success' AND jsonb_typeof(quantity)='number'
+                  THEN quantity::numeric END) AS retired,
+         coalesce(jsonb_agg(to_jsonb(source) ORDER BY source.created_at, source.id), '[]'::jsonb) AS source_runs
+    FROM source
+ )
+ INSERT INTO agent_runs (kind, status, details)
+ SELECT '${dailyReportKind}',
+        CASE WHEN succeeded > 0 THEN 'success' WHEN failed > 0 THEN 'failed' ELSE 'no_data' END,
+        jsonb_strip_nulls(to_jsonb(totals) || jsonb_build_object(
+         'report_date', day, 'period_start', starts_at, 'reference_at', ends_at, 'scheduled_at', $1::timestamptz,
+         'reason', CASE WHEN succeeded > 0 THEN NULL
+                        WHEN failed > 0 THEN 'source_runs_failed' ELSE 'no_daily_source_runs' END))
+   FROM bounds CROSS JOIN totals
+  WHERE NOT EXISTS (
+   SELECT 1 FROM agent_runs
+    WHERE kind='${dailyReportKind}' AND details->>'report_date'=day::text
+  )
+ RETURNING status, details->>'report_date' AS report_date
+`;
+
+async function runDailyCatalogReport(pool, scheduledAt) {
+ const client = await pool.connect();
+ try {
+  await client.query('BEGIN');
+  await client.query('SELECT pg_advisory_xact_lock(7100302)');
+  const {rows:[report]} = await client.query(dailyCatalogReportSql,[scheduledAt]);
+  await client.query('COMMIT');
+  return report ?? {status:'already_recorded'};
+ } catch (error) {
+  await client.query('ROLLBACK');
+  throw error;
+ } finally {
+  client.release();
+ }
+}
 
 async function changeMemberRole(pool, actorId, memberId, role) {
  const client = await pool.connect();
@@ -269,6 +327,22 @@ export function withOperations(app, {pool, verify, allowedOrigins}) {
   const path = new URL(request.url).pathname.replace(/\/$/,'') || '/';
   const origin = request.headers.get('origin');
   const accessOnly = path === operationsPath + '/access';
+  if (path === dailyReportPath && request.method === 'POST') {
+   const delivery = await parseTriggerDelivery(request);
+   if (!delivery.ok || delivery.invocation.type !== 'schedule' ||
+       delivery.invocation.trigger.name !== 'daily-catalog-report') {
+    return Response.json({error:'trigger_required'},{status:401});
+   }
+   const scheduledAt = delivery.invocation.data.scheduledAt;
+   try {
+    return Response.json(await runDailyCatalogReport(pool,scheduledAt));
+   } catch (error) {
+    const sqlstate = /^[A-Z0-9]{5}$/.test(error?.code) ? error.code : null;
+    await pool.query("INSERT INTO agent_runs (kind,status,details) VALUES ($1,'failed',$2::jsonb)",
+     [dailyReportKind,JSON.stringify({reason:'daily_report_unavailable',scheduled_at:scheduledAt,sqlstate})]).catch(() => {});
+    return Response.json({error:'report_unavailable'},{status:503});
+   }
+  }
   if (accessOnly || path === operationsPath || path === activityPath || path === siteActivityPath || path === manageMembersPath) return operations(request, origin, path);
   const route = /^\/closet\/\d+$/.test(path) ? '/closet/:id' : path;
   const monitor = methods.has(request.method) &&
