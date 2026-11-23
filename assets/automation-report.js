@@ -2,7 +2,7 @@ const actionsUrl = 'https://github.com/pearl-jinju/OOOOTD/actions';
 const actionsApi = 'https://api.github.com/repos/pearl-jinju/OOOOTD/actions';
 const jobs = [
  {kind:'catalog_daily_report', title:'일일 상품 운영 보고서',
-  metrics:[['성공한 실행','succeeded','회'],['수집 합계 (중복 포함)','collected','개'],['추천에서 제외한 상품','retired','개']]},
+  metrics:[['성공한 자동 실행','succeeded','회'],['수집 합계 (중복 포함)','collected','개'],['추천에서 제외한 상품','retired','개']]},
  {kind:'catalog_refresh', title:'상품 수집', runName:'catalog-collect', metrics:[['수집 상품','collected','개']]},
  {kind:'catalog_cleanup', title:'상품 정리', runName:'catalog-prune', metrics:[['추천에서 제외한 상품','retired','개']]},
 ];
@@ -56,7 +56,8 @@ export function latestAutomationRun(record, github) {
 
 function runReason(run, job) {
  if (run.status === 'success') return {
-  catalog_daily_report:'전날 상품 작업을 집계했어요.',
+  catalog_daily_report:run.details?.report_type==='current_snapshot'
+   ? '현재 상품 상태와 최근 24시간 기록을 집계했어요.' : '전날 상품 작업을 집계했어요.',
   catalog_refresh:'상품 목록을 갱신했어요.',
   catalog_cleanup:'정리 기준을 적용했어요.',
  }[job.kind];
@@ -119,7 +120,10 @@ export function renderAutomationReports(container, reports, githubRuns, openSour
   left.append(paragraph('마지막 성공 보고서'));
   if (success) {
    if (success.details?.report_date) left.append(paragraph('집계일 · '+success.details.report_date));
-   for (const [label,field,unit] of job.metrics) {
+   const snapshotMetrics = success.details?.report_type === 'current_snapshot'
+    ? [['활성 상품','active_count','개'],['요청으로 실행된 상품 확장','expansion_succeeded','회']]
+    : [];
+   for (const [label,field,unit] of [...snapshotMetrics,...job.metrics]) {
     const value = success.details?.[field];
     if (!Number.isFinite(value)) {
      left.append(paragraph(label+' · 기록 없음'));

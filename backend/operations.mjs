@@ -24,11 +24,22 @@ export const automationReportsSql = `
  FROM (VALUES ('catalog_daily_report'), ('catalog_refresh'), ('catalog_cleanup')) AS job(kind)
  LEFT JOIN LATERAL (
   SELECT * FROM automation_runs WHERE kind=job.kind AND status='success'
-   ORDER BY (details->>'report_date') DESC NULLS LAST, sequence DESC LIMIT 1
+   ORDER BY CASE WHEN job.kind='catalog_daily_report'
+                 THEN coalesce((details->>'reference_at')::timestamptz, created_at)
+                 ELSE created_at END DESC, sequence DESC LIMIT 1
  ) AS success ON true
  LEFT JOIN LATERAL (
   SELECT * FROM automation_runs WHERE kind=job.kind ORDER BY sequence DESC LIMIT 1
  ) AS latest ON true
+`;
+
+export const recordSiteActivitySql = `
+ INSERT INTO ooootd_site_activity AS activity (event_id,event_type,user_id,search_term,occurred_at)
+ VALUES ($1::uuid,$2,$3,$4,CASE WHEN $5::timestamptz BETWEEN
+  now() - interval '7 days' AND now() + interval '5 minutes' THEN least($5::timestamptz,now()) END)
+ ON CONFLICT (event_id) DO UPDATE SET user_id = EXCLUDED.user_id
+ WHERE activity.event_type='visit' AND EXCLUDED.event_type='visit'
+   AND activity.user_id IS NULL AND EXCLUDED.user_id IS NOT NULL
 `;
 
 export const dailyCatalogReportSql = `
@@ -171,10 +182,10 @@ export function withOperations(app, {pool, verify, allowedOrigins}) {
      ? data.query.replace(/[\w.+%-]+@[\w.-]+\.[a-z]{2,}/gi,'[이메일]')
        .replace(/(?:\+?\d[\d(). -]{6,}\d)/g,'[번호]').trim().slice(0,120) : '';
     if (data.type === 'search' && !redacted) return reply({error:'invalid_activity'},400);
-    await pool.query(`
-     INSERT INTO ooootd_site_activity (event_id,event_type,user_id,search_term)
-      VALUES ($1::uuid,$2,$3,$4) ON CONFLICT(event_id) DO NOTHING
-    `,[data.id,data.type,userId??null,data.type==='search'?redacted:null]);
+    const timestamp = data.type==='visit' && typeof data.occurredAt==='string' && data.occurredAt.length<=30
+     ? Date.parse(data.occurredAt) : NaN;
+    const occurredAt = Number.isFinite(timestamp) ? new Date(timestamp).toISOString() : null;
+    await pool.query(recordSiteActivitySql,[data.id,data.type,userId??null,data.type==='search'?redacted:null,occurredAt]);
     return reply({recorded:true});
    }
    if (activity) {
@@ -271,7 +282,7 @@ export function withOperations(app, {pool, verify, allowedOrigins}) {
       ORDER BY l.created_at DESC, l.session_id DESC LIMIT 100
     `,[memberId]),
     ...['visit','search'].map(type=>pool.query(`
-     SELECT e.created_at,e.search_term,
+     SELECT coalesce(e.occurred_at,e.created_at) AS created_at,e.search_term,
             CASE WHEN e.user_id IS NULL THEN '비회원'
                  ELSE coalesce(left(split_part(u.email,'@',1),2) || '***@' ||
                                split_part(u.email,'@',2), '탈퇴한 회원') END AS member
@@ -279,7 +290,7 @@ export function withOperations(app, {pool, verify, allowedOrigins}) {
        LEFT JOIN neon_auth."user" u ON u.id::text=e.user_id
       WHERE e.event_type=$1 AND e.created_at >= now() - interval '30 days'
         AND ($2::text IS NULL OR e.user_id=$2 OR ($2='guest' AND e.user_id IS NULL))
-      ORDER BY e.created_at DESC, e.event_id DESC LIMIT 100
+      ORDER BY created_at DESC, e.event_id DESC LIMIT 100
     `,[type,memberId])),
     pool.query(`
      WITH recent_members AS (

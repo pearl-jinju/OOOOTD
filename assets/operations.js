@@ -1,5 +1,6 @@
 import {connectMemberAdmin} from './member-admin.js?v=tiers';
-import {fetchAutomationRuns,formatRunTime,renderAutomationReports,runStatus} from './automation-report.js?v=daily-report';
+import {fetchAutomationRuns,formatRunTime,renderAutomationReports,runStatus} from './automation-report.js?v=launch-logs';
+import {attachLaunchMember} from './site-launch.js?v=1';
 
 export async function closetMemberHeaders(auth,path,method) {
  if (!auth || !(path==='/closet' && method==='POST' || method==='DELETE' && /^\/closet\/\d+$/.test(path))) return {};
@@ -86,13 +87,13 @@ export function connectOperations(auth, apiUrl) {
   });
  }
 
- async function recordActivity(type, query) {
+ async function recordSearch(query) {
   const session = await auth.getSession();
   if (session.error) return;
   const user = session.data?.user;
   const sessionToken = session.data?.session?.token;
   const validSessionToken = typeof sessionToken === 'string' && /^[\w-]+\.[\w-]+\.[\w-]+$/.test(sessionToken);
-  const body = JSON.stringify({id:crypto.randomUUID(),type,query});
+  const body = JSON.stringify({id:crypto.randomUUID(),type:'search',query});
   const send = token => fetch(apiUrl + '/site/activity', {
    method:'POST', headers:{'Content-Type':'application/json', ...(token ? {Authorization:'Bearer '+token} : {})},
    body, signal:AbortSignal.timeout(8000),
@@ -108,9 +109,15 @@ export function connectOperations(auth, apiUrl) {
  document.getElementById('catalog-search-form').addEventListener('submit', event => {
   event.preventDefault();
   const query = document.getElementById('catalog-search').value.trim();
-  if (query) recordActivity('search',query).catch(() => {});
+  if (query) recordSearch(query).catch(() => {});
  });
- recordActivity('visit').catch(() => {});
+ void (async () => {
+  const {data} = await auth.getSession();
+  if (!data?.user) return;
+  const token = data.session?.token;
+  attachLaunchMember(typeof token==='string' && /^[\w-]+\.[\w-]+\.[\w-]+$/.test(token)
+   ? token : (await auth.token()).data?.token);
+ })().catch(() => {});
 
  function rows(id, records, keys) {
   const body = document.getElementById(id);
