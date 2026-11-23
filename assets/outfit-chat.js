@@ -345,7 +345,7 @@ mic.addEventListener('click',async ()=>{
   mic.textContent='녹음 중지';
   mic.setAttribute('aria-pressed','true');
   panel.classList.add('outfit-chat-recording');
-  status.textContent='녹음 중 · 최대 20초. 음성은 전사를 위해 Groq로 전송됩니다.';
+  status.textContent='녹음 중 · 최대 20초. 음성은 전사를 위해 Google Gemini로 전송됩니다.';
  }catch(error){
   stream?.getTracks().forEach(track=>track.stop());
   recording=null;

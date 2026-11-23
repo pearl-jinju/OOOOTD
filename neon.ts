@@ -9,8 +9,7 @@ export default defineConfig({
   env:{
    OOOOTD_DATABASE_URL:{value:process.env.OOOOTD_DATABASE_URL,required:true},
    GEMINI_API_KEY:{value:process.env.GEMINI_API_KEY,required:false,onUndefined:'skip'},
-   GEMINI_MODEL:{value:process.env.GEMINI_MODEL,required:false,onUndefined:'skip'},
-   GROQ_API_KEY:{value:process.env.GROQ_API_KEY,required:false,onUndefined:'skip'}
+   GEMINI_MODEL:{value:process.env.GEMINI_MODEL,required:false,onUndefined:'skip'}
   }
  }},
  triggers:{'weekly-catalog':{type:'schedule',function:'api',cron:'0 0 * * 1',functionPath:'/cron/catalog'}}

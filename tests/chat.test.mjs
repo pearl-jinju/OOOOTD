@@ -51,26 +51,52 @@ test('provider failure falls back and limits requests independently of speech',a
   assert.equal(result.data.intent.mode,'owned');
  }
  assert.equal((await run(interpret('출근룩'),'/chat/interpret','user',reply)).status,429);
- assert.equal((await run(new Request('https://test.invalid'),'/chat/transcribe','user',reply)).status,503);
+ assert.equal((await run(new Request('https://test.invalid'),'/chat/transcribe','user',reply)).status,415);
 });
 
-test('Groq receives Korean audio as multipart and returns editable transcript data',async()=>{
+function audioRequest(type='audio/webm;codecs=opus'){
+ const form=new FormData();
+ form.set('audio',new Blob(['clip'],{type}),'sample');
+ return new Request('https://test.invalid/chat/transcribe',{method:'POST',body:form});
+}
+
+test('Google Gemini receives inline WebM or Safari MP4 with one key and returns editable Korean text',async()=>{
+ const formats=[];
  const run=createChatHandler({
-  env:{GROQ_API_KEY:'test'},
+  env:{GEMINI_API_KEY:'test'},
   fetchImpl:async (url,options)=>{
-   assert.match(url,/^https:\/\/api\.groq\.com.*transcriptions$/);
-   assert.equal(options.body.get('language'),'ko');
-   assert.equal(options.body.get('model'),'whisper-large-v3-turbo');
-   assert.equal(options.body.get('file').name,'recording.webm');
-   return Response.json({text:' 내일 서울 면접 '});
+   assert.equal(url,'https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite:generateContent');
+   assert.equal(options.headers['x-goog-api-key'],'test');
+   const payload=JSON.parse(options.body);
+   assert.equal(payload.generationConfig.responseJsonSchema.required[0],'text');
+   const {inlineData}=payload.contents[0].parts[0];
+   assert.equal(inlineData.data,'Y2xpcA==');
+   formats.push(inlineData.mimeType);
+   return Response.json({candidates:[{content:{parts:[{text:JSON.stringify({text:' 내일 서울 면접 '})}]}}]});
   }
  });
- const form=new FormData();
- form.set('audio',new Blob(['clip'],{type:'audio/webm;codecs=opus'}),'sample');
- const result=await run(new Request('https://test.invalid/chat/transcribe',{method:'POST',body:form}),'/chat/transcribe','user',reply);
- assert.deepEqual(result,{status:200,data:{text:'내일 서울 면접'}});
+ for(const type of ['audio/webm;codecs=opus','audio/mp4']){
+  const result=await run(audioRequest(type),'/chat/transcribe','user',reply);
+  assert.deepEqual(result,{status:200,data:{text:'내일 서울 면접'}});
+ }
+ assert.deepEqual(formats,['audio/webm','audio/m4a']);
  const oversize=new Request('https://test.invalid/chat/transcribe',{
   method:'POST',headers:{'content-type':'multipart/form-data; boundary=abc','content-length':'3000000'},body:'clip'
  });
  assert.equal((await run(oversize,'/chat/transcribe','user',reply)).status,413);
+});
+
+test('missing key, empty audio transcription and Google quota failures retain text fallback',async()=>{
+ const path='/chat/transcribe',user='user';
+ const disabled=createChatHandler({env:{}});
+ assert.equal((await disabled(audioRequest(),path,user,reply)).status,503);
+ const noSpeech=createChatHandler({
+  env:{GEMINI_API_KEY:'test'},
+  fetchImpl:async()=>Response.json({candidates:[{content:{parts:[{text:'{"text":""}'}]}}]})
+ });
+ assert.equal((await noSpeech(audioRequest(),path,user,reply)).status,422);
+ const quota=createChatHandler({
+  env:{GEMINI_API_KEY:'test'},fetchImpl:async()=>new Response(null,{status:429})
+ });
+ assert.equal((await quota(audioRequest(),path,user,reply)).status,429);
 });
