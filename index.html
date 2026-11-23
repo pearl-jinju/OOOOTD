@@ -1770,7 +1770,12 @@
     const chatCost=items=>items.reduce((sum,item)=>sum+chatItemCost(item),0);
     const cheapestOption=pool=>pool.reduce((best,option)=>!best||
       chatItemCost(option.item)<chatItemCost(best.item)?option:best,null);
-    const chatBudgetAllows=items=>!chatConditions?.budget||chatCost(items)<=chatConditions.budget;
+    const chatBudgetAllows=items=>!chatConditions?.budget||
+      (chatConditions.budgetScope==='item'?items.every(item=>chatItemCost(item)<=chatConditions.budget):
+        chatCost(items)<=chatConditions.budget);
+    const chatBudgetLabel=(conditions,defaultScope='outfit')=>conditions?.budget?
+      ((conditions.budgetScope||defaultScope)==='item'?'구매 상품 하나당 ':'구매 합계 ')+
+        conditions.budget.toLocaleString('ko-KR')+'원 이하':'';
 
     function chatItemAllows(item){
       if(!chatConditions)return true;
@@ -1810,7 +1815,8 @@
       const selected=displayedAlternative||rankedCombos[currentRankIndex];
       return {shortage,conditions,weather,mode:recommendationMode,closetReady:!!chatClosetOwner,
         hasOutfit:!!selected,hasNext:rankedCombos.length>1,hasSimilar:!document.getElementById('similar-combo-btn').disabled,
-        lastReplacementCategory:selected?.replacementCategory,reason:selected?document.getElementById('lookbook-reason').textContent:''};
+        lastReplacementCategory:selected?.replacementCategory,budgetLabel:chatBudgetLabel(chatConditions),
+        reason:selected?document.getElementById('lookbook-reason').textContent:''};
     }
     function chatShop(conditions){
       const products=availableRecommendedClothes().filter(item=>
@@ -1820,7 +1826,7 @@
         item.availability!=='sold_out'&&isEligibleOutfitItem(item)
       ).sort((a,b)=>Number.isFinite(chatPrice(a))===Number.isFinite(chatPrice(b))?
         (chatPrice(a)-chatPrice(b)||a.id-b.id):Number.isFinite(chatPrice(a))?-1:1).slice(0,4);
-      return {...chatResult(),products};
+      return {...chatResult(),budgetLabel:chatBudgetLabel(conditions,'item'),products};
     }
     const lookbookTones={
       light:['white','beige','sky','pink','yellow'],dark:['black','navy','brown','burgundy'],
@@ -1900,7 +1906,8 @@
         const visible=!preview||!['bottom','shoes'].includes(category);
         return {label:chatCategoryLabels[category],operation,previous:visible?original?.name:null,current:visible?selected?.name:null};
       });
-      return {...chatResult(),replacement:replacements[0],replacements};
+      return {...chatResult(),replacement:replacements[0],replacements,
+        budgetLabel:chatBudgetLabel(request,'item')||chatBudgetLabel(chatConditions)};
     }
     async function applyOutfitChat(conditions,{action='recommend',signal,productId}={}){
       if(action==='replace')return replaceLookbookItem(conditions);
@@ -2669,7 +2676,7 @@
   </script>
   <script type="module" src="/assets/cloud.js?v=outfit-chat"></script>
   <script type="module" src="/assets/runtime-pipeline-autoplay.js"></script>
-  <script type="module" src="/assets/outfit-chat.js?v=lookbook-adjustments"></script>
+  <script type="module" src="/assets/outfit-chat.js?v=budget-scope"></script>
   <script type="module" src="/assets/favorites.js?v=lookbook-items"></script>
 </body>
 </html>

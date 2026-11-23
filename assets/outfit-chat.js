@@ -168,7 +168,7 @@ function renderOutfit(result){
   mode==='owned'&&!closetReady?'내 옷장 연결을 확인해주세요.':
   mode==='owned'&&shortage.length?'내 옷장에서 조건에 맞는 '+shortage.join('·')+'이(가) 부족해요.':
   '현재 조건을 모두 만족하는 코디가 없어요. 예산, 제외 조건 또는 고정한 옷을 확인해주세요.';
- const entry=message([conditions,weather,detail].filter(Boolean).join('\n'));
+ const entry=message([conditions,weather,result.budgetLabel,detail].filter(Boolean).join('\n'));
  const row=actions(entry);
  if(!hasOutfit){
   button(row,'내 옷장 열기',()=>openTab('closetTab','private-title'));
@@ -182,7 +182,7 @@ function renderOutfit(result){
 function renderProducts(result,conditions){
  const shortage=result.closetReady&&result.shortage.length?'내 옷장에서 조건에 맞는 '+result.shortage.join('·')+'이(가) 부족해요.':'';
  const detail=result.products.length?'카탈로그에 기록된 가격과 판매 정보예요. 현재 가격·재고는 판매처에서 확인해주세요.':'조건에 맞는 상품을 현재 카탈로그에서 찾지 못했어요.';
- const entry=message([result.conditions,result.weather,shortage,detail].filter(Boolean).join('\n'));
+ const entry=message([result.conditions,result.weather,result.budgetLabel,shortage,detail].filter(Boolean).join('\n'));
  const grid=element('div');
  grid.className='outfit-chat-products';
  for(const item of result.products){
@@ -278,7 +278,7 @@ async function execute(patch,options={}){
     return current?label+' · '+previous+' → '+current:
      label+'을(를) 바꿨어요. 로그인하면 바뀐 의상을 확인할 수 있어요.';
    });
-   const row=actions(message(details.join('\n')));
+   const row=actions(message([...details,result.budgetLabel].filter(Boolean).join('\n')));
    button(row,'룩북 보기',()=>openTab('recommendTab','lookbook-day-title'));
    if(result.replacements.length===1&&result.replacement.operation==='replace'){
     button(row,'다른 '+result.replacement.label+'으로 바꾸기',()=>execute(patch));

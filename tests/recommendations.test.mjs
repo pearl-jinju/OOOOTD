@@ -190,3 +190,21 @@ test('multi-item adjustments apply together and respect locked outerwear rules',
   if(!(await applyOutfitChat({category:'top',operation:'remove'},{action:'replace'})).error)throw Error('removed a required garment');
  })()`,c);
 });
+
+test('per-item price cap does not accidentally cap the entire lookbook total',async()=>{
+ const c=context();
+ await vm.runInContext(`(async()=>{
+  forecastDay='tomorrow';
+  currentWeather={temp:26,code:0,date:'2026-11-24'};
+  const item=(id,category,name,price)=>({id,category,name,price,gender:'men',color:'navy',season:'hot',occasion:'daily'});
+  CATALOG_ITEMS=[
+   item(701,'top','면 티셔츠',55000),item(702,'bottom','면바지',58000),
+   item(703,'shoes','스니커즈',59000),item(704,'shoes','가죽 스니커즈',60000)
+  ];
+  const perItem=await applyOutfitChat({mode:'catalog',budget:59999,budgetScope:'item'});
+  if(!perItem.hasOutfit||!perItem.budgetLabel.includes('하나당'))throw Error('per-item budget was applied to overall total');
+  if(selectedLookbookItems().some(item=>item.price>59999)||chatCost(selectedLookbookItems())<=59999)throw Error('wrong affordable selection');
+  const total=await applyOutfitChat({mode:'catalog',budget:59999,budgetScope:'outfit'});
+  if(total.hasOutfit||!total.budgetLabel.includes('합계'))throw Error('total budget was not enforced');
+ })()`,c);
+});

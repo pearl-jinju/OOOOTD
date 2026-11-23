@@ -154,3 +154,20 @@ test('each requested garment keeps its own style and color, including optional o
  assert.deepEqual(validateChatIntent({action:'replace',edits:[{category:'top',tone:'light',id:10},{category:'shoes',style:'comfortable'}]}),
   {action:'replace',edits:[{category:'top',tone:'light'},{category:'shoes',style:'comfortable'}]});
 });
+
+test('Korean price tiers are separate from exact limits and total budgets',()=>{
+ assert.deepEqual(interpretLocally('가격 5만원대 이하의 물품으로 맞춰줘'),{action:'recommend',budget:59999,budgetScope:'item'});
+ assert.deepEqual(interpretLocally('가격 5만원 이하의 상품으로 맞춰줘'),{action:'recommend',budget:50000,budgetScope:'item'});
+ assert.deepEqual(interpretLocally('전체 오만 원 이하로 코디해 줘'),{action:'recommend',budget:50000,budgetScope:'outfit'});
+ assert.deepEqual(interpretLocally('50,000원 미만 운동화 찾아줘'),{action:'shop',budget:49999,category:'shoes'});
+});
+test('explicit price bounds are enforced even when Gemini returns a different scope or rounded limit',async()=>{
+ const run=createChatHandler({
+  env:{GEMINI_API_KEY:'test'},
+  fetchImpl:async()=>Response.json({candidates:[{content:{parts:[{text:JSON.stringify({
+   action:'shop',budget:50000,budgetScope:'outfit'
+  })}]}}]})
+ });
+ const result=await run(interpret('가격 5만원대 이하의 물품으로 맞춰줘'),'/chat/interpret','user',reply);
+ assert.deepEqual(result,{status:200,data:{intent:{action:'recommend',budget:59999,budgetScope:'item'},source:'gemini'}});
+});
