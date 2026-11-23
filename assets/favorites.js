@@ -38,7 +38,8 @@ export function updateFavorites(storage,favorites,value,{addOnly=false}={}){
  if(!key)return {favorites,error:'찜할 항목을 확인하지 못했어요.'};
  const exists=favorites.some(item=>item.key===key);
  if(exists&&addOnly)return {favorites,alreadySaved:true};
- if(!exists&&!favorite)return {favorites};
+ if(!exists&&!favorite)return {favorites,unchanged:true};
+ if(!exists&&favorite.type==='product')return {favorites,error:'상품은 무신사 상품 페이지에서 좋아요를 눌러주세요.'};
  if(!exists&&favorites.length>=ITEM_LIMIT)return {favorites,error:'찜은 최대 100개까지 저장할 수 있어요. 목록에서 항목을 지운 뒤 다시 시도해주세요.'};
  const next=exists?favorites.filter(item=>item.key!==key):[favorite,...favorites];
  try{storage.setItem(STORAGE_KEY,JSON.stringify(next));return {favorites:next,removed:exists}}
@@ -52,9 +53,9 @@ export function canShowOutfitItem(item,signedIn){
 function initFavorites(){
  const byId=id=>document.getElementById(id);
  const tab=byId('favoritesTab'),count=byId('favorites-count'),list=byId('favorites-list');
- const catalog=byId('catalog-table-body'),outfitButton=byId('favorite-outfit'),status=byId('favorites-status');
+ const outfitButton=byId('favorite-outfit'),status=byId('favorites-status');
  const data=window.ooootdFavoriteData;
- if(!data||!tab||!catalog||!outfitButton)return;
+ if(!data||!tab||!outfitButton)return;
  const storage={getItem:key=>window.localStorage.getItem(key),setItem:(key,value)=>window.localStorage.setItem(key,value)};
  let favorites=readFavorites(storage);
  let keys=new Set(favorites.map(item=>item.key));
@@ -84,7 +85,7 @@ function initFavorites(){
  function addRetailerLink(parent,item){
   const url=retailerProductUrl(item?.sourceUrl);
   if(!url)return;
-  const link=node('a','무신사에서 보기 ↗');
+  const link=node('a','무신사에서 찜 ↗');
   Object.assign(link,{href:url,target:'_blank',rel:'noopener noreferrer'});
   parent.append(link);
  }
@@ -99,14 +100,7 @@ function initFavorites(){
   outfitButton.disabled=!outfit;
   const selected=!!outfit&&keys.has(outfitFavoriteKey(outfit.items,outfit.owner));
   setButton(outfitButton,selected,selected?'현재 코디 찜 해제':'현재 코디 찜하기');
-  outfitButton.querySelector('strong').textContent=selected?'찜한 코디':'코디 찜';
- }
- function markCatalog(){
-  for(const button of catalog.querySelectorAll('[data-favorite-product]')){
-   const selected=keys.has(productFavoriteKey(Number(button.dataset.favoriteProduct)));
-   const name=button.dataset.favoriteName;
-   setButton(button,selected,name+(selected?' 찜 해제':' 찜하기'));
-  }
+  outfitButton.querySelector('strong').textContent=selected?'찜 해제':'코디 찜';
  }
  function render(){
   const owner=data.owner();
@@ -129,7 +123,7 @@ function initFavorites(){
     if(item){
      addImage(card,item);
      const price=Number.isSafeInteger(item.price)&&item.price>0?item.price.toLocaleString('ko-KR')+'원 · 수집가':'가격 확인 필요';
-     card.append(node('p',price));
+     card.append(node('p',price+' · 이전에 OOOOTD에 저장한 상품'));
      addRetailerLink(card,item);
     }else card.append(node('p','현재 추천의상 목록에서 찾을 수 없어요.'));
    }else{
@@ -150,10 +144,11 @@ function initFavorites(){
     }
     card.append(grid);
    }
-   const remove=node('button','찜 해제');
+   const removeLabel=favorite.type==='outfit'?'찜 해제':'OOOOTD 기록 삭제';
+   const remove=node('button',removeLabel);
    remove.className='favorite-remove';
    remove.type='button';
-   remove.setAttribute('aria-label',card.firstChild.textContent+' 찜 해제');
+   remove.setAttribute('aria-label',card.firstChild.textContent+' '+removeLabel);
    remove.addEventListener('click',()=>{
     const adjacent=card.nextElementSibling||card.previousElementSibling;
     if(!change(favorite.key).error)list.querySelectorAll('article').forEach(element=>{
@@ -170,42 +165,36 @@ function initFavorites(){
   if(result.error){say(result.error);return result}
   favorites=result.favorites;
   keys=new Set(favorites.map(item=>item.key));
-  if(!result.alreadySaved)say(result.removed?'찜을 해제했어요.':'찜 목록에 저장했어요.');
-  markCurrent();markCatalog();render();
+  if(!result.alreadySaved&&!result.unchanged)say(result.removed?'찜을 해제했어요.':'찜 목록에 저장했어요.');
+  markCurrent();render();
   return result;
  }
  outfitButton.addEventListener('click',()=>{
   const current=data.current();
   if(current)change({type:'outfit',...current});
  });
- catalog.addEventListener('click',event=>{
-  const button=event.target.closest('[data-favorite-product]');
-  if(button)change({type:'product',id:Number(button.dataset.favoriteProduct)});
- });
  window.addEventListener('storage',event=>{
   if(event.key!==STORAGE_KEY&&event.key!==null)return;
   favorites=readFavorites(storage);
   keys=new Set(favorites.map(item=>item.key));
-  markCurrent();markCatalog();render();
+  markCurrent();render();
  });
  window.addEventListener('ooootd-account-changed',render);
  window.ooootdFavorites={
-  outfitChanged:markCurrent,catalogChanged(){markCatalog();render()},open:render,
+  outfitChanged:markCurrent,catalogChanged:render,open:render,
   searchProducts:query=>findFavoriteProducts(data.catalog(),query),
   addCurrent(){
    const current=data.current();
    if(!current)return {error:'지금 룩북에 찜할 코디가 없어요. 먼저 코디를 추천받아 주세요.'};
    return {...change({type:'outfit',...current},{addOnly:true}),label:current.title};
   },
-  addProduct(id){
-   const item=data.catalog().find(item=>item.id===id);
-   if(!item||!retailerProductUrl(item.sourceUrl)||item.availability==='sold_out'){
-    return {error:'이 상품은 현재 무신사 판매 링크를 확인할 수 없어요. 다른 상품을 골라주세요.'};
-   }
-   return {...change({type:'product',id},{addOnly:true}),label:item.name,url:retailerProductUrl(item.sourceUrl)};
+  removeCurrent(){
+   const current=data.current();
+   if(!current)return {error:'지금 룩북에 표시된 코디가 없어요.'};
+   return {...change(outfitFavoriteKey(current.items,current.owner)),label:current.title};
   }
  };
- markCurrent();markCatalog();render();
+ markCurrent();render();
 }
 
 if(typeof window!=='undefined'&&typeof document!=='undefined')initFavorites();

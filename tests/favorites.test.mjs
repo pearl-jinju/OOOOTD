@@ -11,17 +11,19 @@ const publicItems=[
  {category:'bottom',owned:false,id:20},
  {category:'shoes',owned:false,id:30}
 ];
-test('products and outfits toggle independently and survive a reload',()=>{
+test('legacy products remain readable while outfits toggle independently',()=>{
  const storage=browserStorage();
  const product={type:'product',id:10};
  const outfit={type:'outfit',title:'서울 · 면접',items:publicItems};
- let state=updateFavorites(storage,readFavorites(storage),product);
- state=updateFavorites(storage,state.favorites,outfit);
+ storage.setItem('ooootd_favorites_v1',JSON.stringify([product]));
+ let state=updateFavorites(storage,readFavorites(storage),outfit);
  assert.equal(readFavorites(storage).length,2);
  assert.equal(readFavorites(storage)[1].key,productFavoriteKey(10));
  state=updateFavorites(storage,readFavorites(storage),{...outfit,items:publicItems.toReversed()});
  assert.equal(state.removed,true);
  assert.deepEqual(readFavorites(storage),[{type:'product',id:10,key:'product:10'}]);
+ assert.equal(updateFavorites(storage,state.favorites,productFavoriteKey(10)).removed,true);
+ assert.deepEqual(readFavorites(storage),[]);
 });
 
 test('private garment states use the current closet identity and omit private media',()=>{
@@ -42,19 +44,29 @@ test('damaged data and storage denial do not create favorites',()=>{
  assert.deepEqual(readFavorites({getItem:()=>'{malformed'}),[]);
  const storage={setItem(){throw Error('denied')}};
  const current=[];
- const result=updateFavorites(storage,current,{type:'product',id:10});
+ const result=updateFavorites(storage,current,{type:'outfit',items:publicItems});
  assert.equal(result.favorites,current);
  assert.match(result.error,/저장 설정/);
  assert.match(updateFavorites(storage,current,{type:'product',id:'10'}).error,/확인/);
 });
 
-test('adding through chat is idempotent while a second click can still remove the item',()=>{
+test('chat add is idempotent and both the toggle and explicit removal can clear an outfit',()=>{
  const storage=browserStorage();
- const product={type:'product',id:10};
- const added=updateFavorites(storage,[],product,{addOnly:true});
- const repeated=updateFavorites(storage,added.favorites,product,{addOnly:true});
+ const outfit={type:'outfit',items:publicItems};
+ const added=updateFavorites(storage,[],outfit,{addOnly:true});
+ const repeated=updateFavorites(storage,added.favorites,outfit,{addOnly:true});
  assert.equal(repeated.alreadySaved,true);
  assert.equal(repeated.favorites.length,1);
- assert.equal(updateFavorites(storage,repeated.favorites,product).removed,true);
+ assert.equal(updateFavorites(storage,repeated.favorites,outfit).removed,true);
  assert.equal(readFavorites(storage).length,0);
+ const key=outfitFavoriteKey(publicItems,null);
+ assert.equal(updateFavorites(storage,[],key).unchanged,true);
+ const restored=updateFavorites(storage,[],outfit);
+ assert.equal(updateFavorites(storage,restored.favorites,key).removed,true);
+});
+test('new products can only be liked on Musinsa',()=>{
+ const storage=browserStorage();
+ const result=updateFavorites(storage,[],{type:'product',id:10},{addOnly:true});
+ assert.match(result.error,/무신사/);
+ assert.deepEqual(readFavorites(storage),[]);
 });

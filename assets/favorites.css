@@ -42,3 +42,16 @@
 .favorite-outfit-items li { background: #f8fafc; border-radius: .4rem; padding: .4rem; }
 .favorite-outfit-items img { height: 5rem; }
 .favorites-note { color: #475569; margin-top: .5rem; font-size: .87rem; }
+
+.retailer-favorite-link {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding: .35rem .6rem;
+  border: 1px solid #c7d2fe;
+  border-radius: .5rem;
+  color: #3730a3;
+  background: #fff;
+  white-space: nowrap;
+}
+.retailer-favorite-link:focus-visible { outline: 2px solid #6366f1; outline-offset: 2px; }

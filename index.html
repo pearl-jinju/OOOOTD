@@ -827,7 +827,7 @@
   <link rel="stylesheet" href="/assets/runtime-pipeline.css">
   <link rel="stylesheet" href="/assets/mascot-layout.css">
   <link rel="stylesheet" href="/assets/outfit-chat.css?v=floating">
-  <link rel="stylesheet" href="/assets/favorites.css">
+  <link rel="stylesheet" href="/assets/favorites.css?v=musinsa-like">
 </head>
 <body>
   <details class="outfit-chat" id="outfit-chat">
@@ -1230,7 +1230,7 @@
     <div id="catalogTab" class="tab-pane">
       <section class="closet-list-card">
         <h2>추천의상</h2>
-        <p style="color:var(--text-muted);font-size:.88rem;margin:8px 0;">아직 보유하지 않은 공용 상품입니다. 내 옷으로 등록한 상품은 제외하며, 기본 코디에는 사용하지 않습니다.</p>
+        <p style="color:var(--text-muted);font-size:.88rem;margin:8px 0;">상품을 찜하려면 무신사에서 찜을 누른 뒤 상품 페이지에서 ♡ 좋아요를 눌러주세요.</p>
         <label>추천의상 필터 <select id="catalog-filter" class="city-select" onchange="filterCatalog(this.value)"><option value="all">전체</option><option value="men">남성</option><option value="women">여성</option><option value="outer">아우터</option><option value="top">상의</option><option value="bottom">하의</option><option value="shoes">신발</option></select></label>
         <label>코디 종류 <select id="catalog-occasion" class="city-select" onchange="catalogVisibleLimit=60;renderPublicCatalog()"><option value="all">모든 종류</option></select></label>
         <form id="catalog-search-form" class="catalog-search-form" role="search">
@@ -1238,7 +1238,7 @@
           <button class="btn-icon" type="submit">검색</button>
         </form>
         <p id="catalog-page-info"></p>
-        <div style="overflow-x:auto;margin-top:12px;"><table class="closet-table"><thead><tr><th>사진</th><th>분류</th><th>성별</th><th>상품명</th><th>색상·계절</th><th>찜</th></tr></thead><tbody id="catalog-table-body"></tbody></table></div><button id="catalog-load-more" class="btn-icon" onclick="catalogVisibleLimit+=60;renderPublicCatalog()">추천의상 더 보기</button>
+        <div style="overflow-x:auto;margin-top:12px;"><table class="closet-table"><thead><tr><th>사진</th><th>분류</th><th>성별</th><th>상품명</th><th>색상·계절</th><th>무신사</th></tr></thead><tbody id="catalog-table-body"></tbody></table></div><button id="catalog-load-more" class="btn-icon" onclick="catalogVisibleLimit+=60;renderPublicCatalog()">추천의상 더 보기</button>
       </section>
     </div>
 
@@ -1246,8 +1246,8 @@
     <div id="favoritesTab" class="tab-pane">
       <section class="closet-list-card" aria-labelledby="favorites-title">
         <h2 id="favorites-title">찜 목록</h2>
-        <p class="favorites-note">찜한 코디와 상품은 이 브라우저에 저장돼요.</p>
-        <p class="favorites-note" id="favorites-empty">아직 찜한 항목이 없어요. 룩북 또는 추천의상에서 하트를 눌러 저장해 보세요.</p>
+        <p class="favorites-note">찜한 코디는 이 브라우저에 저장돼요. 상품은 무신사에서 좋아요를 눌러주세요.</p>
+        <p class="favorites-note" id="favorites-empty">아직 찜한 코디가 없어요. 룩북에서 코디 찜을 눌러 저장해 보세요.</p>
         <div class="favorites-list" id="favorites-list"></div>
       </section>
     </div>
@@ -2422,10 +2422,9 @@
     function filterCatalog(filter) {
       currentCatalogFilter=filter; catalogVisibleLimit=60; renderPublicCatalog();
     }
-    function catalogProductName(item){
-      const name=escapeHtml(item.name);
+    function catalogRetailerLink(item){
       const url=/^https:\/\/www\.musinsa\.com\/products\/[1-9]\d*$/.test(item.sourceUrl||'')?item.sourceUrl:null;
-      return url?'<a href="'+url+'" target="_blank" rel="noopener noreferrer">'+name+' <span aria-hidden="true">↗</span></a>':name;
+      return url?'<a class="retailer-favorite-link" href="'+url+'" target="_blank" rel="noopener noreferrer" aria-label="'+escapeHtml(item.name)+' 무신사에서 찜 (새 탭)">무신사에서 찜 ↗</a>':'상품 링크 없음';
     }
     function renderPublicCatalog() {
       const ownedIds=new Set(closetItems.map(item=>item.sourceCatalogId).filter(Boolean));
@@ -2440,7 +2439,7 @@
       const more=document.getElementById('catalog-load-more');
       if(more)more.hidden=catalogVisibleLimit>=filtered.length;
       const body=document.getElementById('catalog-table-body');
-      body.innerHTML=filtered.length?filtered.slice(0,catalogVisibleLimit).map(item=>'<tr><td><img src="'+escapeHtml(item.image)+'" class="table-thumb" alt="'+escapeHtml(item.name)+'" loading="lazy"></td><td>'+CATEGORY_NAMES[item.category]+'</td><td>'+OOOOTD_RULES.genderLabel(item)+'</td><td>'+catalogProductName(item)+'</td><td>'+COLOR_LABELS[item.color]+' · '+(SEASON_LABELS[item.season]||item.season)+'</td><td><button class="favorite-toggle" type="button" aria-pressed="false" aria-label="'+escapeHtml(item.name)+' 찜하기" data-favorite-product="'+Number(item.id)+'" data-favorite-name="'+escapeHtml(item.name)+'"><span aria-hidden="true">♡</span></button></td></tr>').join(''):'<tr><td colspan="6">해당 조건의 추천의상이 없습니다.</td></tr>';
+      body.innerHTML=filtered.length?filtered.slice(0,catalogVisibleLimit).map(item=>'<tr><td><img src="'+escapeHtml(item.image)+'" class="table-thumb" alt="'+escapeHtml(item.name)+'" loading="lazy"></td><td>'+CATEGORY_NAMES[item.category]+'</td><td>'+OOOOTD_RULES.genderLabel(item)+'</td><td>'+escapeHtml(item.name)+'</td><td>'+COLOR_LABELS[item.color]+' · '+(SEASON_LABELS[item.season]||item.season)+'</td><td>'+catalogRetailerLink(item)+'</td></tr>').join(''):'<tr><td colspan="6">해당 조건의 추천의상이 없습니다.</td></tr>';
       window.ooootdFavorites?.catalogChanged();
     }
 
@@ -2578,7 +2577,7 @@
   </script>
   <script type="module" src="/assets/cloud.js?v=outfit-chat"></script>
   <script type="module" src="/assets/runtime-pipeline-autoplay.js"></script>
-  <script type="module" src="/assets/outfit-chat.js?v=google-voice"></script>
-  <script type="module" src="/assets/favorites.js?v=voice-favorites"></script>
+  <script type="module" src="/assets/outfit-chat.js?v=musinsa-like"></script>
+  <script type="module" src="/assets/favorites.js?v=musinsa-like"></script>
 </body>
 </html>

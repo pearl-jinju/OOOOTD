@@ -1,4 +1,4 @@
-import {parseFavoriteCommand,retailerProductUrl} from './favorite-commands.js';
+import {MUSINSA_HOME,parseFavoriteCommand,retailerProductUrl,retailerSearchUrl} from './favorite-commands.js';
 
 const $=id=>document.getElementById(id);
 const panel=$('outfit-chat');
@@ -58,35 +58,36 @@ function retailerLink(row,label,url){
  Object.assign(link,{href:url,target:'_blank',rel:'noopener noreferrer'});
  row.append(link);
 }
-function favoriteResult(result){
+function outfitFavoriteResult(result){
  if(result.error){message(result.error);return}
- const text=result.alreadySaved?'이미 찜 목록에 있어요.':'OOOOTD 찜 목록에 저장했어요.';
+ const text=result.removed?'OOOOTD 코디 찜을 해제했어요.':
+  result.unchanged?'현재 코디는 찜 목록에 없어요.':
+  result.alreadySaved?'이미 찜 목록에 있어요.':'OOOOTD 찜 목록에 저장했어요.';
  const row=actions(message(result.label+' · '+text));
- button(row,'찜 목록 열기',()=>openTab('favoritesTab','favorites-title'));
- if(result.url)retailerLink(row,'무신사에서 보기 ↗',result.url);
+ button(row,'OOOOTD 코디 찜 목록',()=>openTab('favoritesTab','favorites-title'));
 }
-function chooseFavorite(query){
- const favorites=window.ooootdFavorites;
- const found=favorites.searchProducts(query);
+function showRetailerProduct(item){
+ const url=retailerProductUrl(item.sourceUrl);
+ if(!url){message('무신사 상품 링크를 확인할 수 없어요.');return}
+ const row=actions(message(item.name+' · 무신사 상품 페이지에서 로그인한 뒤 ♡ 좋아요를 눌러주세요.'));
+ retailerLink(row,'무신사에서 찜 ↗',url);
+}
+function chooseRetailerProduct(query){
+ const found=window.ooootdFavorites.searchProducts(query);
  pendingFavorite=null;
- if(found.length===1){favoriteResult(favorites.addProduct(found[0].id));return}
+ if(found.length===1){showRetailerProduct(found[0]);return}
  if(!found.length){
-  const row=actions(message('OOOOTD 카탈로그에서 일치하는 무신사 상품을 찾지 못했어요. 상품명이나 브랜드를 알려주세요.'));
+  const row=actions(message('OOOOTD 추천의상에서 일치하는 상품을 찾지 못했어요. 무신사에서 직접 검색하거나 상품명을 다시 알려주세요.'));
   pendingFavorite={};
-  retailerLink(row,'무신사에서 직접 검색 ↗','https://www.musinsa.com/search/goods?keyword='+encodeURIComponent(query));
+  retailerLink(row,'무신사에서 검색 ↗',retailerSearchUrl(query));
   return;
  }
  const candidates=found.slice(0,5);
- const turn={candidates};
- pendingFavorite=turn;
- const row=actions(message('일치하는 상품이 '+found.length+'개예요. 아래에서 고르거나 더 구체적인 상품명을 입력해주세요.'));
+ pendingFavorite={candidates};
+ const row=actions(message('일치하는 상품이 '+found.length+'개예요. 링크를 열어 무신사에서 ♡ 좋아요를 누르거나, 상품 번호를 입력해 주세요.'));
  for(const [index,item] of candidates.entries()){
   const price=Number.isSafeInteger(item.price)&&item.price>0?' · '+item.price.toLocaleString('ko-KR')+'원(수집가)':'';
-  button(row,(index+1)+'. '+item.name+price,()=>{
-   if(pendingFavorite!==turn)return;
-   pendingFavorite=null;
-   favoriteResult(favorites.addProduct(item.id));
-  });
+  retailerLink(row,(index+1)+'. '+item.name+price+' · 무신사 ↗',retailerProductUrl(item.sourceUrl));
  }
 }
 function handleFavorite(text){
@@ -97,15 +98,17 @@ function handleFavorite(text){
  if(command){
   pendingFavorite=null;
   if(command.action==='list'||command.action==='info'){
-   const row=actions(message(command.action==='list'?'아래 버튼에서 OOOOTD 찜 목록을 열 수 있어요.':
-    '“지금 코디 찜해 줘” 또는 “검정 로퍼 찜해 줘”라고 입력하면 OOOOTD 찜 목록에 저장할 수 있어요.'));
-   button(row,'찜 목록 열기',()=>openTab('favoritesTab','favorites-title'));
+   const row=actions(message(command.action==='list'?
+    '상품 좋아요는 무신사에서 확인할 수 있어요. OOOOTD에서 저장한 코디는 아래 목록을 열어주세요.':
+    '“검정 로퍼 찜해 줘”라고 하면 무신사 상품으로 연결해 드려요. “지금 코디 찜해 줘”는 OOOOTD에 코디를 저장해요.'));
+   retailerLink(row,'무신사 열기 ↗',MUSINSA_HOME);
+   button(row,'OOOOTD 코디 찜 목록',()=>openTab('favoritesTab','favorites-title'));
   }else if(command.action==='retailer'){
-   const row=actions(message('무신사 계정의 좋아요는 무신사 상품 페이지에서 누를 수 있어요.'));
-   const url=command.query?'https://www.musinsa.com/search/goods?keyword='+encodeURIComponent(command.query):'https://www.musinsa.com/';
-   retailerLink(row,'무신사로 이동 ↗',url);
-  }else if(command.target==='outfit')favoriteResult(favorites.addCurrent());
-  else if(command.target==='product')chooseFavorite(command.query);
+   if(command.query)chooseRetailerProduct(command.query);
+   else retailerLink(actions(message('무신사에서 상품을 찾고 직접 ♡ 좋아요를 눌러주세요.')),'무신사 열기 ↗',MUSINSA_HOME);
+  }else if(command.action==='remove')outfitFavoriteResult(favorites.removeCurrent());
+  else if(command.target==='outfit')outfitFavoriteResult(favorites.addCurrent());
+  else if(command.target==='product')chooseRetailerProduct(command.query);
   else{
    pendingFavorite={};
    message('어떤 상품을 찜할까요? 상품명을 입력하거나 “지금 코디 찜해 줘”라고 말해주세요.');
@@ -118,12 +121,12 @@ function handleFavorite(text){
  const selected=text.match(/^([1-5])\s*(?:번|번째)?[.!]?$/);
  if(selected){
   const item=current.candidates?.[Number(selected[1])-1];
-  if(item)favoriteResult(favorites.addProduct(item.id));
+  if(item)showRetailerProduct(item);
   else{pendingFavorite=current;message('표시된 후보 번호나 상품명을 입력해주세요.')}
   return true;
  }
  if(/[?？]|추천|보여|어떻게|사용법|도움말|바꿔|\n/.test(text)||text.length>100)return false;
- chooseFavorite(text);
+ chooseRetailerProduct(text);
  return true;
 }
 
@@ -178,12 +181,7 @@ function renderProducts(result,conditions){
    (Number.isFinite(observed.valueOf())?' · '+observed.toLocaleDateString('ko-KR')+' 확인':'')));
   const row=actions(card);
   const url=retailerProductUrl(item.sourceUrl);
-  if(url){
-   retailerLink(row,'무신사에서 보기 ↗',url);
-   button(row,'OOOOTD에 찜',()=>{
-    if(window.ooootdFavorites)favoriteResult(window.ooootdFavorites.addProduct(item.id));
-   });
-  }
+  if(url)retailerLink(row,'무신사에서 찜 ↗',url);
   button(row,'이 상품으로 코디',()=>{
    execute({action:'recommend'},{conditions:{...conditions,mode:conditions.mode==='catalog'?'catalog':'mixed'},productId:item.id,productName:item.name});
   });

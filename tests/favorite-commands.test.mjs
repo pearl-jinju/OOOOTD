@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {findFavoriteProducts,parseFavoriteCommand,retailerProductUrl} from '../assets/favorite-commands.js';
+import {findFavoriteProducts,parseFavoriteCommand,retailerProductUrl,retailerSearchUrl} from '../assets/favorite-commands.js';
 
 test('Korean chat separates save requests, questions and retailer-account requests',()=>{
  assert.deepEqual(parseFavoriteCommand('지금 코디 찜해 줘.'),{action:'add',target:'outfit'});
@@ -10,7 +10,9 @@ test('Korean chat separates save requests, questions and retailer-account reques
  assert.deepEqual(parseFavoriteCommand('찜 목록 보여줘'),{action:'list'});
  assert.deepEqual(parseFavoriteCommand('이 코디 찜할 수 있어?'),{action:'info'});
  assert.deepEqual(parseFavoriteCommand('로퍼 찜하지 말아 줘'),{action:'info'});
- assert.deepEqual(parseFavoriteCommand('검정 로퍼를 무신사에서 찜해줘'),{action:'retailer',query:'검정 로퍼를'});
+ assert.deepEqual(parseFavoriteCommand('검정 로퍼를 무신사에서 찜해줘'),{action:'retailer',query:'검정 로퍼'});
+ assert.deepEqual(parseFavoriteCommand('지금 코디 찜 해제해 줘'),{action:'remove',target:'outfit'});
+ assert.deepEqual(parseFavoriteCommand('지금 코디 찜 해제할 수 있어?'),{action:'info'});
  assert.equal(parseFavoriteCommand('내일 면접 코디 알려줘'),null);
 });
 
@@ -27,4 +29,5 @@ test('catalog matching prefers exact names and rejects invalid links or known so
  assert.deepEqual(findFavoriteProducts(items,'로퍼'),[black,different,brown]);
  assert.deepEqual(findFavoriteProducts(items,'자켓'),[]);
  assert.equal(retailerProductUrl('https://www.musinsa.com/products/11?redirect=external'),null);
+ assert.match(retailerSearchUrl('로퍼&next=example'),/^https:\/\/www\.musinsa\.com\/search\/goods\?keyword=[^&]+$/);
 });
