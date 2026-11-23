@@ -181,8 +181,16 @@ function renderOutfit(result){
 }
 function renderProducts(result,conditions){
  const shortage=result.closetReady&&result.shortage.length?'내 옷장에서 조건에 맞는 '+result.shortage.join('·')+'이(가) 부족해요.':'';
- const detail=result.products.length?'카탈로그에 기록된 가격과 판매 정보예요. 현재 가격·재고는 판매처에서 확인해주세요.':'조건에 맞는 상품을 현재 카탈로그에서 찾지 못했어요.';
+ const detail=result.products.length?'조건에 맞는 상품 '+result.productCount+'개 중 '+result.products.length+
+  '개를 보여드려요. 표시된 가격은 수집가예요. 현재 가격·재고는 판매처에서 확인해주세요.':
+  '조건에 맞는 상품을 현재 카탈로그에서 찾지 못했어요.';
  const entry=message([result.conditions,result.weather,result.budgetLabel,shortage,detail].filter(Boolean).join('\n'));
+ if(conditions.budget){
+  button(actions(entry),'같은 가격으로 추천의상 더 보기',()=>{
+   window.ooootdShowCatalogBudget?.(conditions.budget,conditions.category,conditions.searchQuery);
+   openTab('catalogTab','catalog-max-price');
+  });
+ }
  const grid=element('div');
  grid.className='outfit-chat-products';
  for(const item of result.products){

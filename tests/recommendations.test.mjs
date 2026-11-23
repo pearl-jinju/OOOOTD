@@ -208,3 +208,20 @@ test('per-item price cap does not accidentally cap the entire lookbook total',as
   if(total.hasOutfit||!total.budgetLabel.includes('합계'))throw Error('total budget was not enforced');
  })()`,c);
 });
+
+test('budget-only catalog shopping returns actual matches and excludes unknown or higher prices',async()=>{
+ const c=context();
+ await vm.runInContext(`(async()=>{
+  const item=(id,category,name,price,availability)=>({id,category,name,price,availability,sourceUrl:'https://www.musinsa.com/products/'+id});
+  CATALOG_ITEMS=[
+   item(801,'top','티셔츠',34999),item(802,'shoes','로퍼',35000),
+   item(803,'bottom','면바지',35001),item(804,'outer','재킷',null),
+   item(805,'shoes','운동화',30000,'sold_out')
+  ];
+  const result=await applyOutfitChat({budget:35000},{action:'shop'});
+  if(result.error||result.productCount!==2||result.products.map(item=>item.id).join()!=='801,802')throw Error('budget-only lookup returned invalid products');
+  window.ooootdShowCatalogBudget(35000,undefined,'로퍼');
+  const body=document.getElementById('catalog-table-body').innerHTML;
+  if(!body.includes('로퍼')||body.includes('티셔츠')||body.includes('운동화')||body.includes('면바지'))throw Error('catalog handoff lost price or keyword');
+ })()`,c);
+});
