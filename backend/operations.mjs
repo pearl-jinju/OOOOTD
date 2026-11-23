@@ -43,41 +43,64 @@ export const recordSiteActivitySql = `
 `;
 
 export const dailyCatalogReportSql = `
- WITH report_day AS (
-  SELECT ($1::timestamptz AT TIME ZONE 'Asia/Seoul')::date - 1 AS day
+ WITH request_time AS (
+  SELECT $1::timestamptz AS requested_at, $2::boolean AS snapshot,
+         ($1::timestamptz AT TIME ZONE 'Asia/Seoul')::date - 1 AS day
  ), bounds AS (
-  SELECT day, day::timestamp AT TIME ZONE 'Asia/Seoul' AS starts_at,
-              (day + 1)::timestamp AT TIME ZONE 'Asia/Seoul' AS ends_at FROM report_day
+  SELECT day, snapshot,
+   CASE WHEN snapshot THEN requested_at - interval '24 hours'
+        ELSE day::timestamp AT TIME ZONE 'Asia/Seoul' END AS starts_at,
+   CASE WHEN snapshot THEN requested_at
+        ELSE (day + 1)::timestamp AT TIME ZONE 'Asia/Seoul' END AS ends_at
+   FROM request_time
  ), source AS (
   SELECT id::text AS id, kind, status, created_at,
-         CASE WHEN kind='catalog_refresh' THEN details->'collected' ELSE details->'retired' END AS quantity
+         CASE WHEN kind='catalog_expand' THEN 'requested_expansion'
+              WHEN kind='catalog_cleanup' THEN 'cleanup'
+              WHEN details->>'source'='musinsa_root_scan' THEN 'python_collection'
+              ELSE 'full_refresh' END AS source,
+         CASE WHEN kind='catalog_cleanup' THEN details->'retired' ELSE details->'collected' END AS quantity
     FROM agent_runs CROSS JOIN bounds
    WHERE created_at >= starts_at AND created_at < ends_at
-     AND (kind='catalog_cleanup' OR (kind='catalog_refresh' AND details->>'source'='musinsa_root_scan'))
+     AND kind IN ('catalog_refresh','catalog_expand','catalog_cleanup')
+     AND status IN ('success','failed','no_data')
  ), totals AS (
   SELECT count(*) FILTER (WHERE status='success') AS succeeded,
          count(*) FILTER (WHERE status='failed') AS failed,
          count(*) FILTER (WHERE status='no_data') AS no_data,
-         sum(CASE WHEN kind='catalog_refresh' AND status='success' AND jsonb_typeof(quantity)='number'
+         count(*) FILTER (WHERE source='python_collection') AS python_runs,
+         count(*) FILTER (WHERE source='python_collection' AND status='success') AS python_succeeded,
+         count(*) FILTER (WHERE source='full_refresh' AND status='success') AS refresh_succeeded,
+         count(*) FILTER (WHERE source='requested_expansion' AND status='success') AS expansion_succeeded,
+         sum(CASE WHEN kind IN ('catalog_refresh','catalog_expand') AND status='success' AND jsonb_typeof(quantity)='number'
                   THEN quantity::numeric END) AS collected,
          sum(CASE WHEN kind='catalog_cleanup' AND status='success' AND jsonb_typeof(quantity)='number'
                   THEN quantity::numeric END) AS retired,
-         coalesce(jsonb_agg(to_jsonb(source) ORDER BY source.created_at, source.id), '[]'::jsonb) AS source_runs
-    FROM source
+         coalesce(jsonb_agg(to_jsonb(run) ORDER BY run.created_at, run.id::bigint), '[]'::jsonb) AS source_runs
+    FROM source AS run
+ ), active_categories AS (
+  SELECT data->>'category' AS category, count(*) AS products
+    FROM catalog_items WHERE active AND (SELECT snapshot FROM bounds) GROUP BY 1
+ ), active_summary AS (
+  SELECT coalesce(sum(products),0) AS active_count,
+         coalesce(jsonb_agg(to_jsonb(active_categories) ORDER BY category),'[]'::jsonb) AS active_by_category
+   FROM active_categories
  )
  INSERT INTO agent_runs (kind, status, details)
  SELECT '${dailyReportKind}',
-        CASE WHEN succeeded > 0 THEN 'success' WHEN failed > 0 THEN 'failed' ELSE 'no_data' END,
+        CASE WHEN snapshot OR succeeded > 0 THEN 'success' WHEN failed > 0 THEN 'failed' ELSE 'no_data' END,
         jsonb_strip_nulls(to_jsonb(totals) || jsonb_build_object(
-         'report_date', day, 'period_start', starts_at, 'reference_at', ends_at, 'scheduled_at', $1::timestamptz,
-         'reason', CASE WHEN succeeded > 0 THEN NULL
-                        WHEN failed > 0 THEN 'source_runs_failed' ELSE 'no_daily_source_runs' END))
-   FROM bounds CROSS JOIN totals
-  WHERE NOT EXISTS (
+         'period_start', starts_at, 'reference_at', ends_at,
+         'reason', CASE WHEN snapshot OR succeeded > 0 THEN NULL
+                        WHEN failed > 0 THEN 'source_runs_failed' ELSE 'no_daily_source_runs' END)
+         || CASE WHEN snapshot THEN to_jsonb(active_summary) || jsonb_build_object('report_type','current_snapshot')
+                 ELSE jsonb_build_object('report_date',day,'scheduled_at',$1::timestamptz) END)
+   FROM bounds CROSS JOIN totals CROSS JOIN active_summary
+  WHERE snapshot OR NOT EXISTS (
    SELECT 1 FROM agent_runs
     WHERE kind='${dailyReportKind}' AND details->>'report_date'=day::text
   )
- RETURNING status, details->>'report_date' AS report_date
+ RETURNING id::text, status, details
 `;
 
 async function runDailyCatalogReport(pool, scheduledAt) {
@@ -85,9 +108,9 @@ async function runDailyCatalogReport(pool, scheduledAt) {
  try {
   await client.query('BEGIN');
   await client.query('SELECT pg_advisory_xact_lock(7100302)');
-  const {rows:[report]} = await client.query(dailyCatalogReportSql,[scheduledAt]);
+  const {rows:[report]} = await client.query(dailyCatalogReportSql,[scheduledAt,false]);
   await client.query('COMMIT');
-  return report ?? {status:'already_recorded'};
+  return report ? {status:report.status,report_date:report.details.report_date} : {status:'already_recorded'};
  } catch (error) {
   await client.query('ROLLBACK');
   throw error;

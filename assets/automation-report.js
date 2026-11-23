@@ -2,8 +2,8 @@ const actionsUrl = 'https://github.com/pearl-jinju/OOOOTD/actions';
 const actionsApi = 'https://api.github.com/repos/pearl-jinju/OOOOTD/actions';
 const jobs = [
  {kind:'catalog_daily_report', title:'일일 상품 운영 보고서',
-  metrics:[['성공한 자동 실행','succeeded','회'],['수집 합계 (중복 포함)','collected','개'],['추천에서 제외한 상품','retired','개']]},
- {kind:'catalog_refresh', title:'상품 수집', runName:'catalog-collect', metrics:[['수집 상품','collected','개']]},
+  metrics:[['성공한 상품 작업','succeeded','회'],['수집 합계 (중복 포함)','collected','개'],['추천에서 제외한 상품','retired','개']]},
+ {kind:'catalog_refresh', title:'30분 자동 수집', runName:'catalog-collect', metrics:[['수집 상품','collected','개']]},
  {kind:'catalog_cleanup', title:'상품 정리', runName:'catalog-prune', metrics:[['추천에서 제외한 상품','retired','개']]},
 ];
 const unsuccessful = new Set(['failure','timed_out','action_required','startup_failure','stale','cancelled','skipped','neutral']);
@@ -120,10 +120,11 @@ export function renderAutomationReports(container, reports, githubRuns, openSour
   left.append(paragraph('마지막 성공 보고서'));
   if (success) {
    if (success.details?.report_date) left.append(paragraph('집계일 · '+success.details.report_date));
-   const snapshotMetrics = success.details?.report_type === 'current_snapshot'
-    ? [['활성 상품','active_count','개'],['요청으로 실행된 상품 확장','expansion_succeeded','회']]
-    : [];
-   for (const [label,field,unit] of [...snapshotMetrics,...job.metrics]) {
+   const snapshotMetrics = success.details?.report_type === 'current_snapshot' ? [['활성 상품','active_count','개']] : [];
+   const dailyMetrics = job.kind === 'catalog_daily_report' ? [
+    ['요청 기반 상품 확장 성공','expansion_succeeded','회'],['전체 갱신 성공','refresh_succeeded','회'],
+   ] : [];
+   for (const [label,field,unit] of [...snapshotMetrics,...job.metrics,...dailyMetrics]) {
     const value = success.details?.[field];
     if (!Number.isFinite(value)) {
      left.append(paragraph(label+' · 기록 없음'));
@@ -139,6 +140,9 @@ export function renderAutomationReports(container, reports, githubRuns, openSour
    }
    if (job.kind === 'catalog_daily_report') {
     left.append(paragraph(`실패 ${success.details.failed}회 · 자료 없음 ${success.details.no_data}회`));
+    if (Number.isInteger(success.details.python_runs)) left.append(paragraph(success.details.python_runs
+     ? `30분 자동 수집 · ${success.details.python_runs}회 중 ${success.details.python_succeeded}회 성공`
+     : '30분 자동 수집 · 기록 없음'));
    }
    left.append(paragraph('기준 시각 · '+formatRunTime(success.details?.reference_at ?? success.created_at)));
   } else {

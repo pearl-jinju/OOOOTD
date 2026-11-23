@@ -1,5 +1,5 @@
 import {connectMemberAdmin} from './member-admin.js?v=tiers';
-import {fetchAutomationRuns,formatRunTime,renderAutomationReports,runStatus} from './automation-report.js?v=launch-logs';
+import {fetchAutomationRuns,formatRunTime,renderAutomationReports,runStatus} from './automation-report.js?v=catalog-rollup';
 import {attachLaunchMember} from './site-launch.js?v=1';
 
 export async function closetMemberHeaders(auth,path,method) {
