@@ -1,4 +1,5 @@
 import {CLOTHING_COLORS} from '../shared/colors.mjs';
+import {createChatHandler} from './chat.mjs';
 import {gzipSync} from 'node:zlib';
 import {OCCASIONS as OUTFIT_TYPES} from '../shared/outfits.mjs';
 import {randomUUID,randomBytes,createHash} from 'node:crypto';
@@ -20,8 +21,9 @@ export function imageType(bytes){
  if(Buffer.from(bytes.subarray(0,4)).toString()==='RIFF'&&Buffer.from(bytes.subarray(8,12)).toString()==='WEBP')return ['image/webp','webp'];
  throw Object.assign(Error('JPG·PNG·WebP 이미지가 필요합니다.'),{status:400});
 }
-export function createApp({pool,verify,storage,analyze,weatherFetch=fetch,writeWeatherAudit=entry=>console.info(JSON.stringify(entry)),allowedOrigins=['https://ooootd.onrender.com','http://localhost:4173']}){
+export function createApp({pool,verify,storage,analyze,weatherFetch=fetch,chatOptions,writeWeatherAudit=entry=>console.info(JSON.stringify(entry)),allowedOrigins=['https://ooootd.onrender.com','http://localhost:4173']}){
  const weatherCache=new Map();
+ const chat=createChatHandler(chatOptions);
  let catalogCache=null;
  async function resolveSession(request){
    const token=request.headers.get('authorization')?.match(/^Bearer (.+)$/i)?.[1];
@@ -125,6 +127,7 @@ export function createApp({pool,verify,storage,analyze,weatherFetch=fetch,writeW
    }
    const {userId,role}=await resolveSession(request);
    if(!userId)return reply({error:'로그인이 필요합니다.'},401);
+   if(request.method==='POST'&&(path==='/chat/interpret'||path==='/chat/transcribe'))return await chat(request,path,userId,reply);
    if(path==='/catalog/expand'&&request.method==='POST'){
     const {occasion}=await request.json();
     const result=await expandCatalog(pool,occasion);catalogCache=null;return reply(result);

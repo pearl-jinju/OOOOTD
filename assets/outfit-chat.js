@@ -1,0 +1,295 @@
+const $=id=>document.getElementById(id);
+const panel=$('outfit-chat');
+const log=$('outfit-chat-log');
+const form=$('outfit-chat-form');
+const input=$('outfit-chat-input');
+const status=$('outfit-chat-status');
+const send=$('outfit-chat-send');
+const mic=$('outfit-chat-mic');
+const engine=window.ooootdOutfitChat;
+let context={},controller=null,recording=null,openingMic=false,revision=0;
+
+function element(tag,value){
+ const node=document.createElement(tag);
+ if(value!==undefined)node.textContent=value;
+ return node;
+}
+function message(value,who='코디 챗봇'){
+ const entry=element('article');
+ entry.append(element('strong',who),element('p',value));
+ log.append(entry);
+ while(log.children.length>16)log.firstElementChild.remove();
+ log.scrollTop=log.scrollHeight;
+ return entry;
+}
+function actions(entry){
+ const row=element('div');
+ row.className='outfit-chat-actions';
+ entry.append(row);
+ return row;
+}
+function button(row,label,run){
+ const node=element('button',label);
+ node.type='button';
+ node.addEventListener('click',run);
+ row.append(node);
+}
+function busy(value){
+ send.disabled=value;
+ mic.disabled=value;
+}
+function openTab(tab,target){
+ const button=[...document.querySelectorAll('.tab-btn')].find(node=>node.getAttribute('onclick')?.includes("'"+tab+"'"));
+ button?.click();
+ $(target)?.scrollIntoView({block:'start'});
+}
+function help(){
+ const entry=message('날짜·지역은 날씨 영역에서, 용도와 다음·유사 코디는 룩북에서 바꿀 수 있어요. 내 옷장에서는 옷 사진을 등록할 수 있고, 룩북에서는 이미지 저장과 추천의상 구매 링크를 이용할 수 있어요. 다른 기기에서 기존 옷장을 열려면 발급받은 옷장 연결 링크가 필요해요.');
+ const row=actions(entry);
+ button(row,'내 옷장',()=>openTab('closetTab','private-title'));
+ button(row,'지역·날짜',()=>$('forecast-day').focus());
+ button(row,'룩북',()=>openTab('recommendTab','lookbook-day-title'));
+ button(row,'추천의상',()=>openTab('catalogTab','catalog-search'));
+}
+function renderOutfit(result){
+ const {conditions,weather,reason,mode,shortage,hasOutfit,closetReady}=result;
+ const detail=hasOutfit?reason:
+  mode==='owned'&&!closetReady?'내 옷장 연결을 확인해주세요.':
+  mode==='owned'&&shortage.length?'내 옷장에서 조건에 맞는 '+shortage.join('·')+'이(가) 부족해요.':
+  '현재 조건을 모두 만족하는 코디가 없어요. 예산, 제외 조건 또는 고정한 옷을 확인해주세요.';
+ const entry=message([conditions,weather,detail].filter(Boolean).join('\n'));
+ const row=actions(entry);
+ if(!hasOutfit){
+  button(row,'내 옷장 열기',()=>openTab('closetTab','private-title'));
+  if(mode!=='owned')button(row,'추천의상 보기',()=>openTab('catalogTab','catalog-search'));
+  return;
+ }
+ button(row,'룩북 보기',()=>openTab('recommendTab','lookbook-day-title'));
+ if(result.hasNext)button(row,'다른 코디',()=>execute({action:'next'}));
+ if(result.hasSimilar)button(row,'비슷한 코디',()=>execute({action:'similar'}));
+}
+function renderProducts(result,conditions){
+ const shortage=result.closetReady&&result.shortage.length?'내 옷장에서 조건에 맞는 '+result.shortage.join('·')+'이(가) 부족해요.':'';
+ const detail=result.products.length?'카탈로그에 기록된 가격과 판매 정보예요. 현재 가격·재고는 판매처에서 확인해주세요.':'조건에 맞는 상품을 현재 카탈로그에서 찾지 못했어요.';
+ const entry=message([result.conditions,result.weather,shortage,detail].filter(Boolean).join('\n'));
+ const grid=element('div');
+ grid.className='outfit-chat-products';
+ for(const item of result.products){
+  const card=element('section');
+  const name=element('h3',item.name);
+  try{
+   const url=new URL(item.image);
+   if(url.protocol==='https:'&&['image.msscdn.net','img.musinsa.com'].includes(url.hostname)){
+    const img=element('img');
+    img.src=url.href;
+    img.alt='';
+    img.loading='lazy';
+    card.append(img);
+   }
+  }catch{}
+  const observed=new Date(item.priceCheckedAt||'');
+  const price=Number.isSafeInteger(item.price)&&item.price>0?item.price.toLocaleString('ko-KR')+'원':'가격 미확인';
+  card.append(name,element('p','무신사 · '+price+
+   (Number.isFinite(observed.valueOf())?' · '+observed.toLocaleDateString('ko-KR')+' 확인':'')));
+  const row=actions(card);
+  if(/^https:\/\/www\.musinsa\.com\/products\/\d+$/.test(item.sourceUrl||'')){
+   const link=element('a','무신사에서 보기 ↗');
+   link.href=item.sourceUrl;
+   link.target='_blank';
+   link.rel='noopener noreferrer';
+   row.append(link);
+  }
+  button(row,'이 상품으로 코디',()=>{
+   execute({action:'recommend'},{conditions:{...conditions,mode:conditions.mode==='catalog'?'catalog':'mixed'},productId:item.id,productName:item.name});
+  });
+  grid.append(card);
+ }
+ entry.append(grid);
+ log.scrollTop=log.scrollHeight;
+}
+function merge(patch,base=context){
+ const {action,...change}=patch;
+ const merged={...base,...change};
+ if('avoidColor' in change&&!('avoidCategory' in change))delete merged.avoidCategory;
+ if(change.include||change.mode==='owned')delete merged.productId;
+ if(change.mode==='owned'&&base.productId!==undefined&&!change.include)delete merged.include;
+ return merged;
+}
+async function execute(patch,options={}){
+ if(controller||recording||openingMic)return;
+ const task=new AbortController();
+ revision++;
+ controller=task;
+ busy(true);
+ try{
+  if(!patch){
+   const request=window.ooootdChatRequest;
+   if(!request)throw Error('옷장에 연결 중이에요. 잠시 뒤 다시 시도해주세요.');
+   const result=await request('/chat/interpret',{message:options.text,context},task.signal);
+   patch=result.intent;
+   status.textContent=result.source==='local'?'기본 한국어 해석을 사용 중이에요.':'';
+  }
+  if(task.signal.aborted)return;
+  if(!patch?.action)throw Error('질문을 해석하지 못했어요. 다시 시도해주세요.');
+  if(patch.action==='help'){help();return}
+  if(patch.action==='clarify'){
+   message('오늘·내일과 서울·부산·인천·대구·대전·광주·제주를 지원해요. 상황을 함께 알려주세요. 상품을 찾는다면 품목과 예산을 적어주세요.');
+   return;
+  }
+  const conditions=merge(patch,options.conditions??context);
+  if(options.productId!==undefined){
+   conditions.productId=options.productId;
+   if(typeof options.productName==='string')conditions.include=options.productName;
+  }
+  const hasChanges=Object.keys(patch).some(key=>key!=='action');
+  const action=hasChanges&&['next','similar'].includes(patch.action)?'recommend':patch.action;
+  const result=await engine.apply(conditions,{action,signal:task.signal,productId:conditions.productId});
+  if(task.signal.aborted||!result)return;
+  if(result.error){message(result.error);return}
+  context=conditions;
+  if(action==='shop')renderProducts(result,conditions);
+  else if(action==='similar'&&!result.similarChanged)message('현재 조건에 맞는 다른 유사 코디가 없어요.');
+  else if(action==='next'&&!result.hasNext)message('현재 조건에 맞는 다른 코디가 없어요.');
+  else renderOutfit(result);
+ }catch(error){
+  if(!task.signal.aborted){
+   if(options.text&&!input.value)input.value=options.text;
+   const fallback='채팅 연결에 실패했어요. 연결을 확인한 뒤 다시 시도해주세요.';
+   message(error.status===404?'채팅 서버가 아직 연결되지 않았어요.':error instanceof TypeError?fallback:error.message||fallback);
+  }
+ }finally{
+  if(controller===task){
+   controller=null;busy(false);
+   if(status.textContent==='코디 요청을 확인 중이에요.')status.textContent='';
+  }
+ }
+}
+
+form.addEventListener('submit',event=>{
+ event.preventDefault();
+ const text=input.value.trim();
+ if(!text||controller||recording||openingMic)return;
+ message(text,'나');
+ input.value='';
+ status.textContent='코디 요청을 확인 중이에요.';
+ execute(null,{text});
+});
+$('outfit-chat-examples').addEventListener('click',event=>{
+ const example=event.target.closest('button[data-prompt]');
+ if(!example||controller||recording||openingMic)return;
+ input.value=example.dataset.prompt;
+ form.requestSubmit();
+});
+
+function stopRecording(cancel=false){
+ if(!recording)return;
+ const clip=recording;
+ clip.cancelled||=cancel;
+ clearTimeout(clip.timeout);
+ if(clip.recorder.state!=='inactive')clip.recorder.stop();
+ clip.stream.getTracks().forEach(track=>track.stop());
+ mic.textContent='말하기';
+ mic.setAttribute('aria-pressed','false');
+ panel.classList.remove('outfit-chat-recording');
+}
+async function sendRecording(clip){
+ if(recording!==clip)return;
+ recording=null;
+ if(clip.cancelled)return;
+ const audio=new Blob(clip.chunks,{type:clip.recorder.mimeType||clip.chunks[0]?.type});
+ if(!audio.size||audio.size>2*1024*1024){
+  status.textContent='녹음 파일이 비어 있거나 너무 커요. 짧게 다시 녹음해주세요.';
+  busy(false);
+  return;
+ }
+ const task=new AbortController();
+ controller=task;
+ busy(true);
+ status.textContent='한국어 음성을 인식하고 있어요.';
+ const body=new FormData();
+ body.set('audio',audio,'recording');
+ try{
+  const result=await window.ooootdChatRequest('/chat/transcribe',body,task.signal);
+  if(task.signal.aborted)return;
+  if(typeof result.text!=='string'||!result.text.trim())throw Error('인식된 음성이 없어요. 다시 말하거나 직접 입력해주세요.');
+  input.value=result.text;
+  status.textContent='인식한 문장을 수정하거나 확인한 뒤 보내주세요.';
+  input.focus();
+ }catch(error){
+  if(!task.signal.aborted)status.textContent=error.status===404?'음성 서버가 아직 연결되지 않았어요. 텍스트로 입력해주세요.':
+   error instanceof TypeError?'음성 서버 연결을 확인해주세요. 텍스트로 입력할 수 있어요.':
+   error.message||'음성 인식에 실패했어요. 텍스트로 입력할 수 있어요.';
+ }finally{
+  if(controller===task){controller=null;busy(false)}
+ }
+}
+
+mic.addEventListener('click',async ()=>{
+ if(recording){busy(true);stopRecording();return}
+ if(controller||openingMic)return;
+ if(!navigator.mediaDevices?.getUserMedia||typeof MediaRecorder==='undefined'){
+  status.textContent='이 브라우저에서는 녹음을 사용할 수 없어요. 텍스트로 입력해주세요.';
+  return;
+ }
+ if(!window.ooootdChatRequest){
+  status.textContent='옷장에 연결 중이에요. 잠시 뒤 다시 시도해주세요.';
+  return;
+ }
+ const turn=revision;
+ openingMic=true;
+ let stream;
+ try{
+  stream=await navigator.mediaDevices.getUserMedia({audio:true});
+  if(turn!==revision||!panel.open){stream.getTracks().forEach(track=>track.stop());return}
+  const mimeType=['audio/webm;codecs=opus','audio/mp4','audio/ogg;codecs=opus'].find(type=>MediaRecorder.isTypeSupported(type));
+  const recorder=new MediaRecorder(stream,{...(mimeType?{mimeType}:{}),audioBitsPerSecond:32000});
+  const clip={recorder,stream,chunks:[],cancelled:false};
+  recording=clip;
+  recorder.addEventListener('dataavailable',event=>{if(!clip.cancelled&&event.data.size)clip.chunks.push(event.data)});
+  recorder.addEventListener('stop',()=>{stopRecording();sendRecording(clip)},{once:true});
+  recorder.addEventListener('error',()=>{
+   stopRecording(true);
+   busy(false);
+   status.textContent='녹음이 중단됐어요. 다시 말하거나 텍스트로 입력해주세요.';
+  },{once:true});
+  recorder.start();
+  clip.timeout=setTimeout(()=>{busy(true);stopRecording()},20000);
+  send.disabled=true;
+  mic.textContent='녹음 중지';
+  mic.setAttribute('aria-pressed','true');
+  panel.classList.add('outfit-chat-recording');
+  status.textContent='녹음 중 · 최대 20초. 음성은 전사를 위해 Groq로 전송됩니다.';
+ }catch(error){
+  stream?.getTracks().forEach(track=>track.stop());
+  recording=null;
+  status.textContent=error.name==='NotAllowedError'?
+   '마이크 권한이 거부됐어요. 브라우저 권한을 확인하거나 텍스트로 입력해주세요.':
+   '마이크를 사용할 수 없어요. 텍스트로 입력해주세요.';
+ }finally{openingMic=false}
+});
+function reset(){
+ revision++;
+ controller?.abort();
+ controller=null;
+ stopRecording(true);
+ recording=null;
+ context={};
+ input.value='';
+ status.textContent='';
+ log.replaceChildren();
+ engine.reset();
+ busy(false);
+}
+$('outfit-chat-reset').addEventListener('click',reset);
+window.addEventListener('ooootd-closet-changed',reset);
+window.addEventListener('ooootd-account-changed',reset);
+panel.addEventListener('toggle',()=>{
+ if(!panel.open&&recording){
+  stopRecording(true);
+  recording=null;
+  busy(false);
+  status.textContent='';
+ }
+ if(!panel.open&&openingMic)revision++;
+});
+window.addEventListener('pagehide',()=>stopRecording(true));

@@ -35,6 +35,7 @@ async function api(path,{method='GET',body,signal}={}){
  return data;
 }
 const auth=config.authUrl ? createAuthClient(config.authUrl) : null;
+window.ooootdChatRequest=(path,body,signal)=>api(path,{method:'POST',body,signal});
 window.cloudFetchWeather=async city=>{
  const response=await fetch(config.apiUrl+'/weather?city='+encodeURIComponent(city),{
   signal:AbortSignal.timeout(12000),

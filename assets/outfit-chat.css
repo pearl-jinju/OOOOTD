@@ -1,0 +1,51 @@
+.outfit-chat {
+  margin: 0 0 1rem;
+  background: #fff;
+  color: #1f2937;
+  border: 1px solid #dbe0ec;
+  border-radius: 14px;
+}
+.outfit-chat > summary {
+  padding: .85rem 1rem;
+  cursor: pointer;
+  font-weight: 700;
+  color: #3730a3;
+}
+.outfit-chat-body { display: grid; gap: .7rem; padding: 0 1rem 1rem; }
+.outfit-chat-log { display: grid; gap: .65rem; max-height: 25rem; overflow-y: auto; }
+.outfit-chat-log:empty { display: none; }
+.outfit-chat-log article { border-radius: 9px; background: #f6f7fc; padding: .65rem; overflow-wrap: anywhere; }
+.outfit-chat-log p { margin: .25rem 0; white-space: pre-line; }
+.outfit-chat-actions { display: flex; flex-wrap: wrap; gap: .4rem; margin-top: .25rem; }
+.outfit-chat-actions button, .outfit-chat-actions a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 40px;
+  padding: .35rem .65rem;
+  border: 1px solid #c7cbea;
+  border-radius: 8px;
+  background: #fff;
+  color: #3730a3;
+  font: inherit;
+  font-size: .88rem;
+  cursor: pointer;
+}
+.outfit-chat-actions button:disabled { opacity: .55; cursor: default; }
+.outfit-chat form { display: grid; gap: .35rem; }
+.outfit-chat input { width: 100%; min-width: 0; min-height: 42px; padding: .5rem; border: 1px solid #aeb6cb; border-radius: 8px; font: inherit; }
+.outfit-chat #outfit-chat-send { color: #fff; background: #4338ca; border-color: #4338ca; }
+.outfit-chat #outfit-chat-status { margin: 0; color: #475569; font-size: .88rem; }
+.outfit-chat-recording #outfit-chat-status { color: #b91c1c; font-weight: 700; }
+.outfit-chat-products { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 12rem), 1fr)); gap: .5rem; }
+.outfit-chat-products section { min-width: 0; padding: .5rem; border: 1px solid #dbe0ec; border-radius: 8px; background: #fff; }
+.outfit-chat-products img { width: 100%; height: 7rem; object-fit: contain; }
+.outfit-chat-products h3 { font-size: .95rem; margin: .3rem 0; }
+@media (max-width: 600px) {
+  .outfit-chat-body { padding-inline: .65rem; }
+  .outfit-chat-log { max-height: min(22rem, 42dvh); }
+  .outfit-chat-actions button, .outfit-chat-actions a { min-height: 44px; }
+}
+.outfit-chat-privacy { margin: 0; color: #475569; font-size: .82rem; }
+@media (min-width: 980px) {
+  .outfit-chat { width: min(100%, 40rem); margin-left: auto; }
+}

@@ -102,3 +102,31 @@ test('outfit layers adapt to weather, occasion and owned clothes',()=>{
   if(!rankedCombos.length||rankedCombos.some(combo=>combo.items.find(item=>item.category==='outer')?.id!==light.id))throw Error('hot interview lacks suitable jacket');
  `,c);
 });
+
+test('chat keeps strict owned mode, budgets and selected catalog products in the existing lookbook',async()=>{
+ const c=context();
+ await vm.runInContext(`(async()=>{
+  currentWeather={temp:26,code:0,date:'2026-11-23'};
+  const fixture=[
+   {id:100,category:'top',name:'코튼 티셔츠',color:'white',price:18000},
+   {id:101,category:'bottom',name:'네이비 바지',color:'navy',price:21000},
+   {id:102,category:'shoes',name:'흰색 스니커즈',color:'white',price:17000},
+   {id:103,category:'bottom',name:'검정 바지',color:'black',price:20000},
+   {id:104,category:'shoes',name:'링크 없는 스니커즈',color:'white',price:1000,sourceUrl:'https://example.invalid/'}
+  ].map(item=>({gender:'men',season:'hot',occasion:'daily',sourceUrl:'https://www.musinsa.com/products/'+item.id,...item}));
+  CATALOG_ITEMS=fixture;
+  closetItems=[{...fixture[0],id:1,isOwned:true}];
+  chatClosetOwner='chat-test';
+  const owned=await applyOutfitChat({mode:'owned'});
+  if(owned.hasOutfit||owned.mode!=='owned'||!owned.shortage.includes('신발'))throw Error('strict owned supplemented');
+  const products=await applyOutfitChat({category:'shoes',budget:20000},{action:'shop'});
+  if(products.products.length!==1||products.products[0].id!==102)throw Error('catalog constraints ignored');
+  const result=await applyOutfitChat({mode:'mixed',budget:40000,avoidColor:'black',avoidCategory:'bottom'},{productId:102});
+  if(!result.hasOutfit||rankedCombos.some(combo=>!combo.items.some(i=>i.id===102)||
+   combo.items.some(i=>i.category==='bottom'&&i.color==='black')))throw Error('follow-up constraints ignored');
+  const tooSmall=await applyOutfitChat({mode:'mixed',budget:30000},{productId:102});
+  if(tooSmall.hasOutfit)throw Error('total budget ignored');
+  clearOutfitChat();
+  if(recommendationMode!=='mixed'||!rankedCombos.length)throw Error('normal auto-supplement was not restored');
+ })()`,c);
+});
