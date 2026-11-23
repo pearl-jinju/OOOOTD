@@ -1788,6 +1788,77 @@
       return next;
     }
 
+    const rotationHistoryKey = 'ooootd_lookbook_rotation_v1';
+    let rotationHistory;
+
+    function rotationDay(){
+      return Math.floor((Date.now()+9*60*60*1000)/86400000)+(forecastDay==='tomorrow'?1:0);
+    }
+
+    function getRotationHistory(){
+      if(rotationHistory)return rotationHistory;
+      try{
+        const saved=JSON.parse(window.localStorage?.getItem(rotationHistoryKey)||'[]');
+        rotationHistory=Array.isArray(saved)?saved.filter(entry=>
+          Number.isInteger(entry?.day)&&typeof entry.scope==='string'&&Array.isArray(entry.outfits)
+        ).slice(-120):[];
+      }catch{
+        rotationHistory=[];
+      }
+      return rotationHistory;
+    }
+
+    function rotationScope(){
+      return [currentGender,currentOccasion,recommendationMode].join(':');
+    }
+
+    function rotationGarment(item){
+      const family=garmentFamily(item);
+      return {
+        key:[item.category,item.isOwned?'owned':'catalog',item.id].join(':'),
+        style:family<0?'':[item.category,family,item.color].join(':')
+      };
+    }
+
+    function rotationHash(value){
+      let hash=2166136261;
+      for(let i=0;i<value.length;i++)hash=Math.imul(hash^value.charCodeAt(i),16777619);
+      return hash>>>0;
+    }
+
+    function outfitRotation(){
+      const day=rotationDay();
+      const scope=rotationScope();
+      const recentGarments=new Map(),recentStyles=new Map(),recentOutfits=new Set();
+      for(const entry of getRotationHistory()){
+        const age=day-entry.day;
+        if(entry.scope!==scope||age<1||age>7)continue;
+        for(const outfit of entry.outfits){
+          if(!Array.isArray(outfit)||!outfit.every(item=>typeof item?.key==='string'))continue;
+          recentOutfits.add(outfit.map(item=>item.key).sort().join('|'));
+          for(const {key,style} of outfit){
+            recentGarments.set(key,Math.max(recentGarments.get(key)||0,age<=2?6:3));
+            if(style)recentStyles.set(style,Math.max(recentStyles.get(style)||0,age<=2?2:1));
+          }
+        }
+      }
+      return {day,recentGarments,recentStyles,recentOutfits};
+    }
+
+    function rememberLookbook(items){
+      if(forecastDay!=='today'||!currentWeather.date&&!currentWeather.isFallback)return;
+      const day=rotationDay(),scope=rotationScope();
+      const history=getRotationHistory().filter(entry=>entry.day>=day-7&&entry.day<=day);
+      const previous=history.find(entry=>entry.day===day&&entry.scope===scope);
+      const outfit=items.map(rotationGarment);
+      const key=outfit.map(item=>item.key).join('|');
+      if(previous?.outfits.some(saved=>Array.isArray(saved)&&saved.map(item=>item?.key).join('|')===key))return;
+      if(previous)previous.outfits=[...previous.outfits,outfit].slice(-3);
+      else history.push({day,scope,outfits:[outfit]});
+      rotationHistory=history.slice(-120);
+      try{window.localStorage?.setItem(rotationHistoryKey,JSON.stringify(rotationHistory));}catch{}
+    }
+
     function recalculateRankedCombos(preferredItems) {
       recommendationMode = requestedRecommendationMode;
       const outerPolicy=getOuterPolicy();
@@ -1822,13 +1893,18 @@
         ? '현재 추천 조건에서 고정 해제 · '+released.join(', ')
         : pinnedGarments.size ? `고정한 옷 ${pinnedGarments.size}개 · 다음 코디에도 유지돼요.` : '';
       const itemScores = new Map();
+      const rotation = outfitRotation();
       const poolFor = category => source.filter(item => item.category===category &&
         (!pinnedGarments.has(category)||sameGarment(item,pinnedGarments.get(category))) && isEligibleOutfitItem(item))
         .map(item => {
           const temperature=temperatureScore(item,targetSeason);
           const occasion=OOOOTD_RULES.occasionScore(item,currentOccasion);
-          itemScores.set(item,{temperature,occasion});
-          return {item,score:temperature+occasion};
+          const garment=rotationGarment(item);
+          const repeat=pinnedGarments.has(category)?0:
+            Math.max(rotation.recentGarments.get(garment.key)||0,rotation.recentStyles.get(garment.style)||0);
+          const tie=rotationHash(rotation.day+'|'+garment.key)%4;
+          itemScores.set(item,{temperature,occasion,repeat,key:garment.key});
+          return {item,score:temperature+occasion-repeat+tie};
         })
         .sort((a,b)=>b.score-a.score||a.item.id-b.item.id)
         .slice(0,24);
@@ -1840,22 +1916,28 @@
       const makeCombos=pools=>{
         let beam=[{items:[],baseScore:0}];
         for(const pool of pools)beam=extendOutfitBeam(beam,pool,4000);
-        return beam.map(partial=>scoreOutfit(partial.items,outerPolicy,itemScores));
+        return beam.map(({items})=>{
+          const combo=scoreOutfit(items,outerPolicy,itemScores);
+          const entries=items.map(item=>itemScores.get(item));
+          const key=entries.map(entry=>entry.key).sort().join('|');
+          const repeat=entries.reduce((total,entry)=>total+entry.repeat,0)+(rotation.recentOutfits.has(key)?8:0);
+          return {...combo,rankScore:combo.totalScore-repeat+(rotationHash(rotation.day+'|'+key)%4)};
+        });
       };
       const combos=makeCombos(requiredPools);
       const layered=optionalOuter.length?makeCombos([optionalOuter,...requiredPools]):[];
       combos.push(...layered);
-      combos.sort((a,b)=>b.totalScore-a.totalScore);
+      combos.sort((a,b)=>b.rankScore-a.rankScore||b.totalScore-a.totalScore);
       const diverse=[];
       while(combos.length&&diverse.length<200){
         let index=0;
         if(diverse.length){
           const previous=diverse[diverse.length-1];
-          const bestScore=combos[0].totalScore;
+          const bestScore=combos[0].rankScore;
           let bestDistance = -1;
           for (let candidate = 0; candidate < Math.min(combos.length, 80); candidate++) {
             const combo = combos[candidate];
-            if (combo.totalScore < bestScore - 35) break;
+            if (combo.rankScore < bestScore - 35) break;
             if (changedGarments(combo.items,previous.items) < 3) continue;
             const distance = OOOOTD_RULES.outfitTagDistance(combo.items, previous.items);
             if (distance > bestDistance) {
@@ -1965,6 +2047,7 @@
       // 3. 헤더 타이틀 및 설명
       renderPurchaseSummary(comboItems,"수집 시점 가격");
       syncLookbookPreview();
+      rememberLookbook(comboItems);
     }
 
 
