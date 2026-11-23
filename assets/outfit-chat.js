@@ -185,10 +185,10 @@ function renderProducts(result,conditions){
   '개를 보여드려요. 표시된 가격은 수집가예요. 현재 가격·재고는 판매처에서 확인해주세요.':
   '조건에 맞는 상품을 현재 카탈로그에서 찾지 못했어요.';
  const entry=message([result.conditions,result.weather,result.budgetLabel,shortage,detail].filter(Boolean).join('\n'));
- if(conditions.budget){
-  button(actions(entry),'같은 가격으로 추천의상 더 보기',()=>{
-   window.ooootdShowCatalogBudget?.(conditions.budget,conditions.category,conditions.searchQuery);
-   openTab('catalogTab','catalog-max-price');
+ if(conditions.budget||conditions.minBudget){
+  button(actions(entry),'같은 가격 범위로 더 보기',()=>{
+   window.ooootdShowCatalogBudget?.(conditions.budget,conditions.category,conditions.searchQuery,conditions.minBudget);
+   openTab('catalogTab',conditions.minBudget?'catalog-min-price':'catalog-max-price');
   });
  }
  const grid=element('div');
@@ -228,6 +228,8 @@ function merge(patch,base=context){
  const {action,...change}=patch;
  const merged={...base,...change};
  if('avoidColor' in change&&!('avoidCategory' in change))delete merged.avoidCategory;
+ if('minBudget' in change&&!('budget' in change))delete merged.budget;
+ if('budget' in change&&!('minBudget' in change))delete merged.minBudget;
  if(change.include||change.mode==='owned')delete merged.productId;
  if(change.mode==='owned'&&base.productId!==undefined&&!change.include)delete merged.include;
  return merged;

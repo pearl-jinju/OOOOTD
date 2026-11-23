@@ -225,3 +225,22 @@ test('budget-only catalog shopping returns actual matches and excludes unknown o
   if(!body.includes('로퍼')||body.includes('티셔츠')||body.includes('운동화')||body.includes('면바지'))throw Error('catalog handoff lost price or keyword');
  })()`,c);
 });
+
+test('catalog price ranges include both endpoints and a lower bound rejects unknown prices',async()=>{
+ const c=context();
+ await vm.runInContext(`(async()=>{
+  const item=(id,name,price)=>({id,category:'top',name,price,sourceUrl:'https://www.musinsa.com/products/'+id});
+  CATALOG_ITEMS=[
+   item(810,'저가 상품',29999),item(811,'최저 경계 상품',30000),
+   item(812,'최고 경계 상품',50000),item(813,'고가 상품',50001),item(814,'가격 없는 상품',null)
+  ];
+  const range=await applyOutfitChat({minBudget:30000,budget:50000},{action:'shop'});
+  if(range.products.map(item=>item.id).join()!=='811,812')throw Error('range endpoints or unknown prices were handled incorrectly');
+  const min=await applyOutfitChat({minBudget:50000},{action:'shop'});
+  if(min.products.map(item=>item.id).join()!=='812,813')throw Error('lower-bounded search failed');
+  window.ooootdShowCatalogBudget(50000,undefined,'',30000);
+  const body=document.getElementById('catalog-table-body').innerHTML;
+  if(!body.includes('최저 경계 상품')||!body.includes('최고 경계 상품')||
+   ['저가 상품','고가 상품','가격 없는 상품'].some(name=>body.includes(name)))throw Error('catalog range differs from chat');
+ })()`,c);
+});

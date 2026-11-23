@@ -1236,7 +1236,8 @@
         <label>코디 종류 <select id="catalog-occasion" class="city-select" onchange="catalogVisibleLimit=60;renderPublicCatalog()"><option value="all">모든 종류</option></select></label>
         <form id="catalog-search-form" class="catalog-search-form" role="search">
           <input id="catalog-search" class="city-select" type="search" placeholder="상품명 검색" aria-label="추천의상 상품명 검색" oninput="catalogVisibleLimit=60;renderPublicCatalog()">
-          <label>최대 가격 <input id="catalog-max-price" class="city-select" type="number" min="1" max="10000000" step="1" inputmode="numeric" placeholder="예: 70000" oninput="catalogVisibleLimit=60;renderPublicCatalog()">원</label>
+          <label>최저 가격 <input id="catalog-min-price" class="city-select" type="number" min="1" max="10000000" step="1" inputmode="numeric" oninput="catalogVisibleLimit=60;renderPublicCatalog()">원</label>
+          <label>최고 가격 <input id="catalog-max-price" class="city-select" type="number" min="1" max="10000000" step="1" inputmode="numeric" placeholder="예: 70000" oninput="catalogVisibleLimit=60;renderPublicCatalog()">원</label>
           <button class="btn-icon" type="submit">검색</button>
         </form>
         <p id="catalog-page-info" aria-live="polite"></p>
@@ -1767,7 +1768,10 @@
     let chatConditions=null,chatItem=null,chatModeBefore=null,chatClosetOwner=null;
     const chatName=value=>String(value||'').normalize('NFKC').toLowerCase().replace(/[^\p{L}\p{N}]/gu,'');
     const chatPrice=item=>Number.isSafeInteger(item.price)&&item.price>0?item.price:Infinity;
-    const withinCatalogPrice=(item,maximum)=>!maximum||chatPrice(item)<=maximum;
+    const hasPriceBounds=conditions=>Boolean(conditions?.minBudget||conditions?.budget);
+    const withinPriceBounds=(price,conditions)=>!hasPriceBounds(conditions)||
+      Number.isFinite(price)&&(!conditions.minBudget||price>=conditions.minBudget)&&(!conditions.budget||price<=conditions.budget);
+    const withinCatalogPrice=(item,conditions)=>withinPriceBounds(chatPrice(item),conditions);
     function catalogNameMatches(item,query){
       const name=chatName(item.name+' '+(item.brand||''));
       return !query||query.split(/\s+/).every(word=>name.includes(chatName(word)));
@@ -1776,21 +1780,26 @@
     const chatCost=items=>items.reduce((sum,item)=>sum+chatItemCost(item),0);
     const cheapestOption=pool=>pool.reduce((best,option)=>!best||
       chatItemCost(option.item)<chatItemCost(best.item)?option:best,null);
-    const chatBudgetAllows=items=>!chatConditions?.budget||
-      (chatConditions.budgetScope==='item'?items.every(item=>chatItemCost(item)<=chatConditions.budget):
-        chatCost(items)<=chatConditions.budget);
-    const chatBudgetLabel=(conditions,defaultScope='outfit')=>conditions?.budget?
-      ((conditions.budgetScope||defaultScope)==='item'?'구매 상품 하나당 ':'구매 합계 ')+
-        conditions.budget.toLocaleString('ko-KR')+'원 이하':'';
+    const chatBudgetAllows=items=>!hasPriceBounds(chatConditions)||
+      (chatConditions.budgetScope==='item'?items.every(item=>item.isOwned||withinCatalogPrice(item,chatConditions)):
+        withinPriceBounds(chatCost(items),chatConditions));
+    function priceBoundsLabel({minBudget,budget}={}){
+      const format=price=>price.toLocaleString('ko-KR')+'원';
+      if(minBudget&&budget)return minBudget===budget?format(budget):format(minBudget)+' ~ '+format(budget);
+      if(minBudget)return format(minBudget)+' 이상';
+      return budget?format(budget)+' 이하':'';
+    }
+    const chatBudgetLabel=(conditions,defaultScope='outfit')=>hasPriceBounds(conditions)?
+      ((conditions.budgetScope||defaultScope)==='item'?'구매 상품 하나당 ':'구매 합계 ')+priceBoundsLabel(conditions):'';
 
     function chatItemAllows(item){
       if(!chatConditions)return true;
-      const {avoidColor,avoidCategory,exclude,budget}=chatConditions;
+      const {avoidColor,avoidCategory,exclude,budgetScope,budget}=chatConditions;
       const name=chatName(item.name);
       return (!chatItem||item.category!==chatItem.category||sameGarment(item,chatItem))&&
         !(avoidColor&&avoidColor===item.color&&(!avoidCategory||avoidCategory===item.category))&&
         !(exclude&&chatName(exclude)&&name.includes(chatName(exclude)))&&
-        (item.isOwned||withinCatalogPrice(item,budget))&&
+        (item.isOwned||withinCatalogPrice(item,budgetScope==='item'?chatConditions:{budget}))&&
         (item.isOwned||item.availability!=='sold_out');
     }
     function chatStyleBonus(item,conditions=chatConditions){
@@ -1826,7 +1835,7 @@
     }
     function chatShop(conditions){
       const matches=availableRecommendedClothes().filter(item=>
-        (!conditions.category||item.category===conditions.category)&&withinCatalogPrice(item,conditions.budget)&&
+        (!conditions.category||item.category===conditions.category)&&withinCatalogPrice(item,conditions)&&
         catalogNameMatches(item,conditions.searchQuery)&&
         (!conditions.preferColor||item.color===conditions.preferColor)&&
         /^https:\/\/www\.musinsa\.com\/products\/\d+$/.test(item.sourceUrl||'')&&
@@ -1882,24 +1891,28 @@
           !sameGarment(item,original)&&isEligibleOutfitItem(item)&&item.availability!=='sold_out'&&
           (!edit.preferColor||item.color===edit.preferColor)&&(!edit.avoidColor||item.color!==edit.avoidColor)&&matchesLookbookTone(item,edit.tone)&&
           nameContains(item,edit.include)&&(!edit.exclude||!nameContains(item,edit.exclude))&&
-          (!edit.budget||edit.budgetScope==='outfit'||chatCost([item])<=edit.budget))
+          (item.isOwned||edit.budgetScope==='outfit'||withinCatalogPrice(item,edit)))
           .map(item=>({item,score:scoreOutfit(withItem(items,category,item),outerPolicy).totalScore+chatStyleBonus(item,edit)}))
           .sort((a,b)=>b.score-a.score||a.item.id-b.item.id);
         if(!options.length)return {error:'현재 추천 범위에서 '+label+'에 맞는 후보가 없어요. 다른 조건으로 요청해 주세요.'};
         const selected=(options.find(option=>!tried.some(item=>sameGarment(item,option.item)))||options[0]).item;
         const cheapest=options.reduce((best,option)=>chatItemCost(option.item)<chatItemCost(best)?option.item:best,selected);
+        const priciest=options.reduce((best,option)=>Number.isFinite(chatItemCost(option.item))&&
+          (!Number.isFinite(chatItemCost(best))||chatItemCost(option.item)>chatItemCost(best))?option.item:best,selected);
         items=withItem(items,category,selected);
-        changes.push({category,operation,original,selected,cheapest,tried});
+        changes.push({category,operation,original,selected,cheapest,priciest,tried});
       }
       const budgetAllows=outfit=>chatBudgetAllows(outfit)&&
-        [request,...edits].every(edit=>!edit.budget||edit.budgetScope!=='outfit'||chatCost(outfit)<=edit.budget);
+        [request,...edits].every(edit=>edit.budgetScope!=='outfit'||withinPriceBounds(chatCost(outfit),edit));
       if(!budgetAllows(items)){
+        const minimum=[chatConditions,request,...edits].reduce((value,conditions)=>
+          conditions?.budgetScope!=='item'?Math.max(value,conditions?.minBudget||0):value,0);
         for(const change of changes){
           if(!change.selected)continue;
-          change.selected=change.cheapest;
+          change.selected=chatCost(items)<minimum?change.priciest:change.cheapest;
           items=withItem(items,change.category,change.selected);
         }
-        if(!budgetAllows(items))return {error:'전체 예산 안에서 요청한 조정을 적용할 수 없어요.'};
+        if(!budgetAllows(items))return {error:'요청한 가격 범위에서 코디를 조정할 수 없어요.'};
       }
       const repeated=changes.length===1?changes[0]:null;
       const replacementCategory=repeated?.operation==='replace'?repeated.category:undefined;
@@ -1928,8 +1941,8 @@
         showSimilarCombo();
         return {...chatResult(),similarChanged:previous!==displayedAlternative};
       }
-      if(action==='shop'&&!conditions.budget&&!Object.hasOwn(chatCategoryLabels,conditions.category)){
-        return {error:'찾으려는 상품의 최대 가격이나 품목을 알려주세요.'};
+      if(action==='shop'&&!hasPriceBounds(conditions)&&!Object.hasOwn(chatCategoryLabels,conditions.category)){
+        return {error:'찾으려는 상품의 가격 범위나 품목을 알려주세요.'};
       }
       const validCity=Object.hasOwn(CITY_COORDS,conditions.city);
       const validDay=['today','tomorrow'].includes(conditions.day);
@@ -2181,9 +2194,14 @@
         })
         .sort((a,b)=>b.score-a.score||a.item.id-b.item.id);
         const pool=candidates.slice(0,24);
-        if(chatConditions?.budget&&candidates.length>pool.length){
+        if(hasPriceBounds(chatConditions)&&candidates.length>pool.length){
           const cheapest=cheapestOption(candidates);
           if(!pool.includes(cheapest))pool.push(cheapest);
+          if(chatConditions.minBudget&&chatConditions.budgetScope!=='item'){
+            const priced=candidates.filter(option=>Number.isFinite(chatItemCost(option.item)));
+            const priciest=priced.reduce((best,option)=>!best||chatItemCost(option.item)>chatItemCost(best.item)?option:best,null);
+            if(priciest&&!pool.includes(priciest))pool.push(priciest);
+          }
         }
         return pool;
       };
@@ -2196,7 +2214,7 @@
         let beam=[{items:[],baseScore:0}];
         for(const pool of pools)beam=extendOutfitBeam(beam,pool,4000);
         const affordable=beam.filter(({items})=>chatBudgetAllows(items));
-        if(chatConditions?.budget&&!affordable.length&&pools.every(pool=>pool.length)){
+        if(hasPriceBounds(chatConditions)&&!affordable.length&&pools.every(pool=>pool.length)){
           const items=pools.map(pool=>cheapestOption(pool).item);
           if(chatBudgetAllows(items))affordable.push({items});
         }
@@ -2533,26 +2551,29 @@
       const url=/^https:\/\/www\.musinsa\.com\/products\/[1-9]\d*$/.test(item.sourceUrl||'')?item.sourceUrl:null;
       return url?'<a class="retailer-favorite-link" href="'+url+'" target="_blank" rel="noopener noreferrer" aria-label="'+escapeHtml(item.name)+' 무신사에서 찜 (새 탭)">무신사에서 찜 ↗</a><button class="retailer-record-button" type="button" aria-pressed="false" data-like-record="'+Number(item.id)+'">찜 완료 기록</button>':'상품 링크 없음';
     }
-    window.ooootdShowCatalogBudget=(maximum,category,query='')=>{
-      document.getElementById('catalog-max-price').value=maximum;
+    window.ooootdShowCatalogBudget=(maximum,category,query='',minimum)=>{
+      document.getElementById('catalog-min-price').value=minimum??'';
+      document.getElementById('catalog-max-price').value=maximum??'';
       document.getElementById('catalog-search').value=query;
       document.getElementById('catalog-occasion').value='all';
       document.getElementById('catalog-filter').value=Object.hasOwn(chatCategoryLabels,category)?category:'all';
       filterCatalog(document.getElementById('catalog-filter').value);
     };
     function renderPublicCatalog() {
-      const maximum=Number(document.getElementById('catalog-max-price')?.value);
+      const prices={minBudget:Number(document.getElementById('catalog-min-price')?.value),
+        budget:Number(document.getElementById('catalog-max-price')?.value)};
+      const invalid=prices.budget>0&&prices.minBudget>prices.budget;
       const ownedIds=new Set(closetItems.map(item=>item.sourceCatalogId).filter(Boolean));
       const available=CATALOG_ITEMS.filter(item=>!ownedIds.has(item.id));
       document.getElementById('catalog-count').textContent=available.length;
       const occasion=document.getElementById('catalog-occasion')?.value||'all';
       const query=(document.getElementById('catalog-search')?.value||'').trim().toLowerCase();
-      const filtered=available.filter(item=>(currentCatalogFilter==='all'||(['men','women'].includes(currentCatalogFilter)?OOOOTD_RULES.genderCompatible(item,currentCatalogFilter):item.category===currentCatalogFilter))&&
+      const filtered=invalid?[]:available.filter(item=>(currentCatalogFilter==='all'||(['men','women'].includes(currentCatalogFilter)?OOOOTD_RULES.genderCompatible(item,currentCatalogFilter):item.category===currentCatalogFilter))&&
         (occasion==='all'||isOccasionAppropriate(item,occasion))&&catalogNameMatches(item,query)&&
-        (!maximum||item.availability!=='sold_out')&&withinCatalogPrice(item,maximum));
+        (!hasPriceBounds(prices)||item.availability!=='sold_out')&&withinCatalogPrice(item,prices));
       const info=document.getElementById('catalog-page-info');
-      if(info)info.textContent=(maximum>0?maximum.toLocaleString('ko-KR')+'원 이하 · ':'')+
-        filtered.length+'개 중 '+Math.min(filtered.length,catalogVisibleLimit)+'개 표시';
+      if(info)info.textContent=invalid?'최저 가격은 최고 가격보다 낮거나 같아야 해요.':
+        [priceBoundsLabel(prices),filtered.length+'개 중 '+Math.min(filtered.length,catalogVisibleLimit)+'개 표시'].filter(Boolean).join(' · ');
       const more=document.getElementById('catalog-load-more');
       if(more)more.hidden=catalogVisibleLimit>=filtered.length;
       const body=document.getElementById('catalog-table-body');
@@ -2694,7 +2715,7 @@
   </script>
   <script type="module" src="/assets/cloud.js?v=outfit-chat"></script>
   <script type="module" src="/assets/runtime-pipeline-autoplay.js"></script>
-  <script type="module" src="/assets/outfit-chat.js?v=price-search"></script>
+  <script type="module" src="/assets/outfit-chat.js?v=price-range"></script>
   <script type="module" src="/assets/favorites.js?v=lookbook-items"></script>
 </body>
 </html>

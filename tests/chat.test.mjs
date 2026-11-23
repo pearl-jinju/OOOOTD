@@ -179,3 +179,14 @@ test('catalog search recognizes a user-entered ceiling without a garment categor
   action:'shop',budget:35000,category:'shoes',searchQuery:'로퍼'
  });
 });
+
+test('price search handles lower bounds, exclusive bounds, ranges, price bands and exact prices',()=>{
+ assert.deepEqual(interpretLocally('3만 원 이상 상품 검색해 줘'),{action:'shop',minBudget:30000,budgetScope:'item'});
+ assert.deepEqual(interpretLocally('3만원 초과 5만원 미만 상품 찾아줘'),{action:'shop',minBudget:30001,budget:49999,budgetScope:'item'});
+ assert.deepEqual(interpretLocally('3만~5만 원 사이 상품 검색해 줘'),{action:'shop',minBudget:30000,budget:50000,budgetScope:'item'});
+ assert.deepEqual(interpretLocally('3~5만원 상품 검색해 줘'),{action:'shop',minBudget:30000,budget:50000});
+ assert.deepEqual(interpretLocally('5만 원대 상품 검색해 줘'),{action:'shop',minBudget:50000,budget:59999});
+ assert.deepEqual(interpretLocally('딱 4만 원인 상품 검색해 줘'),{action:'shop',minBudget:40000,budget:40000});
+ assert.deepEqual(interpretLocally('3만원보다 비싼 상의 검색'),{action:'shop',minBudget:30001,category:'top'});
+ assert.equal(interpretLocally('7만원부터 3만원까지 상품 찾아줘').action,'clarify');
+});
