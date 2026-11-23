@@ -15,7 +15,10 @@ export function outfitFavoriteKey(items,owner){
 function normalize(favorite){
  if(!favorite||typeof favorite!=='object')return null;
  if(favorite.type==='product'&&validId(favorite.id)){
-  return {type:'product',id:favorite.id,key:productFavoriteKey(favorite.id)};
+  const entry={type:'product',id:favorite.id,key:productFavoriteKey(favorite.id)};
+  const url=retailerProductUrl(favorite.sourceUrl);
+  if(favorite.reportedLiked===true&&url)return {...entry,reportedLiked:true,sourceUrl:url,name:String(favorite.name||'').trim().slice(0,160)};
+  return entry;
  }
  if(favorite.type!=='outfit'||!Array.isArray(favorite.items)||favorite.items.length<3||favorite.items.length>4||
   !favorite.items.every(validOwnedItem)||new Set(favorite.items.map(item=>item.category)).size!==favorite.items.length)return null;
@@ -36,13 +39,15 @@ export function updateFavorites(storage,favorites,value,{addOnly=false}={}){
  const favorite=typeof value==='string'?null:normalize(value);
  const key=typeof value==='string'?value:favorite?.key;
  if(!key)return {favorites,error:'찜할 항목을 확인하지 못했어요.'};
- const exists=favorites.some(item=>item.key===key);
- if(exists&&addOnly)return {favorites,alreadySaved:true};
- if(!exists&&!favorite)return {favorites,unchanged:true};
- if(!exists&&favorite.type==='product')return {favorites,error:'상품은 무신사 상품 페이지에서 좋아요를 눌러주세요.'};
- if(!exists&&favorites.length>=ITEM_LIMIT)return {favorites,error:'찜은 최대 100개까지 저장할 수 있어요. 목록에서 항목을 지운 뒤 다시 시도해주세요.'};
- const next=exists?favorites.filter(item=>item.key!==key):[favorite,...favorites];
- try{storage.setItem(STORAGE_KEY,JSON.stringify(next));return {favorites:next,removed:exists}}
+ const existing=favorites.find(item=>item.key===key);
+ const upgrade=Boolean(existing?.type==='product'&&!existing.reportedLiked&&favorite?.reportedLiked);
+ if(existing&&addOnly&&!upgrade)return {favorites,alreadySaved:true};
+ if(!existing&&!favorite)return {favorites,unchanged:true};
+ if(favorite?.type==='product'&&!favorite.reportedLiked)return {favorites,error:'무신사에서 좋아요를 누른 뒤 완료를 기록해 주세요.'};
+ if(!existing&&favorites.length>=ITEM_LIMIT)return {favorites,error:'찜은 최대 100개까지 저장할 수 있어요. 목록에서 항목을 지운 뒤 다시 시도해주세요.'};
+ const removed=Boolean(existing&&!upgrade);
+ const next=removed?favorites.filter(item=>item.key!==key):[favorite,...favorites.filter(item=>item.key!==key)];
+ try{storage.setItem(STORAGE_KEY,JSON.stringify(next));return {favorites:next,removed}}
  catch{return {favorites,error:'찜 목록을 저장하지 못했어요. 브라우저 저장 설정을 확인해주세요.'}}
 }
 
@@ -102,6 +107,14 @@ function initFavorites(){
   setButton(outfitButton,selected,selected?'현재 코디 찜 해제':'현재 코디 찜하기');
   outfitButton.querySelector('strong').textContent=selected?'찜 해제':'코디 찜';
  }
+ function markProductRecords(){
+  const reported=new Set(favorites.filter(item=>item.reportedLiked).map(item=>item.id));
+  for(const button of document.querySelectorAll('[data-like-record]')){
+   const marked=reported.has(Number(button.dataset.likeRecord));
+   button.setAttribute('aria-pressed',String(marked));
+   button.textContent=marked?'찜 기록 해제':'찜 완료 기록';
+  }
+ }
  function render(){
   const owner=data.owner();
   const signedIn=!byId('account-sign-out').hidden;
@@ -119,13 +132,16 @@ function initFavorites(){
    card.dataset.favoriteKey=favorite.key;
    if(favorite.type==='product'){
     const item=products.get(favorite.id);
-    card.append(node('h3',item?.name||'상품 정보 없음'));
+    card.append(node('h3',item?.name||favorite.name||'상품 정보 없음'));
     if(item){
      addImage(card,item);
      const price=Number.isSafeInteger(item.price)&&item.price>0?item.price.toLocaleString('ko-KR')+'원 · 수집가':'가격 확인 필요';
-     card.append(node('p',price+' · 이전에 OOOOTD에 저장한 상품'));
+     card.append(node('p',price+(favorite.reportedLiked?' · 내가 기록한 무신사 찜':' · 이전에 OOOOTD에 저장한 상품')));
      addRetailerLink(card,item);
-    }else card.append(node('p','현재 추천의상 목록에서 찾을 수 없어요.'));
+    }else{
+     card.append(node('p','현재 추천의상 목록에서 찾을 수 없어요.'));
+     if(favorite.reportedLiked)addRetailerLink(card,favorite);
+    }
    }else{
     card.append(node('h3',favorite.title));
     const grid=node('ul');
@@ -144,7 +160,7 @@ function initFavorites(){
     }
     card.append(grid);
    }
-   const removeLabel=favorite.type==='outfit'?'찜 해제':'OOOOTD 기록 삭제';
+   const removeLabel=favorite.type==='outfit'?'찜 해제':favorite.reportedLiked?'찜 기록 해제':'OOOOTD 기록 삭제';
    const remove=node('button',removeLabel);
    remove.className='favorite-remove';
    remove.type='button';
@@ -165,23 +181,38 @@ function initFavorites(){
   if(result.error){say(result.error);return result}
   favorites=result.favorites;
   keys=new Set(favorites.map(item=>item.key));
-  if(!result.alreadySaved&&!result.unchanged)say(result.removed?'찜을 해제했어요.':'찜 목록에 저장했어요.');
-  markCurrent();render();
+  if(!result.alreadySaved&&!result.unchanged){
+   const product=typeof item==='string'?item.startsWith('product:'):item.type==='product';
+   say(product?(result.removed?'OOOOTD 찜 기록을 해제했어요.':'무신사에서 찜했다고 OOOOTD에 기록했어요.'):
+    (result.removed?'찜을 해제했어요.':'찜 목록에 저장했어요.'));
+  }
+  markCurrent();markProductRecords();render();
   return result;
  }
  outfitButton.addEventListener('click',()=>{
   const current=data.current();
   if(current)change({type:'outfit',...current});
  });
+ document.addEventListener('click',event=>{
+  const button=event.target.closest?.('[data-like-record]');
+  if(!button)return;
+  const id=Number(button.dataset.likeRecord);
+  const existing=readFavorites(storage).find(item=>item.key===productFavoriteKey(id));
+  if(existing?.reportedLiked){change(existing.key);return}
+  const item=data.catalog().find(item=>item.id===id);
+  if(!retailerProductUrl(item?.sourceUrl)){say('무신사 상품 링크를 확인할 수 없어요.');return}
+  change({type:'product',id,name:item.name,sourceUrl:item.sourceUrl,reportedLiked:true},{addOnly:true});
+ });
  window.addEventListener('storage',event=>{
   if(event.key!==STORAGE_KEY&&event.key!==null)return;
   favorites=readFavorites(storage);
   keys=new Set(favorites.map(item=>item.key));
-  markCurrent();render();
+  markCurrent();markProductRecords();render();
  });
  window.addEventListener('ooootd-account-changed',render);
  window.ooootdFavorites={
-  outfitChanged:markCurrent,catalogChanged:render,open:render,
+  outfitChanged:markCurrent,catalogChanged(){markProductRecords();render()},open:render,
+  refreshProductRecords:markProductRecords,
   searchProducts:query=>findFavoriteProducts(data.catalog(),query),
   addCurrent(){
    const current=data.current();
@@ -194,7 +225,7 @@ function initFavorites(){
    return {...change(outfitFavoriteKey(current.items,current.owner)),label:current.title};
   }
  };
- markCurrent();render();
+ markCurrent();markProductRecords();render();
 }
 
 if(typeof window!=='undefined'&&typeof document!=='undefined')initFavorites();

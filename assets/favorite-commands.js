@@ -18,7 +18,7 @@ export function parseFavoriteCommand(message){
  if(/^(?:내\s*)?(?:찜|관심\s*상품)\s*목록(?:을)?\s*(?:보여\s*(?:줘|주세요)|열어\s*(?:줘|주세요)|보기)[.!]*$/.test(value))return {action:'list'};
  const match=value.match(/^(.*?)\s*(?:찜\s*(?:해\s*(?:줘|주세요|주라|줄래)|하기|하자|해))[.!]*$/);
  const add=match||value.match(/^(.*?)\s*(?:(?:찜|관심\s*상품|관심|즐겨\s*찾기)\s*(?:목록)?\s*(?:에|으로)\s*(?:추가|저장|넣어)\s*(?:해\s*)?(?:줘|주세요))[.!]*$/);
- if(!add)return {action:'info'};
+ if(!add)return null;
  const target=add[1].trim().replace(/(?:을|를)$/, '').trim();
  if(/무신사(?:에서|에)\s*$/.test(target))return {action:'retailer',query:target.replace(/무신사(?:에서|에)\s*$/,'').trim().replace(/(?:을|를)$/,'').trim()};
  if(current.test(target))return {action:'add',target:'outfit'};

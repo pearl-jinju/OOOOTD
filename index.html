@@ -827,13 +827,13 @@
   <link rel="stylesheet" href="/assets/runtime-pipeline.css">
   <link rel="stylesheet" href="/assets/mascot-layout.css">
   <link rel="stylesheet" href="/assets/outfit-chat.css?v=floating">
-  <link rel="stylesheet" href="/assets/favorites.css?v=musinsa-like">
+  <link rel="stylesheet" href="/assets/favorites.css?v=like-records">
 </head>
 <body>
   <details class="outfit-chat" id="outfit-chat">
     <summary id="outfit-chat-launcher"><i class="fa-solid fa-comment-dots" aria-hidden="true"></i><span>AI 코디 채팅</span><span class="outfit-chat-chevron" aria-hidden="true">▴</span></summary>
     <div class="outfit-chat-body" aria-labelledby="outfit-chat-launcher">
-      <p class="outfit-chat-privacy">조건 해석과 음성 전사를 위해 입력 내용과 녹음은 Google Gemini로 전송될 수 있어요.</p>
+      <p class="outfit-chat-privacy">채팅 답변을 위해 최근 대화와 현재 룩북 요약, 음성 전사를 위해 녹음이 Google Gemini로 전송될 수 있어요.</p>
       <div id="outfit-chat-log" class="outfit-chat-log" role="log" aria-label="코디 대화" tabindex="0"></div>
       <div id="outfit-chat-examples" class="outfit-chat-actions">
         <button type="button" data-prompt="내일 서울에서 면접 코디 추천해줘">내일 면접 코디</button>
@@ -1230,7 +1230,7 @@
     <div id="catalogTab" class="tab-pane">
       <section class="closet-list-card">
         <h2>추천의상</h2>
-        <p style="color:var(--text-muted);font-size:.88rem;margin:8px 0;">상품을 찜하려면 무신사에서 찜을 누른 뒤 상품 페이지에서 ♡ 좋아요를 눌러주세요.</p>
+        <p style="color:var(--text-muted);font-size:.88rem;margin:8px 0;">무신사에서 ♡ 좋아요를 누른 뒤 이 화면에서 찜 완료를 기록할 수 있어요.</p>
         <label>추천의상 필터 <select id="catalog-filter" class="city-select" onchange="filterCatalog(this.value)"><option value="all">전체</option><option value="men">남성</option><option value="women">여성</option><option value="outer">아우터</option><option value="top">상의</option><option value="bottom">하의</option><option value="shoes">신발</option></select></label>
         <label>코디 종류 <select id="catalog-occasion" class="city-select" onchange="catalogVisibleLimit=60;renderPublicCatalog()"><option value="all">모든 종류</option></select></label>
         <form id="catalog-search-form" class="catalog-search-form" role="search">
@@ -1246,7 +1246,7 @@
     <div id="favoritesTab" class="tab-pane">
       <section class="closet-list-card" aria-labelledby="favorites-title">
         <h2 id="favorites-title">찜 목록</h2>
-        <p class="favorites-note">찜한 코디는 이 브라우저에 저장돼요. 상품은 무신사에서 좋아요를 눌러주세요.</p>
+        <p class="favorites-note">코디 찜과 직접 기록한 무신사 상품 찜을 이 브라우저에 저장해요. 상품의 실제 좋아요 상태는 무신사에서 확인해 주세요.</p>
         <p class="favorites-note" id="favorites-empty">아직 찜한 코디가 없어요. 룩북에서 코디 찜을 눌러 저장해 보세요.</p>
         <div class="favorites-list" id="favorites-list"></div>
       </section>
@@ -2424,7 +2424,7 @@
     }
     function catalogRetailerLink(item){
       const url=/^https:\/\/www\.musinsa\.com\/products\/[1-9]\d*$/.test(item.sourceUrl||'')?item.sourceUrl:null;
-      return url?'<a class="retailer-favorite-link" href="'+url+'" target="_blank" rel="noopener noreferrer" aria-label="'+escapeHtml(item.name)+' 무신사에서 찜 (새 탭)">무신사에서 찜 ↗</a>':'상품 링크 없음';
+      return url?'<a class="retailer-favorite-link" href="'+url+'" target="_blank" rel="noopener noreferrer" aria-label="'+escapeHtml(item.name)+' 무신사에서 찜 (새 탭)">무신사에서 찜 ↗</a><button class="retailer-record-button" type="button" aria-pressed="false" data-like-record="'+Number(item.id)+'">찜 완료 기록</button>':'상품 링크 없음';
     }
     function renderPublicCatalog() {
       const ownedIds=new Set(closetItems.map(item=>item.sourceCatalogId).filter(Boolean));
@@ -2577,7 +2577,7 @@
   </script>
   <script type="module" src="/assets/cloud.js?v=outfit-chat"></script>
   <script type="module" src="/assets/runtime-pipeline-autoplay.js"></script>
-  <script type="module" src="/assets/outfit-chat.js?v=musinsa-like"></script>
-  <script type="module" src="/assets/favorites.js?v=musinsa-like"></script>
+  <script type="module" src="/assets/outfit-chat.js?v=chat-replies"></script>
+  <script type="module" src="/assets/favorites.js?v=like-records"></script>
 </body>
 </html>

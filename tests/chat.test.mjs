@@ -100,3 +100,31 @@ test('missing key, empty audio transcription and Google quota failures retain te
  });
  assert.equal((await quota(audioRequest(),path,user,reply)).status,429);
 });
+
+test('Gemini can answer naturally with bounded dialogue and grounded lookbook context',async()=>{
+ const run=createChatHandler({
+  env:{GEMINI_API_KEY:'test'},
+  fetchImpl:async (url,options)=>{
+   const payload=JSON.parse(options.body);
+   const {history,current,context}=JSON.parse(payload.contents[0].parts[0].text);
+   assert.deepEqual(history.map(turn=>turn.text),['면접 코디','검정 하의는 빼고','이 조합이 나왔어요.']);
+   assert.equal(current,'내일 · 서울 · 면접 · 12°C');
+   assert.deepEqual(context,{occasion:'interview'});
+   return Response.json({candidates:[{content:{parts:[{text:JSON.stringify({
+    action:'respond',reply:'내일 서울은 12°C라 겉옷을 포함한 조합이 나왔어요.'
+   })}]}}]});
+  }
+ });
+ const request=new Request('https://test.invalid/chat/interpret',{method:'POST',body:JSON.stringify({
+  message:'왜 이걸 골랐어?',context:{occasion:'interview',reply:'hidden',favoriteQuery:'ignored'},
+  lookbook:'내일 · 서울 · 면접 · 12°C',
+  history:[{role:'user',text:'오래된 내용'}, {role:'system',text:'unsupported'}, {role:'user',text:'면접 코디'},
+   {role:'user',text:'검정 하의는 빼고'},{role:'assistant',text:'이 조합이 나왔어요.'}]
+ })});
+ const result=await run(request,'/chat/interpret','user',reply);
+ assert.deepEqual(result,{status:200,data:{source:'gemini',intent:{action:'respond',reply:'내일 서울은 12°C라 겉옷을 포함한 조합이 나왔어요.'}}});
+ assert.deepEqual(validateChatIntent({action:'respond',reply:'https://example.invalid',favoriteTarget:'outfit'}),{action:'respond'});
+ assert.deepEqual(validateChatIntent({action:'favorite',favoriteTarget:'product',favoriteQuery:'검정 로퍼'}),{
+  action:'favorite',favoriteTarget:'product',favoriteQuery:'검정 로퍼'
+ });
+});

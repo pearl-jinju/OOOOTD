@@ -12,6 +12,7 @@ const mic=$('outfit-chat-mic');
 const engine=window.ooootdOutfitChat;
 let context={},controller=null,recording=null,openingMic=false,revision=0;
 let pendingFavorite=null;
+let dialogue=[];
 
 function element(tag,value){
  const node=document.createElement(tag);
@@ -21,6 +22,10 @@ function element(tag,value){
 function message(value,who='코디 챗봇'){
  const entry=element('article');
  entry.append(element('strong',who),element('p',value));
+ if(who!=='나'){
+  dialogue.push({role:'assistant',text:value.slice(0,400)});
+  dialogue=dialogue.slice(-6);
+ }
  log.append(entry);
  while(log.children.length>16)log.firstElementChild.remove();
  log.scrollTop=log.scrollHeight;
@@ -66,11 +71,20 @@ function outfitFavoriteResult(result){
  const row=actions(message(result.label+' · '+text));
  button(row,'OOOOTD 코디 찜 목록',()=>openTab('favoritesTab','favorites-title'));
 }
+function productRecordButton(row,item){
+ const record=element('button','찜 완료 기록');
+ record.type='button';
+ record.dataset.likeRecord=String(item.id);
+ record.setAttribute('aria-pressed','false');
+ row.append(record);
+ window.ooootdFavorites?.refreshProductRecords();
+}
 function showRetailerProduct(item){
  const url=retailerProductUrl(item.sourceUrl);
  if(!url){message('무신사 상품 링크를 확인할 수 없어요.');return}
  const row=actions(message(item.name+' · 무신사 상품 페이지에서 로그인한 뒤 ♡ 좋아요를 눌러주세요.'));
  retailerLink(row,'무신사에서 찜 ↗',url);
+ productRecordButton(row,item);
 }
 function chooseRetailerProduct(query){
  const found=window.ooootdFavorites.searchProducts(query);
@@ -181,7 +195,10 @@ function renderProducts(result,conditions){
    (Number.isFinite(observed.valueOf())?' · '+observed.toLocaleDateString('ko-KR')+' 확인':'')));
   const row=actions(card);
   const url=retailerProductUrl(item.sourceUrl);
-  if(url)retailerLink(row,'무신사에서 찜 ↗',url);
+  if(url){
+   retailerLink(row,'무신사에서 찜 ↗',url);
+   productRecordButton(row,item);
+  }
   button(row,'이 상품으로 코디',()=>{
    execute({action:'recommend'},{conditions:{...conditions,mode:conditions.mode==='catalog'?'catalog':'mixed'},productId:item.id,productName:item.name});
   });
@@ -208,15 +225,35 @@ async function execute(patch,options={}){
   if(!patch){
    const request=window.ooootdChatRequest;
    if(!request)throw Error('옷장에 연결 중이에요. 잠시 뒤 다시 시도해주세요.');
-   const result=await request('/chat/interpret',{message:options.text,context},task.signal);
+   const look=engine.result();
+   const lookbook=look.hasOutfit?[look.conditions,look.weather,look.reason].filter(Boolean).join(' · '):'';
+   const result=await request('/chat/interpret',{message:options.text,context,history:options.history,lookbook},task.signal);
    patch=result.intent;
    status.textContent=result.source==='local'?'기본 한국어 해석을 사용 중이에요.':'';
   }
   if(task.signal.aborted)return;
   if(!patch?.action)throw Error('질문을 해석하지 못했어요. 다시 시도해주세요.');
   if(patch.action==='help'){help();return}
-  if(patch.action==='clarify'){
-   message('오늘·내일과 서울·부산·인천·대구·대전·광주·제주를 지원해요. 상황을 함께 알려주세요. 상품을 찾는다면 품목과 예산을 적어주세요.');
+  if(patch.action==='clarify'||patch.action==='respond'){
+   message(patch.reply||'어떤 상황에 입을 코디인지 알려주실래요? 예를 들면 출근, 면접, 여행처럼요.');
+   return;
+  }
+  if(patch.action==='favorite'){
+   if(!window.ooootdFavorites){message('찜 기능을 불러오는 중이에요. 잠시 후 다시 시도해주세요.');return}
+   if(patch.favoriteTarget==='product'&&patch.favoriteQuery){
+    chooseRetailerProduct(patch.favoriteQuery);
+   }else if(patch.favoriteTarget==='outfit'){
+    const row=actions(message('현재 룩북 코디를 OOOOTD 찜 목록에 저장할까요?'));
+    const current=window.ooootdFavoriteData.current();
+    button(row,'현재 코디 찜',()=>{
+     const latest=window.ooootdFavoriteData.current();
+     if(!current||JSON.stringify(current)!==JSON.stringify(latest)){message('코디가 달라졌어요. 현재 룩북을 확인한 뒤 다시 요청해주세요.');return}
+     outfitFavoriteResult(window.ooootdFavorites.addCurrent());
+    });
+   }else{
+    pendingFavorite={};
+    message('어떤 상품을 찜하고 싶으세요? 상품명을 알려주세요.');
+   }
    return;
   }
   const conditions=merge(patch,options.conditions??context);
@@ -252,12 +289,14 @@ form.addEventListener('submit',event=>{
  event.preventDefault();
  const text=input.value.trim();
  if(!text||controller||recording||openingMic)return;
+ const history=dialogue.slice(-4);
+ dialogue=[...dialogue,{role:'user',text}].slice(-6);
  message(text,'나');
  input.value='';
  status.textContent='';
  if(handleFavorite(text))return;
  status.textContent='코디 요청을 확인 중이에요.';
- execute(null,{text});
+ execute(null,{text,history});
 });
 $('outfit-chat-examples').addEventListener('click',event=>{
  const example=event.target.closest('button[data-prompt]');
@@ -360,6 +399,7 @@ function reset(){
  recording=null;
  context={};
  pendingFavorite=null;
+ dialogue=[];
  input.value='';
  status.textContent='';
  log.replaceChildren();

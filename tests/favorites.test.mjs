@@ -70,3 +70,18 @@ test('new products can only be liked on Musinsa',()=>{
  assert.match(result.error,/무신사/);
  assert.deepEqual(readFavorites(storage),[]);
 });
+
+test('self-reported Musinsa likes use one local record and keep their validated product link',()=>{
+ const storage=browserStorage();
+ const old={type:'product',id:10,key:'product:10'};
+ const reported={...old,reportedLiked:true,name:'검정 로퍼',sourceUrl:'https://www.musinsa.com/products/10'};
+ storage.setItem('ooootd_favorites_v1',JSON.stringify([old]));
+ const upgraded=updateFavorites(storage,readFavorites(storage),reported,{addOnly:true});
+ assert.equal(upgraded.favorites.length,1);
+ assert.equal(upgraded.removed,false);
+ assert.equal(readFavorites(storage)[0].sourceUrl,reported.sourceUrl);
+ assert.equal(updateFavorites(storage,upgraded.favorites,reported,{addOnly:true}).alreadySaved,true);
+ assert.equal(updateFavorites(storage,readFavorites(storage),old.key).removed,true);
+ assert.deepEqual(readFavorites(storage),[]);
+ assert.ok(updateFavorites(storage,[],{...reported,sourceUrl:'https://www.musinsa.com.evil.test/products/10'}).error);
+});
