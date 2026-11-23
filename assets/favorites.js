@@ -1,3 +1,5 @@
+import {findFavoriteProducts,retailerProductUrl} from './favorite-commands.js';
+
 const STORAGE_KEY='ooootd_favorites_v1';
 const ITEM_LIMIT=100;
 const categories={outer:'아우터',top:'상의',bottom:'하의',shoes:'신발'};
@@ -30,11 +32,12 @@ export function readFavorites(storage){
   return [...new Map(value.slice(0,ITEM_LIMIT).map(normalize).filter(Boolean).map(item=>[item.key,item])).values()];
  }catch{return []}
 }
-export function updateFavorites(storage,favorites,value){
+export function updateFavorites(storage,favorites,value,{addOnly=false}={}){
  const favorite=typeof value==='string'?null:normalize(value);
  const key=typeof value==='string'?value:favorite?.key;
  if(!key)return {favorites,error:'찜할 항목을 확인하지 못했어요.'};
  const exists=favorites.some(item=>item.key===key);
+ if(exists&&addOnly)return {favorites,alreadySaved:true};
  if(!exists&&!favorite)return {favorites};
  if(!exists&&favorites.length>=ITEM_LIMIT)return {favorites,error:'찜은 최대 100개까지 저장할 수 있어요. 목록에서 항목을 지운 뒤 다시 시도해주세요.'};
  const next=exists?favorites.filter(item=>item.key!==key):[favorite,...favorites];
@@ -42,7 +45,6 @@ export function updateFavorites(storage,favorites,value){
  catch{return {favorites,error:'찜 목록을 저장하지 못했어요. 브라우저 저장 설정을 확인해주세요.'}}
 }
 
-const merchantUrl=value=>/^https:\/\/www\.musinsa\.com\/products\/\d+$/.test(value||'')?value:null;
 export function canShowOutfitItem(item,signedIn){
  return signedIn||!['bottom','shoes'].includes(item.category);
 }
@@ -78,6 +80,13 @@ function initFavorites(){
    image.loading='lazy';
    parent.append(image);
   }catch{}
+ }
+ function addRetailerLink(parent,item){
+  const url=retailerProductUrl(item?.sourceUrl);
+  if(!url)return;
+  const link=node('a','무신사에서 보기 ↗');
+  Object.assign(link,{href:url,target:'_blank',rel:'noopener noreferrer'});
+  parent.append(link);
  }
  function setButton(button,selected,label){
   button.setAttribute('aria-pressed',String(selected));
@@ -121,12 +130,7 @@ function initFavorites(){
      addImage(card,item);
      const price=Number.isSafeInteger(item.price)&&item.price>0?item.price.toLocaleString('ko-KR')+'원 · 수집가':'가격 확인 필요';
      card.append(node('p',price));
-     const url=merchantUrl(item.sourceUrl);
-     if(url){
-      const link=node('a','무신사에서 보기 ↗');
-      Object.assign(link,{href:url,target:'_blank',rel:'noopener noreferrer'});
-      card.append(link);
-     }
+     addRetailerLink(card,item);
     }else card.append(node('p','현재 추천의상 목록에서 찾을 수 없어요.'));
    }else{
     card.append(node('h3',favorite.title));
@@ -140,6 +144,7 @@ function initFavorites(){
       const item=(ref.owned?closet:products).get(ref.id);
       if(item)addImage(tile,item);
       tile.append(node('p',item?.name||category+' · 정보 없음'));
+      if(item&&!ref.owned)addRetailerLink(tile,item);
      }
      grid.append(tile);
     }
@@ -151,7 +156,7 @@ function initFavorites(){
    remove.setAttribute('aria-label',card.firstChild.textContent+' 찜 해제');
    remove.addEventListener('click',()=>{
     const adjacent=card.nextElementSibling||card.previousElementSibling;
-    if(change(favorite.key))list.querySelectorAll('article').forEach(element=>{
+    if(!change(favorite.key).error)list.querySelectorAll('article').forEach(element=>{
      if(element.dataset.favoriteKey===adjacent?.dataset.favoriteKey)element.querySelector('button').focus();
     });
     if(!list.children.length)byId('favorites-tab-button').focus();
@@ -160,14 +165,14 @@ function initFavorites(){
    list.append(card);
   }
  }
- function change(item){
-  const result=updateFavorites(storage,readFavorites(storage),item);
-  if(result.error){say(result.error);return false}
+ function change(item,options){
+  const result=updateFavorites(storage,readFavorites(storage),item,options);
+  if(result.error){say(result.error);return result}
   favorites=result.favorites;
   keys=new Set(favorites.map(item=>item.key));
-  say(result.removed?'찜을 해제했어요.':'찜 목록에 저장했어요.');
+  if(!result.alreadySaved)say(result.removed?'찜을 해제했어요.':'찜 목록에 저장했어요.');
   markCurrent();markCatalog();render();
-  return true;
+  return result;
  }
  outfitButton.addEventListener('click',()=>{
   const current=data.current();
@@ -184,7 +189,22 @@ function initFavorites(){
   markCurrent();markCatalog();render();
  });
  window.addEventListener('ooootd-account-changed',render);
- window.ooootdFavorites={outfitChanged:markCurrent,catalogChanged(){markCatalog();render()},open:render};
+ window.ooootdFavorites={
+  outfitChanged:markCurrent,catalogChanged(){markCatalog();render()},open:render,
+  searchProducts:query=>findFavoriteProducts(data.catalog(),query),
+  addCurrent(){
+   const current=data.current();
+   if(!current)return {error:'지금 룩북에 찜할 코디가 없어요. 먼저 코디를 추천받아 주세요.'};
+   return {...change({type:'outfit',...current},{addOnly:true}),label:current.title};
+  },
+  addProduct(id){
+   const item=data.catalog().find(item=>item.id===id);
+   if(!item||!retailerProductUrl(item.sourceUrl)||item.availability==='sold_out'){
+    return {error:'이 상품은 현재 무신사 판매 링크를 확인할 수 없어요. 다른 상품을 골라주세요.'};
+   }
+   return {...change({type:'product',id},{addOnly:true}),label:item.name,url:retailerProductUrl(item.sourceUrl)};
+  }
+ };
  markCurrent();markCatalog();render();
 }
 

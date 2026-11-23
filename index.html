@@ -839,6 +839,7 @@
         <button type="button" data-prompt="내일 서울에서 면접 코디 추천해줘">내일 면접 코디</button>
         <button type="button" data-prompt="내 옷만 써서 출근룩 추천해줘">내 옷으로 출근룩</button>
         <button type="button" data-prompt="비 오는 날 신을 신발 5만 원 안에서 찾아줘">5만 원 이하 비 오는 날 신발</button>
+        <button type="button" data-prompt="지금 코디 찜해 줘">지금 코디 찜</button>
         <button type="button" data-prompt="사용법">사용법</button>
       </div>
       <form id="outfit-chat-form">
@@ -2421,6 +2422,11 @@
     function filterCatalog(filter) {
       currentCatalogFilter=filter; catalogVisibleLimit=60; renderPublicCatalog();
     }
+    function catalogProductName(item){
+      const name=escapeHtml(item.name);
+      const url=/^https:\/\/www\.musinsa\.com\/products\/[1-9]\d*$/.test(item.sourceUrl||'')?item.sourceUrl:null;
+      return url?'<a href="'+url+'" target="_blank" rel="noopener noreferrer">'+name+' <span aria-hidden="true">↗</span></a>':name;
+    }
     function renderPublicCatalog() {
       const ownedIds=new Set(closetItems.map(item=>item.sourceCatalogId).filter(Boolean));
       const available=CATALOG_ITEMS.filter(item=>!ownedIds.has(item.id));
@@ -2434,7 +2440,7 @@
       const more=document.getElementById('catalog-load-more');
       if(more)more.hidden=catalogVisibleLimit>=filtered.length;
       const body=document.getElementById('catalog-table-body');
-      body.innerHTML=filtered.length?filtered.slice(0,catalogVisibleLimit).map(item=>'<tr><td><img src="'+escapeHtml(item.image)+'" class="table-thumb" alt="'+escapeHtml(item.name)+'" loading="lazy"></td><td>'+CATEGORY_NAMES[item.category]+'</td><td>'+OOOOTD_RULES.genderLabel(item)+'</td><td>'+escapeHtml(item.name)+'</td><td>'+COLOR_LABELS[item.color]+' · '+(SEASON_LABELS[item.season]||item.season)+'</td><td><button class="favorite-toggle" type="button" aria-pressed="false" aria-label="'+escapeHtml(item.name)+' 찜하기" data-favorite-product="'+Number(item.id)+'" data-favorite-name="'+escapeHtml(item.name)+'"><span aria-hidden="true">♡</span></button></td></tr>').join(''):'<tr><td colspan="6">해당 조건의 추천의상이 없습니다.</td></tr>';
+      body.innerHTML=filtered.length?filtered.slice(0,catalogVisibleLimit).map(item=>'<tr><td><img src="'+escapeHtml(item.image)+'" class="table-thumb" alt="'+escapeHtml(item.name)+'" loading="lazy"></td><td>'+CATEGORY_NAMES[item.category]+'</td><td>'+OOOOTD_RULES.genderLabel(item)+'</td><td>'+catalogProductName(item)+'</td><td>'+COLOR_LABELS[item.color]+' · '+(SEASON_LABELS[item.season]||item.season)+'</td><td><button class="favorite-toggle" type="button" aria-pressed="false" aria-label="'+escapeHtml(item.name)+' 찜하기" data-favorite-product="'+Number(item.id)+'" data-favorite-name="'+escapeHtml(item.name)+'"><span aria-hidden="true">♡</span></button></td></tr>').join(''):'<tr><td colspan="6">해당 조건의 추천의상이 없습니다.</td></tr>';
       window.ooootdFavorites?.catalogChanged();
     }
 
@@ -2572,7 +2578,7 @@
   </script>
   <script type="module" src="/assets/cloud.js?v=outfit-chat"></script>
   <script type="module" src="/assets/runtime-pipeline-autoplay.js"></script>
-  <script type="module" src="/assets/outfit-chat.js?v=floating"></script>
-  <script type="module" src="/assets/favorites.js"></script>
+  <script type="module" src="/assets/outfit-chat.js?v=voice-favorites"></script>
+  <script type="module" src="/assets/favorites.js?v=voice-favorites"></script>
 </body>
 </html>

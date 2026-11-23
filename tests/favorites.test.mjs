@@ -47,3 +47,14 @@ test('damaged data and storage denial do not create favorites',()=>{
  assert.match(result.error,/저장 설정/);
  assert.match(updateFavorites(storage,current,{type:'product',id:'10'}).error,/확인/);
 });
+
+test('adding through chat is idempotent while a second click can still remove the item',()=>{
+ const storage=browserStorage();
+ const product={type:'product',id:10};
+ const added=updateFavorites(storage,[],product,{addOnly:true});
+ const repeated=updateFavorites(storage,added.favorites,product,{addOnly:true});
+ assert.equal(repeated.alreadySaved,true);
+ assert.equal(repeated.favorites.length,1);
+ assert.equal(updateFavorites(storage,repeated.favorites,product).removed,true);
+ assert.equal(readFavorites(storage).length,0);
+});
