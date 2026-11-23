@@ -94,7 +94,9 @@ export function interpretLocally(message,lastReplacementCategory){
  }
  else if(color)patch.preferColor=color;
  patch.include=named(/([\p{L}\p{N} ()+-]{2,64}?)(?:은|는|을|를)?\s*(?:고정|넣어|포함|꼭 입)/u);
- if((replacing||repeat||category&&/밝게|어둡게|차분하게|톤\s*다운|편하게|단정하게|격식\s*있게|(?:으)?로[.!]?$/.test(message))&&category&&!/구매|찾아줘|날씨|코디\s*전체/.test(message)){
+ const scopedStyle=category&&!(excluding&&/(?:빼|제외해)고\s+/.test(message))&&
+  /밝게|어둡게|차분하게|톤\s*다운|편하게|단정하게|격식\s*있게|(?:으)?로[.!]?$/.test(message);
+ if((replacing||repeat||scopedStyle)&&category&&!/구매|찾아줘|날씨|코디\s*전체/.test(message)){
   if(uniqueCategories.length>1){
    if(replacing&&!color&&!excluding&&!patch.budget&&!patch.tone){
     return validateChatIntent({action:'replace',edits:uniqueCategories.map(category=>({category,style:patch.style}))});
