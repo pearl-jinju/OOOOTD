@@ -128,3 +128,12 @@ test('Gemini can answer naturally with bounded dialogue and grounded lookbook co
   action:'favorite',favoriteTarget:'product',favoriteQuery:'검정 로퍼'
  });
 });
+
+test('specific garment replacement accepts natural category, color, type, budget and follow-up',()=>{
+ assert.deepEqual(interpretLocally('상의바꿔줘'),{action:'replace',category:'top'});
+ assert.deepEqual(interpretLocally('신발 바꿔줘'),{action:'replace',category:'shoes'});
+ assert.deepEqual(interpretLocally('흰색 상의로 교체해 줘'),{action:'replace',category:'top',preferColor:'white'});
+ assert.deepEqual(interpretLocally('신발을 5만 원 이하 로퍼로 바꿔줘'),{action:'replace',category:'shoes',include:'로퍼',budget:50000});
+ assert.deepEqual(interpretLocally('그거 말고 다른 걸로','shoes'),{action:'replace',category:'shoes'});
+ assert.equal(interpretLocally('상의하고 신발 바꿔 줘').action,'clarify');
+});

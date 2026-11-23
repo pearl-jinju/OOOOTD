@@ -236,7 +236,7 @@ async function execute(patch,options={}){
    if(!request)throw Error('옷장에 연결 중이에요. 잠시 뒤 다시 시도해주세요.');
    const look=engine.result();
    const lookbook=look.hasOutfit?[look.conditions,look.weather,look.reason].filter(Boolean).join(' · '):'';
-   const result=await request('/chat/interpret',{message:options.text,context,history:options.history,lookbook},task.signal);
+   const result=await request('/chat/interpret',{message:options.text,context,history:options.history,lookbook,lastReplacementCategory:look.lastReplacementCategory},task.signal);
    patch=result.intent;
    status.textContent=result.source==='local'?'기본 한국어 해석을 사용 중이에요.':'';
   }
@@ -266,6 +266,18 @@ async function execute(patch,options={}){
     pendingFavorite={};
     message('어떤 상품을 찜하고 싶으세요? 상품명을 알려주세요.');
    }
+   return;
+  }
+  if(patch.action==='replace'){
+   const result=await engine.apply(patch,{action:'replace',signal:task.signal});
+   if(task.signal.aborted)return;
+   if(result.error){message(result.error);return}
+   const {label,previous,current}=result.replacement;
+   const detail=current?label+'만 바꿨어요. '+previous+' → '+current:
+    label+'만 바꿨어요. 로그인하면 바뀐 의상을 룩북에서 확인할 수 있어요.';
+   const row=actions(message(detail));
+   button(row,'룩북 보기',()=>openTab('recommendTab','lookbook-day-title'));
+   button(row,'다른 '+label+'으로 바꾸기',()=>execute(patch));
    return;
   }
   const conditions=merge(patch,options.conditions??context);

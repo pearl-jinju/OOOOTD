@@ -130,3 +130,36 @@ test('chat keeps strict owned mode, budgets and selected catalog products in the
   if(recommendationMode!=='mixed'||!rankedCombos.length)throw Error('normal auto-supplement was not restored');
  })()`,c);
 });
+
+test('single garment replacement changes the displayed lookbook and preserves other items, pins and budgets',async()=>{
+ const c=context();
+ await vm.runInContext(`(async()=>{
+  forecastDay='tomorrow';
+  currentWeather={temp:26,code:0,date:'2026-11-24'};
+  const fixture=[
+   {id:501,category:'top',name:'티셔츠 A',color:'white',price:22000},
+   {id:502,category:'top',name:'티셔츠 B',color:'black',price:26000},
+   {id:503,category:'bottom',name:'면바지',color:'navy',price:20000},
+   {id:504,category:'shoes',name:'검정 스니커즈',color:'black',price:23000},
+   {id:505,category:'shoes',name:'흰색 스니커즈',color:'white',price:45000}
+  ].map(item=>({gender:'men',season:'hot',occasion:'daily',...item}));
+  CATALOG_ITEMS=fixture;
+  selectRecommendationMode('catalog');
+  const first=selectedLookbookItems();
+  const firstTop=first.find(item=>item.category==='top');
+  const wanted=fixture.find(item=>item.category==='top'&&item.id!==firstTop.id);
+  const result=await applyOutfitChat({category:'top',preferColor:wanted.color},{action:'replace'});
+  if(result.replacement?.current!==wanted.name)throw Error('did not use requested top');
+  const after=selectedLookbookItems();
+  if(after.some(item=>item.category!=='top'&&item!==first.find(base=>base.category===item.category)))throw Error('replaced a second item');
+  const currentShoes=after.find(item=>item.category==='shoes');
+  pinnedGarments.set('shoes',currentShoes);
+  if(!(await applyOutfitChat({category:'shoes'},{action:'replace'})).error)throw Error('replaced a pinned item');
+  pinnedGarments.delete('shoes');
+  if(!(await applyOutfitChat({category:'shoes',budget:1},{action:'replace'})).error||selectedLookbookItems()!==after)throw Error('violated budget or discarded the current selection');
+  if(!(await applyOutfitChat({category:'shoes'},{action:'replace'})).replacement)throw Error('shoe replacement failed');
+  if(selectedLookbookItems().find(item=>item.category==='top')?.id!==wanted.id)throw Error('lost previous top replacement');
+  restoreOriginalCombo();
+  if(selectedLookbookItems()!==first)throw Error('restore did not recover the original selection');
+ })()`,c);
+});
