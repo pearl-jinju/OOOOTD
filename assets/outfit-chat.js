@@ -272,12 +272,17 @@ async function execute(patch,options={}){
    const result=await engine.apply(patch,{action:'replace',signal:task.signal});
    if(task.signal.aborted)return;
    if(result.error){message(result.error);return}
-   const {label,previous,current}=result.replacement;
-   const detail=current?label+'만 바꿨어요. '+previous+' → '+current:
-    label+'만 바꿨어요. 로그인하면 바뀐 의상을 룩북에서 확인할 수 있어요.';
-   const row=actions(message(detail));
+   const details=result.replacements.map(({label,operation,previous,current})=>{
+    if(operation==='remove')return label+'을(를) 뺐어요.';
+    if(operation==='add')return label+'을(를) 추가했어요. '+current;
+    return current?label+' · '+previous+' → '+current:
+     label+'을(를) 바꿨어요. 로그인하면 바뀐 의상을 확인할 수 있어요.';
+   });
+   const row=actions(message(details.join('\n')));
    button(row,'룩북 보기',()=>openTab('recommendTab','lookbook-day-title'));
-   button(row,'다른 '+label+'으로 바꾸기',()=>execute(patch));
+   if(result.replacements.length===1&&result.replacement.operation==='replace'){
+    button(row,'다른 '+result.replacement.label+'으로 바꾸기',()=>execute(patch));
+   }
    return;
   }
   const conditions=merge(patch,options.conditions??context);

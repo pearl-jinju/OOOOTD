@@ -1538,8 +1538,8 @@
       document.getElementById('restore-combo-btn').hidden = !displayedAlternative;
       const status = document.getElementById('similar-combo-status');
       status.hidden = !displayedAlternative;
-      if(displayedAlternative?.replacementCategory){
-        status.textContent=chatCategoryLabels[displayedAlternative.replacementCategory]+'만 바꿨어요.';
+      if(displayedAlternative?.adjustedCategories){
+        status.textContent=displayedAlternative.adjustedCategories.map(category=>chatCategoryLabels[category]).join('·')+'에 요청한 조정을 적용했어요.';
       }else if (displayedAlternative) {
         const changed = displayedAlternative.items.filter((item, i) => item.id !== similarAnchor.items[i].id).length;
         status.textContent = '원래 코디의 색감·옷 종류·계절을 우선해 ' + changed + '개 아이템을 바꿨어요. 비슷한 조합 ' +
@@ -1785,10 +1785,11 @@
     function chatStyleBonus(item,conditions=chatConditions){
       if(!conditions)return 0;
       const color=conditions.preferColor===item.color?12:0;
+      const tone=conditions.tone&&matchesLookbookTone(item,conditions.tone)?10:0;
       const name=item.name||'';
       const comfortable=/스니커즈|운동화|레귤러|와이드|밴딩|신축|스웨트|스판|스트레치/i;
       const formal=/블레이저|슬랙스|로퍼|셔츠|재킷|자켓|정장/i;
-      return color+(conditions.style==='comfortable'&&comfortable.test(name)||
+      return color+tone+(conditions.style==='comfortable'&&comfortable.test(name)||
         conditions.style==='formal'&&formal.test(name)?9:0);
     }
     function clearOutfitChat(){
@@ -1821,41 +1822,85 @@
         (chatPrice(a)-chatPrice(b)||a.id-b.id):Number.isFinite(chatPrice(a))?-1:1).slice(0,4);
       return {...chatResult(),products};
     }
+    const lookbookTones={
+      light:['white','beige','sky','pink','yellow'],dark:['black','navy','brown','burgundy'],
+      neutral:['white','black','grey','beige','navy','brown']
+    };
+    function matchesLookbookTone(item,tone){
+      return !tone||lookbookTones[tone]?.includes(item.color);
+    }
     function replaceLookbookItem(request){
-      const category=request.category;
-      if(!Object.hasOwn(chatCategoryLabels,category))return {error:'어떤 품목을 바꿀까요? 상의, 하의, 신발, 아우터 중에서 골라 주세요.'};
-      const label=chatCategoryLabels[category];
+      const edits=Array.isArray(request.edits)&&request.edits.length?request.edits:[request];
+      const categories=edits.map(edit=>edit.category);
+      if(categories.some(category=>!Object.hasOwn(chatCategoryLabels,category))||new Set(categories).size!==categories.length){
+        return {error:'바꿀 품목을 상의, 하의, 신발, 아우터 중에서 알려주세요.'};
+      }
       const current=displayedAlternative||rankedCombos[currentRankIndex];
       if(!current)return {error:'현재 룩북에 코디가 없어요. 먼저 코디를 추천받아 주세요.'};
-      const original=current.items.find(item=>item.category===category);
-      if(!original)return {error:'현재 룩북에 '+label+'이(가) 들어 있지 않아요.'};
-      if(pinnedGarments.has(category)||chatItem?.category===category)return {error:label+'이(가) 고정돼 있어요. 고정을 해제한 뒤 다시 요청해주세요.'};
-      const nameContains=(item,value)=>!value||chatName(item.name).includes(chatName(value));
+      const source=outfitPool();
       const outerPolicy=getOuterPolicy();
-      const options=outfitPool().filter(item=>item.category===category&&
-        !sameGarment(item,original)&&isEligibleOutfitItem(item)&&item.availability!=='sold_out'&&
-        (!request.preferColor||item.color===request.preferColor)&&item.color!==request.avoidColor&&
-        nameContains(item,request.include)&&(!request.exclude||!nameContains(item,request.exclude)))
-        .map(item=>{
-          const items=current.items.map(previous=>previous.category===category?item:previous);
-          const score=scoreOutfit(items,outerPolicy);
-          return {item,...score,replacementScore:score.totalScore+chatStyleBonus(item,request)};
-        })
-        .filter(option=>chatBudgetAllows(option.items)&&(!request.budget||
-          chatCost(request.budgetScope==='outfit'?option.items:[option.item])<=request.budget))
-        .sort((a,b)=>b.replacementScore-a.replacementScore||a.item.id-b.item.id);
-      if(!options.length){
-        const scope=recommendationMode==='owned'?'내 옷장':'현재 추천 범위';
-        return {error:scope+'에서 요청한 조건으로 바꿀 '+label+'을(를) 찾지 못했어요. 색상이나 예산을 바꿔 보세요.'};
+      const nameContains=(item,value)=>!value||chatName(item.name).includes(chatName(value));
+      const withItem=(items,category,item)=>items.some(old=>old.category===category)?
+        items.flatMap(old=>old.category!==category?[old]:item?[item]:[]):[...items,item];
+      const changes=[];
+      let items=current.items;
+      for(const edit of edits){
+        const {category}=edit;
+        const operation=edit.operation||'replace';
+        const label=chatCategoryLabels[category];
+        const original=current.items.find(item=>item.category===category);
+        if(pinnedGarments.has(category)||chatItem?.category===category)return {error:label+'이(가) 고정돼 있어요. 고정을 해제한 뒤 다시 요청해주세요.'};
+        if(operation==='remove'){
+          if(!original)return {error:'현재 룩북에 '+label+'이(가) 없어요.'};
+          if(getRequiredCategories().includes(category))return {error:'현재 날씨와 용도에 '+label+'이(가) 필요해요. 다른 '+label+'으로 바꿀 수 있어요.'};
+          items=withItem(items,category,null);
+          changes.push({category,operation,original,selected:null});
+          continue;
+        }
+        if(operation==='add'&&(category!=='outer'||outerPolicy==='omit'||original)){
+          return {error:original?'현재 룩북에 이미 '+label+'이(가) 있어요.':'현재 날씨와 용도에는 아우터를 추가할 수 없어요.'};
+        }
+        if(operation==='replace'&&!original)return {error:'현재 룩북에 '+label+'이(가) 들어 있지 않아요.'};
+        const tried=edits.length===1&&current.replacementCategory===category?(current.triedReplacements||[]):original?[original]:[];
+        const candidates=operation==='add'&&recommendationMode==='mixed'&&!source.some(item=>item.category===category)?
+          availableRecommendedClothes():source;
+        const options=candidates.filter(item=>item.category===category&&
+          !sameGarment(item,original)&&isEligibleOutfitItem(item)&&item.availability!=='sold_out'&&
+          (!edit.preferColor||item.color===edit.preferColor)&&item.color!==edit.avoidColor&&matchesLookbookTone(item,edit.tone)&&
+          nameContains(item,edit.include)&&(!edit.exclude||!nameContains(item,edit.exclude))&&
+          (!edit.budget||edit.budgetScope==='outfit'||chatCost([item])<=edit.budget))
+          .map(item=>({item,score:scoreOutfit(withItem(items,category,item),outerPolicy).totalScore+chatStyleBonus(item,edit)}))
+          .sort((a,b)=>b.score-a.score||a.item.id-b.item.id);
+        if(!options.length)return {error:'현재 추천 범위에서 '+label+'에 맞는 후보가 없어요. 다른 조건으로 요청해 주세요.'};
+        const selected=(options.find(option=>!tried.some(item=>sameGarment(item,option.item)))||options[0]).item;
+        const cheapest=options.reduce((best,option)=>chatItemCost(option.item)<chatItemCost(best)?option.item:best,selected);
+        items=withItem(items,category,selected);
+        changes.push({category,operation,original,selected,cheapest,tried});
       }
-      const tried=current.replacementCategory===category?[...current.triedReplacements]:[original];
-      const next=options.find(option=>!tried.some(item=>sameGarment(item,option.item)))||options[0];
-      const history=tried.some(item=>sameGarment(item,next.item))?[original,next.item]:[...tried,next.item];
+      const budgetAllows=outfit=>chatBudgetAllows(outfit)&&
+        [request,...edits].every(edit=>!edit.budget||edit.budgetScope!=='outfit'||chatCost(outfit)<=edit.budget);
+      if(!budgetAllows(items)){
+        for(const change of changes){
+          if(!change.selected)continue;
+          change.selected=change.cheapest;
+          items=withItem(items,change.category,change.selected);
+        }
+        if(!budgetAllows(items))return {error:'전체 예산 안에서 요청한 조정을 적용할 수 없어요.'};
+      }
+      const repeated=changes.length===1?changes[0]:null;
+      const replacementCategory=repeated?.operation==='replace'?repeated.category:undefined;
+      const tried=repeated?.tried||[];
+      const triedReplacements=replacementCategory?
+        (tried.some(item=>sameGarment(item,repeated.selected))?[repeated.original,repeated.selected]:[...tried,repeated.selected]):[];
       resetSimilarCombos();
-      displayedAlternative={...next,replacementCategory:category,triedReplacements:history};
+      displayedAlternative={...scoreOutfit(items,outerPolicy),replacementCategory,triedReplacements,adjustedCategories:categories};
       renderComboAtCurrentRank();
-      const visible=window.ooootdFavoriteData.visibleLookbookItems().some(item=>item.category===category);
-      return {...chatResult(),replacement:{label,previous:visible?original.name:null,current:visible?next.item.name:null}};
+      const preview=forecastDay==='today'&&document.getElementById('account-sign-out').hidden;
+      const replacements=changes.map(({category,operation,original,selected})=>{
+        const visible=!preview||!['bottom','shoes'].includes(category);
+        return {label:chatCategoryLabels[category],operation,previous:visible?original?.name:null,current:visible?selected?.name:null};
+      });
+      return {...chatResult(),replacement:replacements[0],replacements};
     }
     async function applyOutfitChat(conditions,{action='recommend',signal,productId}={}){
       if(action==='replace')return replaceLookbookItem(conditions);
@@ -2624,7 +2669,7 @@
   </script>
   <script type="module" src="/assets/cloud.js?v=outfit-chat"></script>
   <script type="module" src="/assets/runtime-pipeline-autoplay.js"></script>
-  <script type="module" src="/assets/outfit-chat.js?v=item-replacement"></script>
+  <script type="module" src="/assets/outfit-chat.js?v=lookbook-adjustments"></script>
   <script type="module" src="/assets/favorites.js?v=lookbook-items"></script>
 </body>
 </html>

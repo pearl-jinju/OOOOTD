@@ -135,5 +135,22 @@ test('specific garment replacement accepts natural category, color, type, budget
  assert.deepEqual(interpretLocally('흰색 상의로 교체해 줘'),{action:'replace',category:'top',preferColor:'white'});
  assert.deepEqual(interpretLocally('신발을 5만 원 이하 로퍼로 바꿔줘'),{action:'replace',category:'shoes',include:'로퍼',budget:50000});
  assert.deepEqual(interpretLocally('그거 말고 다른 걸로','shoes'),{action:'replace',category:'shoes'});
- assert.equal(interpretLocally('상의하고 신발 바꿔 줘').action,'clarify');
+ assert.deepEqual(interpretLocally('상의하고 신발 바꿔 줘'),{action:'replace',edits:[{category:'top'},{category:'shoes'}]});
+});
+
+test('each requested garment keeps its own style and color, including optional outer actions',()=>{
+ assert.deepEqual(interpretLocally('상의는 밝게, 신발은 편하게'),{action:'replace',edits:[
+  {category:'top',tone:'light'},{category:'shoes',style:'comfortable'}
+ ]});
+ assert.deepEqual(interpretLocally('상의는 흰색으로 신발은 편하게'),{action:'replace',edits:[
+  {category:'top',preferColor:'white'},{category:'shoes',style:'comfortable'}
+ ]});
+ assert.deepEqual(interpretLocally('위에 좀 환하게, 발은 편한 거'),{action:'replace',edits:[
+  {category:'top',tone:'light'},{category:'shoes',style:'comfortable'}
+ ]});
+ assert.deepEqual(interpretLocally('상의 바까줘'),{action:'replace',category:'top'});
+ assert.deepEqual(interpretLocally('겉옷만 빼 줘'),{action:'replace',category:'outer',operation:'remove'});
+ assert.deepEqual(interpretLocally('아우터 추가해 줘'),{action:'replace',category:'outer',operation:'add'});
+ assert.deepEqual(validateChatIntent({action:'replace',edits:[{category:'top',tone:'light',id:10},{category:'shoes',style:'comfortable'}]}),
+  {action:'replace',edits:[{category:'top',tone:'light'},{category:'shoes',style:'comfortable'}]});
 });

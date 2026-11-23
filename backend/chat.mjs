@@ -9,11 +9,16 @@ const enums={
  day:['today','tomorrow'],city:Object.values(cities),occasion:OCCASIONS.map(o=>o.id),
  mode:['owned','mixed','catalog'],category:Object.values(categories),
  preferColor:Object.keys(CLOTHING_COLORS),avoidColor:Object.keys(CLOTHING_COLORS),
- avoidCategory:Object.values(categories),style:['comfortable','formal'],budgetScope:['item','outfit']
+ avoidCategory:Object.values(categories),style:['comfortable','formal'],tone:['light','dark','neutral'],operation:['replace','add','remove'],budgetScope:['item','outfit']
 };
 const properties=Object.fromEntries(Object.entries(enums).map(([key,values])=>[key,{type:'string',enum:values}]));
 for(const key of ['include','exclude','favoriteQuery','reply'])properties[key]={type:'string'};
 properties.budget={type:'integer',minimum:1000,maximum:10000000};
+const editFields=['category','operation','preferColor','avoidColor','style','tone','include','exclude','budget','budgetScope'];
+properties.edits={
+ type:'array',minItems:1,maxItems:4,
+ items:{type:'object',properties:Object.fromEntries(editFields.map(key=>[key,properties[key]])),required:['category'],additionalProperties:false}
+};
 
 export function validateChatIntent(input){
  const output={};
@@ -25,6 +30,10 @@ export function validateChatIntent(input){
  }
  if(Number.isSafeInteger(input.budget)&&input.budget>=1000&&input.budget<=10000000)output.budget=input.budget;
  if(!output.avoidColor)delete output.avoidCategory;
+ if(output.action==='replace'&&Array.isArray(input.edits)&&input.edits.length>0&&input.edits.length<=4){
+  const edits=input.edits.map(edit=>validateChatIntent(Object.fromEntries(editFields.map(key=>[key,edit?.[key]]))));
+  if(edits.every(edit=>edit.category)&&new Set(edits.map(edit=>edit.category)).size===edits.length)output.edits=edits;
+ }
  if(output.action!=='favorite'){delete output.favoriteTarget;delete output.favoriteQuery}
  if(['respond','clarify'].includes(output.action)&&typeof input.reply==='string'){
   const reply=input.reply.replace(/[\u0000-\u001f]+/g,' ').trim();
@@ -34,17 +43,35 @@ export function validateChatIntent(input){
 }
 
 export function interpretLocally(message,lastReplacementCategory){
+ message=message.normalize('NFKC').trim()
+  .replace(/(^|[\s,])(?:윗옷|웃옷|위에)(?=\s|은|는|만|을|를)/g,'$1상의')
+  .replace(/(^|[\s,])(?:발|신는\s*거)(?=\s|은|는|만|을|를)/g,'$1신발')
+  .replace(/환하게|화사하게/g,'밝게').replace(/편한\s*(?:걸|거)(?:로)?/g,'편하게')
+  .replace(/바까|바꿔ㅈ/g,'바꿔').replace(/말구/g,'말고');
  if(/모레|어제|다음\s*주|이번\s*주말|수원|울산|세종|창원|청주|강릉|해외/.test(message))return {action:'clarify'};
  const patch={};
  const colorAliases={검정:'black',검은:'black',블랙:'black',흰색:'white',흰:'white',하얀:'white',화이트:'white',회색:'grey',그레이:'grey',네이비:'navy',베이지:'beige',파랑:'blue',파란:'blue',빨강:'red',갈색:'brown'};
  const color=Object.entries(colorAliases).find(([label])=>message.includes(label))?.[1];
- const namedCategories=Object.entries(categories).filter(([label])=>message.includes(label)).map(([,id])=>id);
+ const editCommand=/바꿔|바꾸|교체|갈아|밝게|어둡게|차분하게|톤\s*다운|편하게|단정하게|격식\s*있게|빼|빼고|추가|걸쳐|겹쳐|(?:으)?로$/;
+ const parts=message.split(/[,，;]|(?:고|면서)\s+(?=(?:상의|하의|신발|아우터|겉옷))|\s+(?=(?:상의|하의|신발|아우터|겉옷)(?:은|는|만|을|를))/).map(part=>part.trim()).filter(Boolean);
+ const namedCategories=Object.entries({...categories,겉옷:'outer'}).filter(([label])=>message.includes(label)).map(([,id])=>id);
+ const uniqueCategories=[...new Set(namedCategories)];
+ if(uniqueCategories.length>1&&parts.length>1&&editCommand.test(message)){
+  const edits=parts.map(part=>interpretLocally(editCommand.test(part)?part:part+' 바꿔줘'));
+  if(edits.every(part=>part.action==='replace'&&part.category)&&new Set(edits.map(part=>part.category)).size===edits.length)
+   return validateChatIntent({action:'replace',edits});
+ }
  const garmentTypes={outer:/코트|재킷|자켓|패딩|가디건/,top:/티셔츠|셔츠|니트|블라우스|맨투맨/,bottom:/바지|스커트|슬랙스|데님/,shoes:/운동화|장화|부츠|로퍼|스니커즈|샌들|구두/};
  const garmentCategory=Object.keys(garmentTypes).find(key=>garmentTypes[key].test(message));
  const repeat=!namedCategories.length&&!garmentCategory&&/^(?:그거\s*말고|또\s*다른\s*(?:걸로|거)|다른\s*(?:걸로|거로)\s*바꿔)/.test(message);
  const category=namedCategories[0]||garmentCategory||(repeat&&enums.category.includes(lastReplacementCategory)?lastReplacementCategory:undefined);
  const replacing=/바꿔|바꾸|바꿀|교체|갈아\s*입|갈아\s*신|다른\s*(?:상의|하의|신발|아우터|바지)/.test(message);
  const excluding=/빼|제외|피해/.test(message);
+ const outerChange=category==='outer'&&/^(?:(?:지금|오늘|이)\s*)?(?:아우터|겉옷)(?:은|는|을|만)?\s*(?:빼(?:\s*줘|주세요|고)?|없애(?:\s*줘|주세요)?|제외(?:해\s*(?:줘|주세요))?|추가(?:해\s*(?:줘|주세요))?|걸쳐(?:\s*줘|주세요)?|겹쳐(?:\s*줘|주세요)?)[.!]?$/.test(message);
+ if(outerChange)return {action:'replace',category:'outer',operation:excluding||/없애/.test(message)?'remove':'add'};
+ if(/밝게|밝은|연한|라이트/.test(message))patch.tone='light';
+ else if(/어둡게|어두운|톤\s*다운|짙은/.test(message))patch.tone='dark';
+ else if(/차분|무채색|중성톤/.test(message))patch.tone='neutral';
  const named=(pattern)=>message.match(pattern)?.[1]?.trim();
  const man=message.match(/(\d+(?:\.\d+)?)\s*만\s*원/);
  const won=message.match(/([\d,]+)\s*원/);
@@ -67,8 +94,13 @@ export function interpretLocally(message,lastReplacementCategory){
  }
  else if(color)patch.preferColor=color;
  patch.include=named(/([\p{L}\p{N} ()+-]{2,64}?)(?:은|는|을|를)?\s*(?:고정|넣어|포함|꼭 입)/u);
- if((replacing||repeat)&&category&&!/구매|찾아줘|날씨|코디\s*전체/.test(message)){
-  if(namedCategories.length>1)return {action:'clarify',reply:'어느 품목부터 바꿔볼까요? 상의, 하의, 아우터, 신발 중 하나를 골라 주세요.'};
+ if((replacing||repeat||category&&/밝게|어둡게|차분하게|톤\s*다운|편하게|단정하게|격식\s*있게|(?:으)?로[.!]?$/.test(message))&&category&&!/구매|찾아줘|날씨|코디\s*전체/.test(message)){
+  if(uniqueCategories.length>1){
+   if(replacing&&!color&&!excluding&&!patch.budget&&!patch.tone){
+    return validateChatIntent({action:'replace',edits:uniqueCategories.map(category=>({category,style:patch.style}))});
+   }
+   return {action:'clarify',reply:'품목마다 어떤 조건을 원하세요? 예를 들면 “상의는 흰색, 신발은 편하게”처럼요.'};
+  }
   const garment=message.match(garmentTypes[category])?.[0];
   if(garment&&new RegExp(garment+'(?:으)?로').test(message))patch.include=garment;
   if(patch.budget&&/전체|총\s*예산|합계/.test(message))patch.budgetScope='outfit';
@@ -176,7 +208,7 @@ export function createChatHandler({env=process.env,fetchImpl=fetch,clock=Date.no
       systemInstruction:{parts:[{text:[
        'OOOOTD의 대화형 한국어 스타일 상담원이다. 편안하고 간결한 말투로 대화한다. 응답은 지정된 JSON 스키마를 따른다.',
        '현재 요청과 대화 이력을 참고한다. 이번에 바뀐 조건만 추출한다. “아까 거”, “좀 더 차분하게” 같이 이어지는 짧은 말도 앞선 맥락에서 해석한다.',
-       '추천 실행은 recommend, 상품 찾기는 shop, 다른/유사 코디는 next/similar, 사이트 조작 안내는 help를 사용한다. 현재 코디에서 상의, 하의, 신발, 아우터 한 품목만 바꾸는 요청은 replace와 category를 사용한다. “검정 신발로 바꿔 줘”의 색상은 preferColor, “로퍼로 교체해 줘”의 유형은 include, 편한 신발 요청은 style로 넘긴다. 해당 품목의 예산은 budget으로 넣고, 전체 코디 예산을 따로 말한 경우에만 budgetScope를 outfit으로 설정한다. 피하고 싶은 조건은 avoidColor와 exclude에 담는다. “그거 말고”처럼 직전 교체를 이어가는 요청은 lastReplacementCategory를 참고한다. 여러 품목을 한꺼번에 바꾸려는 요청은 clarify로 먼저 바꿀 품목을 묻는다.',
+       '추천 실행은 recommend, 상품 찾기는 shop, 다른/유사 코디는 next/similar, 사이트 조작 안내는 help를 사용한다. 현재 코디에서 상의, 하의, 신발, 아우터 한 품목만 바꾸는 요청은 replace와 category를 사용한다. “검정 신발로 바꿔 줘”의 색상은 preferColor, “로퍼로 교체해 줘”의 유형은 include, 편한 신발 요청은 style로 넘긴다. 해당 품목의 예산은 budget으로 넣고, 전체 코디 예산을 따로 말한 경우에만 budgetScope를 outfit으로 설정한다. 피하고 싶은 조건은 avoidColor와 exclude에 담는다. “그거 말고”처럼 직전 교체를 이어가는 요청은 lastReplacementCategory를 참고한다. 한 문장에 별도 조건이 붙은 여러 품목은 replace와 edits 배열로 각각 추출한다. 겉옷만 빼거나 추가하라는 요청은 category outer와 operation remove 또는 add다. ‘밝게’, ‘어둡게’, ‘차분하게’는 구체적 색 이름을 추측하지 말고 tone light, dark, neutral로 처리한다. ‘위에 좀 환하게, 발은 편한 거’는 상의를 밝은 톤으로, 신발을 편한 스타일로 바꾸는 요청이다. 띄어쓰기, 가벼운 오타, 생략, 구어체를 유연하게 읽는다. 변경할 품목이 문맥상 명확하면 사용자가 공식 분류를 말하지 않아도 실행을 제안하고, 서로 다른 해석으로 변경 결과가 달라질 때만 한 가지 짧게 묻는다.',
        '인사나 스타일 상담, 코디 이유를 묻는 요청은 respond와 reply로 자연스럽게 답한다. 필요한 조건이 모호하면 clarify와 reply로 한 가지만 묻는다. 추천 실행이 명확하면 화면의 기본 날짜와 지역을 사용할 수 있다.',
        '날씨, 화면 이유, 보유품, 상품, 가격과 재고는 지어내지 않는다. 화면 상태가 전달되면 그 근거에 한해 답한다. 일반적인 스타일 팁은 개인 옷장과 무관한 조언으로 표현한다.',
        '찜 의도가 명확하면 favorite를 제안한다. 현재 화면의 코디 한 벌을 저장하면 favoriteTarget은 outfit, 룩북 전체나 화면에 보이는 의상/상품을 전부 담는 요청이면 lookbookItems, 단일 상품이면 product로 하고 favoriteQuery에 검색할 이름만 넣는다. 찜 해제·가능 여부·방법 문의는 저장을 요청하지 않는다.',

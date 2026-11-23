@@ -163,3 +163,30 @@ test('single garment replacement changes the displayed lookbook and preserves ot
   if(selectedLookbookItems()!==first)throw Error('restore did not recover the original selection');
  })()`,c);
 });
+
+test('multi-item adjustments apply together and respect locked outerwear rules',async()=>{
+ const c=context();
+ await vm.runInContext(`(async()=>{
+  forecastDay='tomorrow';
+  currentWeather={temp:18,code:0,date:'2026-11-24'};
+  const item=(id,category,name,color,price)=>({id,category,name,color,price,gender:'men',season:'mild',occasion:'daily'});
+  const top=item(601,'top','검정 티셔츠','black',20000);
+  const light=item(602,'top','밝은 면 셔츠','white',21000);
+  const pants=item(603,'bottom','면바지','navy',16000);
+  const boots=item(604,'shoes','짙은 부츠','black',30000);
+  const sneaker=item(605,'shoes','편한 스니커즈','white',31000);
+  const outer=item(606,'outer','가벼운 린넨 재킷','beige',35000);
+  CATALOG_ITEMS=[top,light,pants,boots,sneaker,outer];
+  requestedRecommendationMode=recommendationMode='catalog';
+  rankedCombos=[{items:[top,pants,boots]}];
+  const edits=[{category:'top',tone:'light'},{category:'shoes',style:'comfortable'}];
+  pinnedGarments.set('shoes',boots);
+  if(!(await applyOutfitChat({edits},{action:'replace'})).error||selectedLookbookItems()[0]!==top)throw Error('partial update when a requested item is locked');
+  pinnedGarments.delete('shoes');
+  const result=await applyOutfitChat({edits},{action:'replace'});
+  if(result.replacements?.length!==2||selectedLookbookItems().map(item=>item.id).join()!=='602,603,605')throw Error('did not apply both scoped edits');
+  if(!(await applyOutfitChat({category:'outer',operation:'add'},{action:'replace'})).replacement||!selectedLookbookItems().some(item=>item.id===606))throw Error('optional outerwear was not added');
+  if(!(await applyOutfitChat({category:'outer',operation:'remove'},{action:'replace'})).replacement||selectedLookbookItems().some(item=>item.category==='outer'))throw Error('optional outerwear was not removed');
+  if(!(await applyOutfitChat({category:'top',operation:'remove'},{action:'replace'})).error)throw Error('removed a required garment');
+ })()`,c);
+});
