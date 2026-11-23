@@ -6,6 +6,7 @@ const colors={
 const normalized=value=>String(value??'').normalize('NFKC').toLowerCase().replace(/[^\p{L}\p{N}]/gu,'');
 const current=/^(?:지금|현재|이|오늘|추천한|방금\s*추천한)?\s*(?:코디|룩북|조합)$/;
 const generic=/^(?:이|그|해당)?\s*(?:상품|옷|제품|항목)$/;
+const wholeLookbook=/(?:룩북|코디|조합|화면|카드).*(?:전체|전부|모두|\s다$)|(?:전체|전부|모두).*룩북|(?:룩북|코디|화면|카드)\s*(?:에\s*보이는\s*)?(?:상품|물품|의상|옷)(?:들)?$/;
 
 export function parseFavoriteCommand(message){
  const value=String(message??'').normalize('NFKC').trim();
@@ -21,6 +22,7 @@ export function parseFavoriteCommand(message){
  if(!add)return null;
  const target=add[1].trim().replace(/(?:을|를)$/, '').trim();
  if(/무신사(?:에서|에)\s*$/.test(target))return {action:'retailer',query:target.replace(/무신사(?:에서|에)\s*$/,'').trim().replace(/(?:을|를)$/,'').trim()};
+ if(wholeLookbook.test(target))return {action:'add',target:'lookbookItems'};
  if(current.test(target))return {action:'add',target:'outfit'};
  if(!target||generic.test(target))return {action:'add'};
  return {action:'add',target:'product',query:target.replace(/^무신사\s+/,'')};

@@ -71,6 +71,14 @@ function outfitFavoriteResult(result){
  const row=actions(message(result.label+' · '+text));
  button(row,'OOOOTD 코디 찜 목록',()=>openTab('favoritesTab','favorites-title'));
 }
+function lookbookItemsResult(){
+ const result=window.ooootdFavorites.addLookbookItems();
+ if(result.error){message(result.error);return}
+ const added=result.added?'룩북에 보이는 의상 '+result.added+'개를 찜 목록에 담았어요.':'룩북에 보이는 의상이 이미 찜 목록에 있어요.';
+ const detail=result.added&&result.existing?' 이미 담긴 '+result.existing+'개는 그대로 두었어요.':'';
+ const row=actions(message(added+detail));
+ button(row,'찜 목록 열기',()=>openTab('favoritesTab','favorites-title'));
+}
 function productRecordButton(row,item){
  const record=element('button','찜 완료 기록');
  record.type='button';
@@ -114,13 +122,14 @@ function handleFavorite(text){
   if(command.action==='list'||command.action==='info'){
    const row=actions(message(command.action==='list'?
     '상품 좋아요는 무신사에서 확인할 수 있어요. OOOOTD에서 저장한 코디는 아래 목록을 열어주세요.':
-    '“검정 로퍼 찜해 줘”라고 하면 무신사 상품으로 연결해 드려요. “지금 코디 찜해 줘”는 OOOOTD에 코디를 저장해요.'));
+    '“검정 로퍼 찜해 줘”라고 하면 무신사 상품으로 연결해 드려요. “지금 룩북 전체 찜해 줘”는 화면의 의상을 하나씩 찜 목록에 담아요.'));
    retailerLink(row,'무신사 열기 ↗',MUSINSA_HOME);
    button(row,'OOOOTD 코디 찜 목록',()=>openTab('favoritesTab','favorites-title'));
   }else if(command.action==='retailer'){
    if(command.query)chooseRetailerProduct(command.query);
    else retailerLink(actions(message('무신사에서 상품을 찾고 직접 ♡ 좋아요를 눌러주세요.')),'무신사 열기 ↗',MUSINSA_HOME);
   }else if(command.action==='remove')outfitFavoriteResult(favorites.removeCurrent());
+  else if(command.target==='lookbookItems')lookbookItemsResult();
   else if(command.target==='outfit')outfitFavoriteResult(favorites.addCurrent());
   else if(command.target==='product')chooseRetailerProduct(command.query);
   else{
@@ -242,6 +251,9 @@ async function execute(patch,options={}){
    if(!window.ooootdFavorites){message('찜 기능을 불러오는 중이에요. 잠시 후 다시 시도해주세요.');return}
    if(patch.favoriteTarget==='product'&&patch.favoriteQuery){
     chooseRetailerProduct(patch.favoriteQuery);
+   }else if(patch.favoriteTarget==='lookbookItems'){
+    const row=actions(message('지금 룩북에 보이는 상품과 내 옷을 각각 찜 목록에 담을까요?'));
+    button(row,'룩북 전체 찜',lookbookItemsResult);
    }else if(patch.favoriteTarget==='outfit'){
     const row=actions(message('현재 룩북 코디를 OOOOTD 찜 목록에 저장할까요?'));
     const current=window.ooootdFavoriteData.current();

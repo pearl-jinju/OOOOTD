@@ -827,7 +827,7 @@
   <link rel="stylesheet" href="/assets/runtime-pipeline.css">
   <link rel="stylesheet" href="/assets/mascot-layout.css">
   <link rel="stylesheet" href="/assets/outfit-chat.css?v=floating">
-  <link rel="stylesheet" href="/assets/favorites.css?v=like-records">
+  <link rel="stylesheet" href="/assets/favorites.css?v=lookbook-items">
 </head>
 <body>
   <details class="outfit-chat" id="outfit-chat">
@@ -839,7 +839,7 @@
         <button type="button" data-prompt="내일 서울에서 면접 코디 추천해줘">내일 면접 코디</button>
         <button type="button" data-prompt="내 옷만 써서 출근룩 추천해줘">내 옷으로 출근룩</button>
         <button type="button" data-prompt="비 오는 날 신을 신발 5만 원 안에서 찾아줘">5만 원 이하 비 오는 날 신발</button>
-        <button type="button" data-prompt="지금 코디 찜해 줘">지금 코디 찜</button>
+        <button type="button" data-prompt="지금 룩북 전체 찜해 줘">룩북 전체 찜</button>
         <button type="button" data-prompt="사용법">사용법</button>
       </div>
       <form id="outfit-chat-form">
@@ -1135,6 +1135,7 @@
             </div>
 
 
+            <button class="btn-icon favorite-lookbook-items" id="favorite-lookbook-items" type="button" data-html2canvas-ignore="true" disabled>룩북 전체 찜</button>
             <div class="ai-tryon-board lookbook-board-purchases">
               <div class="lookbook-item" id="lookbook-outer">
                 <span class="lookbook-tag">아우터</span>
@@ -1246,8 +1247,8 @@
     <div id="favoritesTab" class="tab-pane">
       <section class="closet-list-card" aria-labelledby="favorites-title">
         <h2 id="favorites-title">찜 목록</h2>
-        <p class="favorites-note">코디 찜과 직접 기록한 무신사 상품 찜을 이 브라우저에 저장해요. 상품의 실제 좋아요 상태는 무신사에서 확인해 주세요.</p>
-        <p class="favorites-note" id="favorites-empty">아직 찜한 코디가 없어요. 룩북에서 코디 찜을 눌러 저장해 보세요.</p>
+        <p class="favorites-note">코디와 룩북에서 담은 의상은 이 브라우저에 저장돼요. 무신사 상품의 실제 좋아요 상태는 무신사에서 확인해 주세요.</p>
+        <p class="favorites-note" id="favorites-empty">아직 찜한 코디나 의상이 없어요. 룩북에서 코디 찜 또는 룩북 전체 찜을 눌러 보세요.</p>
         <div class="favorites-list" id="favorites-list"></div>
       </section>
     </div>
@@ -2165,12 +2166,19 @@
       }
     }
 
+    function selectedLookbookItems(){
+      return (displayedAlternative||rankedCombos[currentRankIndex])?.items||[];
+    }
     window.ooootdFavoriteData={
       owner:()=>chatClosetOwner,
       closet:()=>closetItems,
       catalog:()=>CATALOG_ITEMS,
+      visibleLookbookItems:()=>{
+        const preview=forecastDay==='today'&&document.getElementById('account-sign-out').hidden;
+        return selectedLookbookItems().filter(item=>!preview||!['bottom','shoes'].includes(item.category));
+      },
       current:()=>{
-        const items=(displayedAlternative||rankedCombos[currentRankIndex])?.items;
+        const items=selectedLookbookItems();
         if(!items?.length||items.some(item=>item.isOwned&&!chatClosetOwner))return null;
         const occasion=OCCASIONS.find(item=>item.id===currentOccasion)?.name||'코디';
         return {owner:chatClosetOwner,title:CITY_COORDS[currentCity].name+' · '+occasion,
@@ -2577,7 +2585,7 @@
   </script>
   <script type="module" src="/assets/cloud.js?v=outfit-chat"></script>
   <script type="module" src="/assets/runtime-pipeline-autoplay.js"></script>
-  <script type="module" src="/assets/outfit-chat.js?v=chat-replies"></script>
-  <script type="module" src="/assets/favorites.js?v=like-records"></script>
+  <script type="module" src="/assets/outfit-chat.js?v=lookbook-items"></script>
+  <script type="module" src="/assets/favorites.js?v=lookbook-items"></script>
 </body>
 </html>

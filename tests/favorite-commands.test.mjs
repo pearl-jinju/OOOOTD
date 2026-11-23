@@ -31,3 +31,11 @@ test('catalog matching prefers exact names and rejects invalid links or known so
  assert.equal(retailerProductUrl('https://www.musinsa.com/products/11?redirect=external'),null);
  assert.match(retailerSearchUrl('로퍼&next=example'),/^https:\/\/www\.musinsa\.com\/search\/goods\?keyword=[^&]+$/);
 });
+
+test('whole lookbook language is distinct from one outfit or one named product',()=>{
+ assert.deepEqual(parseFavoriteCommand('지금 룩북 전체 찜해줘'),{action:'add',target:'lookbookItems'});
+ assert.deepEqual(parseFavoriteCommand('이 룩북에 보이는 상품들을 찜해 줘'),{action:'add',target:'lookbookItems'});
+ assert.deepEqual(parseFavoriteCommand('지금 룩북 전체를 찜 목록에 넣어 줘'),{action:'add',target:'lookbookItems'});
+ assert.deepEqual(parseFavoriteCommand('지금 룩북 찜해 줘'),{action:'add',target:'outfit'});
+ assert.deepEqual(parseFavoriteCommand('검정 로퍼 찜해 줘'),{action:'add',target:'product',query:'검정 로퍼'});
+});

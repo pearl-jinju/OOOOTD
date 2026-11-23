@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {canShowOutfitItem,outfitFavoriteKey,productFavoriteKey,readFavorites,updateFavorites} from '../assets/favorites.js';
+import {canShowOutfitItem,outfitFavoriteKey,productFavoriteKey,readFavorites,saveLookbookItems,updateFavorites} from '../assets/favorites.js';
 
 function browserStorage(){
  let value=null;
@@ -84,4 +84,23 @@ test('self-reported Musinsa likes use one local record and keep their validated 
  assert.equal(updateFavorites(storage,readFavorites(storage),old.key).removed,true);
  assert.deepEqual(readFavorites(storage),[]);
  assert.ok(updateFavorites(storage,[],{...reported,sourceUrl:'https://www.musinsa.com.evil.test/products/10'}).error);
+});
+
+test('lookbook batches keep individual product and closet entries exactly once',()=>{
+ const storage=browserStorage();
+ const stock={id:10,name:'검정 로퍼',category:'shoes',sourceUrl:'https://www.musinsa.com/products/888'};
+ const owned={id:10,category:'top',isOwned:true,name:'개인 셔츠',image:'https://private.invalid/?token=123'};
+ const wrong={...stock,id:99,sourceUrl:'https://example.invalid/products/99'};
+ const first=saveLookbookItems(storage,[],[stock,owned,stock,wrong],'device:owner');
+ assert.equal(first.added,3);
+ const saved=readFavorites(storage);
+ assert.deepEqual(saved.map(item=>item.type),['product','garment','product']);
+ assert.equal(saved[2].sourceUrl,null);
+ assert.equal(saved[0].sourceUrl,stock.sourceUrl);
+ assert.equal(saved[0].reportedLiked,false);
+ assert.equal(storage.getItem().includes(owned.name),false);
+ assert.equal(storage.getItem().includes('token'),false);
+ assert.equal(saveLookbookItems(storage,saved,[stock,owned],'device:owner').added,0);
+ assert.equal(updateFavorites(storage,saved,saved[0].key).removed,true);
+ assert.equal(readFavorites(storage)[0].key,saved[1].key);
 });
